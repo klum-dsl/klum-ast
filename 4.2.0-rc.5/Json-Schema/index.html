@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Schema generation — KlumAST 4.2.0-rc.5</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-4.2-header-optical.svg" alt="KlumAST Season 4.2 — Struct/YAML and Groovy peers at a shared portal"></a>
+    <span class="version-badge">4.2.0-rc.5 · Public release candidate</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="./">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="./">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Tips and Tricks</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="public-rc">4.2.0-rc.5 is a prerelease, not stable. <a href="../status/">Version status</a>.</aside>
+      <h1 id="json-schema-generation">JSON Schema generation</h1>
+<p>The Schema Gradle plugin provides opt-in Draft 2020-12 JSON Schema generation for the admitted structured-input
+subset. Generation reflects compiled public Builder/Factory contracts and retained documentation without initializing
+or executing Schema code. Use matching plugin, compiler and runtime versions with generated input enrichment.</p>
+<p>Start with the <a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">Groovy/YAML adoption recipe</a>: caller code parses YAML,
+then <code>Service.Create.FromStruct(document)</code> constructs the Model through its ordinary lifecycle. Generate a schema from
+that same compiled Schema for editor feedback or an explicitly invoked validator. Neither generation nor <code>FromStruct</code>
+selects a parser, opens input files or automatically runs JSON Schema validation.</p>
+<h2 id="generating-files">Generating files</h2>
+<p>Apply <code>com.blackbuild.klum-ast-schema</code> as described in <a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a>. Select roots by fully qualified DSL Model binary name,
+consistent with GDSL export. <code>rootTypes</code> is a <code>SetProperty&lt;String&gt;</code>; use strings rather than class literals so build
+configuration does not load Model classes. Several roots are supported. The task resolves each Model name to its generated
+Builder contract internally and verifies the contract's Model identity through the shared internal input-contract resolver, without inspecting
+or initializing the Model implementation. Generated Builder names are rejected as root configuration values, with guidance
+to use the corresponding Model name.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'generate structural input schemas from explicit DSL Model roots with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">klumSchema.jsonSchema {
+    rootTypes.add('example.Service')
+}
+</code></pre>
+<p>Run <code>./gradlew generateKlumJsonSchema</code> explicitly. The task compiles local classes as needed and writes one file per selected root purpose
+below <code>build/generated/klum-json-schema</code>, for example <code>example.Service.schema.json</code>. The generated files use human-readable
+indentation for nested objects and arrays. The ordinary
+<code>assemble</code>, <code>check</code> and publication lifecycles do not select generation. Filenames retain the fully qualified Model
+name, so Models with identical simple names in different packages produce distinct files; no package directories are
+created. For the adoption example, associate <code>example.Service.schema.json</code> with <code>service.yaml</code> in your YAML editor. This
+self-contained document schema requires the external <code>service-id</code> key. If caller code supplies the root key separately,
+select the <a rel="nofollow" href="#caller-pre-keyed-builder-bodies">Builder-body schema</a> for that keyless input instead. Copying, packaging,
+publishing and editor association belong to the consumer; generation adds no artifact variant, classifier or automatic embedding.</p>
+<p>The classpath defaults to the main runtime classpath plus the convention's selected Groovy configuration. It includes
+local compiled classes, declared API/Schema dependencies, Klum runtime/annotation libraries and embedded documentation.
+Sources and IDE mirrors are not extraction inputs. For a binary-only root, declare its dependency normally or supply a
+complete, explicitly resolved classpath:</p>
+<pre><code class="language-groovy">configurations { schemaBinary }
+dependencies { schemaBinary 'org.example:deployment-schema:1.0' }
+klumSchema.jsonSchema {
+    rootTypes.add('example.Deployment')
+    classpath.setFrom(configurations.schemaBinary, configurations.runtimeClasspath, configurations.groovy)
+    outputDirectory.set(layout.buildDirectory.dir('generated/deployment-input-schema'))
+}
+</code></pre>
+<p>The isolated loader uses only the tool implementation and configured classpath. Missing roots, runtime dependencies or
+generated enrichment fail with root/classpath and recompile guidance; the Gradle daemon supplies no fallback classes.
+Use a dedicated output directory. Gradle fingerprints roots by purpose, full classpath bytes (including annotation/documentation
+changes), tool bytes/version and output location. Up-to-date, build-cache and configuration-cache reuse are supported.
+Successful regeneration removes files for deleted roots using its <code>.klum-json-schema-outputs</code> manifest, preserving
+unrelated files. It also removes earlier Builder-named files recorded in that manifest when Model-named files replace them;
+untracked files are preserved. Keep that manifest with the output directory. Contract/projection failure preserves the
+previous successful output; it must not be mistaken for a successful fresh generation. An empty selection across both root sets fails explicitly.</p>
+<h2 id="authoring-structured-yaml-in-an-editor">Authoring structured YAML in an editor</h2>
+<p>For a Model Writer authoring <a rel="nofollow" href="../Structured-Input/">structured input</a>, the generated Draft 2020-12 JSON Schema is
+editor/validator input for completion and structural diagnostics. After configuring <code>example.Deployment</code> as a root
+<a rel="nofollow" href="#generating-files">above</a>, run:</p>
+<pre><code class="language-shell">./gradlew generateKlumJsonSchema
+</code></pre>
+<p>The default output is <code>build/generated/klum-json-schema/example.Deployment.schema.json</code>. Normally regenerate it after
+Schema changes; generation, output distribution and editor association are consumer-managed.</p>
+<p>With <a rel="nofollow" href="https://github.com/redhat-developer/yaml-language-server#using-a-modeline">YAML Language Server</a>, including VS Code
+with the <a rel="nofollow" href="https://github.com/redhat-developer/vscode-yaml#associating-schemas">YAML extension</a>, add this comment at the top
+of <code>config/deployment.yaml</code>:</p>
+<pre><code class="language-yaml"># yaml-language-server: $schema=../build/generated/klum-json-schema/example.Deployment.schema.json
+</code></pre>
+<p>Relative modeline paths resolve from the YAML document. Here <code>config/</code> and <code>build/</code> are siblings under the project root.
+The comment is parser-inert: it does not enter the parsed Map. A literal top-level <code>$schema:</code> mapping entry is <strong>not a
+KlumAST input convention</strong>: it becomes input data seen by structured import and can be rejected as an unknown operation.</p>
+<p>Alternatively, configure the Language Server's <code>yaml.schemas</code> workspace setting. In a single-folder VS Code workspace
+opened at the project root, put this in <code>.vscode/settings.json</code> (merge it with existing settings):</p>
+<pre><code class="language-json">{
+  &quot;yaml.schemas&quot;: {
+    &quot;./build/generated/klum-json-schema/example.Deployment.schema.json&quot;: [&quot;config/deployment.yaml&quot;]
+  }
+}
+</code></pre>
+<p>This mapping leaves the YAML document untouched. Its relative schema path resolves from the workspace root; adapt the
+file patterns to your inputs. See <a rel="nofollow" href="https://github.com/redhat-developer/vscode-yaml#using-yamlschemas">workspace schema mappings</a>.</p>
+<p>In <a rel="nofollow" href="https://www.jetbrains.com/help/idea/json.html#ws_json_schema_add_custom">IntelliJ IDEA</a>, open <strong>Settings | Languages &amp;
+Frameworks | Schemas and DTDs | JSON Schema Mappings</strong>, add a mapping, select the generated schema file and Draft 2020-12,
+then associate the target YAML file or file pattern. The <a rel="nofollow" href="https://www.jetbrains.com/help/idea/yaml.html">YAML editor</a>
+uses that mapping for completion and inspections.</p>
+<p>JSON Schema validation is deliberately editor/consumer-owned. KlumAST <code>FromStruct</code> / <code>applyStruct</code> do <strong>not</strong> automatically
+validate against the generated schema and must remain independent of that validation. A consumer may explicitly validate
+parsed input before importing it if it wants that gate. Structural validation does not replace KlumAST construction or
+completed Model validation: structured import still invokes the admitted Builder language and normal construction
+lifecycle. See <a rel="nofollow" href="#runtime-order-and-failure">runtime order and failure</a> for limits that a schema cannot predict.</p>
+<h2 id="raw-input-field-presence">Raw-input field presence</h2>
+<p>Use <code>@Struct.Required</code> on an already admitted Schema field to require its resolved member name in generated JSON
+Schema. This is an explicit <strong>input member presence policy</strong> (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/1055">#1055</a>).
+It is independent of completed-Model <code>@Required</code> and Jakarta Bean Validation. Neither those constraints nor a default,
+initializer, Template or lifecycle callback implies raw-input presence.</p>
+<p>A domain annotation may carry the marker, including through another domain annotation. Direct and effective domain
+markers contribute the same field fact through Schema annotation composition; they add no runtime validator.</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+@Struct.Required
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.FIELD, ElementType.ANNOTATION_TYPE])
+@interface AuthorValue {}
+
+@DSL @Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+class AuthoringService {
+    @Struct.Required @Struct.Name('service-name') String serviceName = 'local'
+    @AuthorValue boolean publicAccess
+}
+
+// Both ordinary construction paths still accept omission:
+assert AuthoringService.Create.FromStruct([:]).serviceName == 'local'
+assert !AuthoringService.Create.With { }.publicAccess
+// Empty String and false are present values:
+assert AuthoringService.Create.FromStruct(['service-name': '', 'public-access': false]).serviceName == ''
+</code></pre>
+<p>The containing definition has <code>required: ['public-access', 'service-name']</code>. An external Draft 2020-12 validator rejects
+<code>{}</code> and accepts <code>{&quot;service-name&quot;: &quot;&quot;, &quot;public-access&quot;: false}</code>. <code>FromStruct</code> and active Builder <code>applyStruct</code> do not run
+that validator or enforce this presence policy. A consumer may explicitly validate parsed input before construction;
+its editor can report omission during authoring. Supplying null satisfies presence alone, but each unchanged property
+schema still determines whether null is allowed. This example's String and boolean properties reject null externally;
+normal Struct null admission and ordered execution remain unchanged.</p>
+<p>Inherited fields retain the declaring field's policy, including across compiled parent JARs. A descendant naming profile
+resolves native inherited names, while a nonempty <code>@Struct.Name</code> or compatible Jackson literal name wins. Only the final
+external token enters <code>required</code>; native aliases do not. Field shadowing remains rejected; there is no clear/override
+policy. Domain markers on Builder methods do not make operations required, and direct <code>@Struct.Required</code> cannot target
+a method, parameter or type. It does not admit a new field or operation grammar.</p>
+<p><code>@Struct.Ignore</code> and this marker conflict. Effective Jackson exclusion, Owner/key/transient/internal fields and other
+non-admitted declarations cannot produce phantom required properties. Compilation rejects invalid declarations;
+malformed or contradictory binary facts fail contract verification, including when an authored operation displaces the
+required field. Recompile the participating Schema artifacts rather than relying on an ignored declaration.</p>
+<p>Construction keys keep their separate identity rules. Self-contained roots, direct keyed children and keyed sequence
+items retain their required key; caller-pre-keyed Builder bodies and outer-keyed Map/fixed/derived child bodies omit that
+key. Field-presence requirements remain in either position. The containing object's array is the sorted, deduplicated
+union of its construction key (where applicable) and marked field tokens; an empty array is omitted.</p>
+<p>A marker on an owned relationship requires that member in its containing object. A marker inside the child requires only
+the child's field when that child body is supplied. It does not require an optional parent relationship. Requirements
+stay in each child's definition, including shared definitions; they add no collection cardinality, literal-alternative
+alias or Map data-key requirements. <code>ConstraintProjection.PROJECT</code>, <code>TEXT_ONLY</code> and <code>OMIT</code> do not suppress presence or
+alter its meaning. Defaults, lifecycle, Jackson mapping and runtime/Jakarta validation retain their existing behavior.</p>
+<p>Executable documentary coverage:
+<code>KlumJsonSchemaGenerationTest#'documents raw-input presence without enforcing import with Groovy #generation'</code>
+and its external Draft 2020-12 counterpart <code>validate_required_schema.py</code> cover the exact generated example with
+Groovy 3/4/5, omitted import/DSL/active Builder input, and external omission rejection. The Schema example uses an
+independently compiled domain annotation. See <a rel="nofollow" href="../Migration/#raw-input-presence-and-the-42-contract">recompilation guidance</a>.</p>
+<h2 id="zero-argument-commands">Zero-argument commands</h2>
+<p>Admitted <a rel="nofollow" href="../Structured-Input/#zero-argument-commands">zero-argument Builder commands</a> project as closed empty objects:</p>
+<pre><code class="language-json">{&quot;type&quot;: &quot;object&quot;, &quot;properties&quot;: {}, &quot;additionalProperties&quot;: false}
+</code></pre>
+<p>This accepts <code>{}</code> and rejects null, arrays, scalars and objects with members. The command is optional unless supplied;
+projection adds no default or implicit reset/clear behavior. Generation reads its exact compiled role/signature and retained
+prose without invoking the command or initializing the Schema. Inherited names and exclusions use the shared resolver.
+The packaged <code>CompiledConverterJsonSchemaTest</code> String/command matrix checks source-free parent/descendant artifacts
+produced with Groovy 3, 4 and 5, including throwing command-body and Schema-initialization controls.</p>
+<h2 id="type-naming-profiles">Type naming profiles</h2>
+<p>Schema <code>@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)</code> selects the same resolved member names used by
+<a rel="nofollow" href="../Structured-Input/#type-naming-profiles">structured input</a>. No task option or runtime overload selects naming.
+<code>IDENTITY</code> preserves native spelling and explicitly binds descendants too. First-child introduction, compatible repetition,
+conflicting choices, exact Jackson literals/exclusions and independently resolved owned types follow that shared contract.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'resolve input naming from source-free hierarchy contracts with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">@DSL class ServiceBase { String displayName }
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+@DSL class Service extends ServiceBase { String serviceName }
+// Generated closed properties: display-name, service-name.
+// Standalone ServiceBase still has displayName.
+</code></pre>
+<p>Properties include eligible authored-operation tokens and self-contained construction-key tokens. Data and instance keys
+stay literal; owned definitions use the owned type's hierarchy rather than the owner's profile. Literal nonempty
+<code>@Struct.Name</code> or compatible <code>@JsonProperty</code> names override the profile; <code>@Struct.Ignore</code>/<code>@JsonIgnore</code> exclusions remain effective. The generator and interpreter share one resolver over public Builder facts;
+Model bytes, mapper strategies and annotation proxies do not provide naming facts.</p>
+<p>Conflicting explicit profiles, unresolved nonidentity member collisions and malformed/incomplete required metadata fail before
+schema publication, preserving previous successful output. An ignored/colliding required key still makes member-key
+positions unrepresentable; keyless definitions retain existing behavior. Properly compiled no-profile/identity Schemas
+retain their native output. Recompile participating hierarchies and owned artifacts with the supported protocol; see
+<a rel="nofollow" href="../Migration/#structured-input-metadata-protocol">migration</a>.</p>
+<h2 id="literal-names-and-exclusion">Literal names and exclusion</h2>
+<p><code>@Struct.Name</code> and <code>@Struct.Ignore</code> share the interpreter's <a rel="nofollow" href="../Structured-Input/#literal-names-and-exclusion">literal contract</a>.
+Exact literals name eligible fields, construction-key members and admitted authored operations; ignored entries are absent
+from closed object properties. Equal Jackson literals coalesce, while contradictory names fail even on ignored sources.
+Neither annotation widens admission or changes runtime validation. Owned values resolve their own names; data Map keys
+and keyed-instance identities remain literal.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'project literal names and exclusions from source-free artifacts with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">@DSL class ServiceBase {
+    @Key @Struct.Name('Service/ID') String serviceId
+    @Struct.Name('URL/exact') String URLValue
+    String urlValue
+    @Struct.Ignore String hiddenValue
+}
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE)
+@DSL class Service extends ServiceBase {}
+// Closed properties: Service/ID (required), URL/exact, url-value.
+</code></pre>
+<p>A literal can separate profile-colliding declarations. <a rel="nofollow" href="../Structured-Input/#select-a-string-operation">String operation selection</a>
+can select one eligible marked operation; remaining nonidentity collisions fail before artifact replacement.
+An ignored required key still makes a member-key position unrepresentable; externally keyed owned Map bodies remain keyless.
+The compiler freezes exact names, exclusion and origin on declaring public Builder contracts. Both consumers require the
+same supported metadata protocol and complete facts. Missing, unknown, inconsistent or malformed facts fail with
+Schema/Builder, artifact and recompilation guidance, preserving prior successful output. Older contracts are rejected;
+no Model-byte fallback or Schema-code execution fills missing metadata. See
+<a rel="nofollow" href="../Migration/#structured-input-metadata-protocol">migration</a>.</p>
+<h2 id="deprecation">Deprecation</h2>
+<p>Generation emits Draft 2020-12 <code>deprecated: true</code> by default for an admitted input member whose Schema source
+field, construction key or authored <code>@Builder.Method</code> declaration carries <code>java.lang.Deprecated</code>. This advisory
+annotation has no deprecation switch.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'deprecated Schema members remain admitted with advisory metadata by default with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Service {
+    @Deprecated String oldEndpoint
+    String endpoint
+}
+// The oldEndpoint property has type: string and deprecated: true.
+// The endpoint property has type: string.
+</code></pre>
+<p>Inherited and explicitly renamed members retain their original source association. Ignored, excluded and colliding
+members follow the existing admission rules. A deprecated relationship marks its property use beside <code>$ref</code>, or the
+outer keyed Map property; ordinary sibling uses and shared child definitions receive no inherited deprecation.
+A deprecated construction key is marked only where its actual key property is present; keyless bodies gain no key.
+Field and key descriptions use Javadoc from the Schema field declaration. An authored <code>@deprecated</code> rationale is
+included as prose. A bare deprecation marker is represented by <code>deprecated: true</code>. Binaries compiled before
+the compiler retained field documentation can still generate schemas when their required metadata is complete.
+Recompile them to include authored field descriptions.</p>
+<p>The keyword does not reject old input, require a replacement, change requiredness/null admission or invoke runtime
+validation. It changes no defaults, converters, lifecycle or migration behavior. Type-level deprecation and deprecated
+framework aliases such as TemplateScope <code>Create</code>/<code>CreateFrom</code> do not mark admitted members. <code>since</code> and <code>forRemoval</code>
+are not interpreted.</p>
+<p>Current compilers retain required explicit true/false source-deprecation facts on public Builder contracts. Missing
+facts reject the contract under the shared protocol, even though the generated keyword itself is advisory. Generation
+never guesses provenance from an alias or reads Model bytes. Recompile participating Schema artifacts with a matching
+toolchain; numeric assertions and deprecation output retain their independent functional semantics.</p>
+<h2 id="field-constraint-projection">Field constraint projection</h2>
+<p><code>@Struct.ConstraintProjection</code> selects the artifact policy for one Schema field's captured effective runtime constraints.
+Its nested <code>Struct.ConstraintProjection.Policy</code> enum has three values:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Supported hard assertions</th>
+<th>Constraint descriptions and source attribution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROJECT</code> (default, also when the annotation is absent)</td>
+<td>Project faithfully</td>
+<td>Keep compact fallback annotation prose for unsupported forms</td>
+</tr>
+<tr>
+<td><code>TEXT_ONLY</code></td>
+<td>Omit</td>
+<td>Keep every captured runtime constraint as compact annotation prose</td>
+</tr>
+<tr>
+<td><code>OMIT</code></td>
+<td>Omit</td>
+<td>Omit</td>
+</tr>
+</tbody>
+</table>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'choose field constraint projection without changing structural facts with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy
+import jakarta.validation.constraints.Min
+
+@DSL class Capacity {
+    /** Desired replica count. */
+    @Deprecated @Min(1L)
+    @Struct.ConstraintProjection(Policy.TEXT_ONLY) Integer replicas
+
+    /** Private capacity rule. */
+    @Deprecated @Min(1L)
+    @Struct.ConstraintProjection(Policy.OMIT) Integer omitted
+}
+</code></pre>
+<p>Both properties keep integer types, machine limits, ordinary prose and deprecation. <code>replicas</code> additionally describes
+<code>@Min</code> as a runtime constraint; <code>omitted</code> has only its ordinary prose. Neither gains the constraint's <code>minimum: 1</code>
+assertion. Normal input admission, naming/exclusion, construction keys, null/omission, defaults, lifecycle and runtime
+validation stay unchanged. This annotation does not make a failing runtime Model valid.</p>
+<p>The field's declaring source owns the policy, including inherited and externally renamed members. A replacement
+Schema declaration uses its own policy, defaulting to <code>PROJECT</code>; there is no separate inherited override switch.
+A relationship policy covers that field's constraint contribution only: it never erases a referenced child's own
+constraints or structural shape. Every captured constraint on the field follows the selected policy; there is no
+per-annotation selector. Future supported contributions will follow the same field policy.</p>
+<p>Approved one-hop <code>@PropagateAnnotation</code> contributions are captured after propagation and obey the same rules as direct
+annotations. For example, propagated and direct <code>@NotNull</code> produce the same constraint description under <code>TEXT_ONLY</code>,
+and neither produces one under <code>OMIT</code>. Propagation uses defaults only, so it cannot supply Min/Max or DecimalMin/Max's
+required values. The bounded first-level composed subset below is supported; arbitrary nested, repeatable, getter, type-use or container-element
+constraints. Unsupported captured forms remain descriptive under <code>PROJECT</code> and <code>TEXT_ONLY</code>.</p>
+<p>Recompile and package every declaring/inherited/owned Schema with matching compiler/runtime/plugin versions. The
+generator requires explicit policy facts even for <code>PROJECT</code> and <code>OMIT</code>; old, missing, incompatible or malformed facts
+fail before replacing outputs. Suppression does not waive validation of supported numeric or Pattern facts. No Model-byte fallback,
+Schema execution, required Jackson/Bean Validation adapter or global projection switch is introduced. See
+<a rel="nofollow" href="../Migration/#field-constraint-projection">migration</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/959">issue #959</a>.</p>
+<h2 id="non-blank-string-constraints">Non-blank String constraints</h2>
+<p>An eligible effective <code>jakarta.validation.constraints.NotBlank</code> on an admitted ordinary <code>String</code> field contributes the
+Draft 2020-12 pattern <code>\\S</code> under <code>Struct.ConstraintProjection.Policy.PROJECT</code>. JSON Schema pattern matching searches for
+a match, so this requires at least one non-whitespace character while retaining the existing structural String type.
+Empty and ordinary whitespace-only Strings reject; surrounding whitespace remains allowed when the value contains text.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'project non-blank authoring feedback without changing input presence with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import jakarta.validation.constraints.NotBlank
+
+@DSL
+class Topic {
+    @NotBlank String name
+}
+// name: type string, allOf [{pattern: '\\S'}]
+</code></pre>
+<p>The pattern gives editors pragmatic feedback. JSON Schema and Bean Validation can differ in how they handle Unicode
+whitespace and regex escaping. Bean Validation remains authoritative for the completed Model. Direct singleton constraints
+with empty groups/payload and <a rel="nofollow" href="#composed-constraints-and-documentary-meta-annotations">eligible first-level AND compositions</a>
+can project the pattern. Grouped, payload-bearing, repeated, uncertain-origin, non-String and unsupported-site forms retain
+the normal descriptive fallback.</p>
+<p><code>TEXT_ONLY</code> keeps the constraint as descriptive text without the pattern; <code>OMIT</code> removes constraint-derived output.
+Neither <code>NotBlank</code> nor its pattern adds JSON Schema <code>required</code>. Omission remains allowed unless the field independently
+uses <code>@Struct.Required</code>; supplied null still fails the unchanged structural String assertion. Defaults, lifecycle,
+structured import and runtime validation behavior do not change, and KlumAST does not automatically validate input
+against the generated schema.</p>
+<h2 id="conservative-pattern-projection">Conservative Pattern projection</h2>
+<p>A direct singleton <code>jakarta.validation.constraints.Pattern</code> on an admitted ordinary <code>String</code> field projects automatically
+under <code>Struct.ConstraintProjection.Policy.PROJECT</code> when it belongs to the finite <code>ASCII-BOUNDED-1</code> subset. This supports bounded
+identifiers and codes. It requires empty groups, payload and flags and no hierarchy group sequence/redefinition/provider.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'project bounded release identifiers from source-free artifacts with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import jakarta.validation.constraints.Pattern
+
+@DSL class Release {
+    /** Release slug. */
+    @Pattern(regexp = '[a-z][a-z0-9-]{0,62}') String slug
+}
+// slug: type string, allOf [pattern ^[a-z][a-z0-9-]{0,62}$,
+//                         not {type string, pattern [^ -~]}].
+</code></pre>
+<p>The grammar accepts concatenated ASCII letters, digits, <code>_</code>, <code>-</code>, and positive classes containing letters, digits,
+<code>_</code>, <code>.</code>, the exact ranges <code>A-Z</code>, <code>a-z</code>, <code>0-9</code>, and an optional final literal hyphen. For example <code>[.]</code>, <code>[-]</code> and
+<code>[A-Za-z0-9_.-]</code> qualify. Each atom may use <code>?</code>, <code>{n}</code> or <code>{m,n}</code>. Bounds are decimal 0..255 with no leading zeros;
+lower must not exceed upper. The decoded source is 1..256 UTF-16 units, the body has 1..32 pieces, and summed maximum
+repetitions must not exceed 1024. <code>{0}</code> is allowed. Optional outer anchors must be paired <code>^...$</code>; the body cannot be empty.
+No trimming or normalization occurs.</p>
+<p>The generated assertion is anchored and conjoined with <code>not: {type: string, pattern: &quot;[^ -~]&quot;}</code>. This rejects every
+non-printable-ASCII character, including final newlines that some validators otherwise accept with <code>$</code>. Every accepted
+source consumes only printable ASCII, so the guard preserves Java full matching on supplied Strings. Its inner type
+keeps the constraint fragment neutral on nonstrings; the existing structural String rule still rejects supplied null
+and other types. Optional omission stays allowed. No <code>required</code>, <code>minLength</code>, default or interpreter validation is inferred.</p>
+<p>Every complete unsupported form becomes deterministic runtime-constraint description text with a stable reason: flags,
+nonempty groups/payload, group context, unsupported syntax or an admission ceiling. Escapes, arbitrary ranges, wildcard
+dot, negation, intersections, groups, alternation, Unicode, unbounded/lazy/possessive repetitions, repeated containers and
+unsupported composition receive no hard Pattern assertion. The first-level AND subset below reuses this same Pattern proof. Even malformed runtime regex source is retained as text; generation
+does not repair it. Declaration text retains the whole captured annotation and escapes control characters. Messages are
+uninterpreted data, with no bundle or EL evaluation.</p>
+<p><code>TEXT_ONLY</code> describes every captured declaration without assertions; <code>OMIT</code> removes constraint-derived output. Ordinary
+prose/deprecation, structural types, naming/exclusion, original inherited source identity and owned-definition locality
+remain independent. Keys, operation payloads, container elements, non-String values and uncertain origins are outside
+this hard subset. Qualified first-level composing constraints use the same grammar and guard. Existing capture sites are unchanged. No regex engine/transpiler, provider, custom flag or SPI is added.</p>
+<p>The compiler emits explicit decoded <code>regexp</code> and <code>patternFlagsEmpty</code> facts even for unsupported direct Patterns. Both
+consumers require complete facts before applying any field policy, including omitted owned relationships. Corrupt/missing
+facts fail atomically with public Builder/artifact/source and recompile/package guidance. Use matching compiler/runtime/
+plugin versions and recompile participating artifacts; see <a rel="nofollow" href="../Migration/#conservative-pattern-projection">migration</a>.
+The current shared metadata marker remains unchanged during 4.2 development; release-protocol preparation is separate.</p>
+<h2 id="composed-constraints-and-documentary-meta-annotations">Composed constraints and documentary meta-annotations</h2>
+<p>A <strong>meta-annotation</strong> is an annotation placed on an annotation type. Jakarta Bean Validation calls the outer domain
+annotation a <strong>composed constraint</strong> and its hosted constraints <strong>composing constraints</strong>. <strong>Constraint projection</strong>
+converts supported facts into JSON Schema output. <strong>Propagated annotation</strong> refers specifically to
+<a rel="nofollow" href="../Annotation-Propagation/"><code>@PropagateAnnotation</code></a>; Bean Validation composition does not copy annotations onto Schema fields.</p>
+<p>On ordinary supported Schema fields, first-level composing Jakarta <code>Min</code>, <code>Max</code>, <code>DecimalMin</code>, <code>DecimalMax</code>,
+<code>NotBlank</code> and bounded <code>Pattern</code> use the existing built-in mappings and all their type, numeric precision, group,
+regex and structural safeguards. Default Bean Validation AND composition and explicit Hibernate
+<code>ConstraintComposition(AND)</code> are supported. For example, if a domain constraint <code>@MandatoryInput</code> carries
+<code>@NotBlank</code> and <code>@ReportAsSingleViolation</code>, applying it to an admitted ordinary <code>String</code> field projects the same
+<a rel="nofollow" href="#non-blank-string-constraints">non-blank pattern</a> as direct <code>@NotBlank</code> when the composition qualifies under <code>PROJECT</code>.
+<code>@ReportAsSingleViolation</code> controls how Bean Validation reports violations.</p>
+<p>Each supported constituent is independent: two minima remain two assertions, and <code>Min(10)</code> plus <code>Max(5)</code> remains a valid schema rejecting
+every supplied value. Generation does not reduce constraints or solve satisfiability. An independent direct constraint
+keeps its assertion even beside an unsupported composed branch. Unsupported constituents such as Email and Size retain
+runtime descriptions; Pattern-plus-Email has no inferred <code>format</code> assertion.</p>
+<p>OR, ALL_FALSE, attribute overrides, deeper/nested composition, repeats, uncertain origins, nonempty groups/payload and
+unknown composition semantics remain descriptive. No recursive flattening, attribute substitution, validator execution,
+custom handler, contributor SPI or new validation engine is provided. An outer custom validator remains descriptive even
+when some composing constraints project. Keys, authored operations and container elements gain no composing assertions.</p>
+<p><code>@Struct.ConstraintDescription(String)</code> is a literal documentary meta-annotation targeted only at annotation types. It may
+be hosted on a plain domain annotation, a Bean composed constraint, or an annotation that requests propagation. Its text
+is appended to ordinary field documentation under <code>PROJECT</code> and <code>TEXT_ONLY</code>, and omitted under <code>OMIT</code>. It never supplies
+assertions, defaults, examples or runtime enforcement. There is no interpolation or member substitution. Existing explicit
+field examples retain their placement and values independently.</p>
+<p>(See: <code>InputConstraintDescriptionTest#'document a domain rule without adding enforcement'</code>.)</p>
+<pre><code class="language-groovy">@Struct.ConstraintDescription('Percentage of traffic sent to this service.')
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+@interface TrafficPercentage {}
+
+@DSL
+class Service {
+    @TrafficPercentage Integer traffic
+}
+</code></pre>
+<p>This plain annotation adds only prose. Add <code>@Constraint(validatedBy = [])</code>, <code>@Min(1L)</code> and <code>@Max(100L)</code> to its declaration
+and declare the standard Bean constraint members (<code>message</code>, <code>groups</code>, <code>payload</code>) to make it a composed constraint whose
+first-level bounds also project. A real validator can coexist independently;
+generation never initializes or invokes it. The packaged <code>KlumJsonSchemaGenerationTest</code> feature
+<code>project independent first-level composing constraints without domain classes with Groovy #generation</code> qualifies that
+variant, policies, inheritance/renaming, independent contributors and descriptive fallbacks on Groovy 3/4/5.</p>
+<p>The compiler freezes each outer declaration, composing origin and literal description into public Builder facts. Retained
+first-level composing prose reads as the inner constraint carried by the outer annotation, for example
+<code>@NotBlank via @MandatoryInput</code>. Generation
+needs neither domain annotations nor Bean Validation on its classpath. Both consumers validate complete facts before
+policy suppression, including <code>OMIT</code>; malformed or stripped facts fail before replacing output. Recompile participating
+Schema hierarchies with matching compiler/runtime/plugin versions. The shared development protocol marker remains 1;
+release protocol preparation is separate. See <a rel="nofollow" href="../Migration/#composed-constraints-and-documentary-meta-annotations">migration</a>.</p>
+<h2 id="integral-constraints">Integral constraints</h2>
+<p>Generation automatically adds raw-input authoring bounds for ordinary direct fields carrying Jakarta <code>@Min</code> and/or
+<code>@Max</code>. No global constraint flag or profile selector is required. The supported targets are byte, short, int, long, their
+boxed counterparts and BigInteger, with empty annotation groups/payload and no relevant group redefinition/sequence.
+Bounds apply to supplied values and intersect the existing machine range exactly. Inherited, renamed and nested owned
+properties retain their effective input names; ignored properties remain absent.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'generate integral authoring bounds by default from binary Builder contracts with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">// Schema source, compiled with the current KlumAST compiler:
+package example
+
+import com.blackbuild.klum.ast.DSL
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.Max
+
+@DSL class Capacity {
+    /** Percentage of available capacity. */
+    @Min(0L) @Max(100L) Integer percentage
+}
+
+// Schema project's build.gradle:
+klumSchema.jsonSchema {
+    rootTypes.add('example.Capacity')
+}
+</code></pre>
+<p>The <code>percentage</code> input retains <code>type: integer</code> and its machine bounds, with conjunctive <code>minimum: 0</code> and <code>maximum: 100</code>
+assertions in <code>allOf</code>, retaining its source description.
+Both endpoints, mathematical integer <code>100.0</code>, zero and omission pass. Supplied -1/101 fail the bounds; explicit null,
+false, fractions, empty strings and numeric strings retain their structural rejection for this property. Independent
+String/Boolean properties still admit empty strings/false. No <code>required</code> comes from <code>@NotNull</code>, <code>@Required</code> or bounds;
+existing construction-key requirements and null admission are unchanged. See <a rel="nofollow" href="../Validation/">validation</a> for completed
+Model validation, including the separately tracked nullable investigation <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/962">#962</a>.</p>
+<p>This is a consumer-selected restriction on raw authoring. An external editor or validator checks the generated artifact;
+KlumAST import does not automatically run JSON Schema validation. A later default, lifecycle callback or converter may
+replace a supplied value, so this artifact can reject input that construction could repair and accept input that later
+fails. Defaults, initializers, Templates, lifecycle code, converters and custom validators are never evaluated by generation.
+Destination-field bounds do not constrain authored operation arguments. No <code>default</code> or <code>const</code> is inferred.</p>
+<p>Only compiler-enriched public Builder contracts supply constraint facts. Recompile and package every reachable Schema,
+including inherited and owned dependency Schemas, with matching compiler/runtime/plugin versions before generation. Missing, unsupported-version, malformed or unverifiable required metadata fails generation with root/use,
+public Builder, available source/external-name and artifact context plus recompile/package guidance. The generator
+never reads Model bytes to fill gaps and does not downgrade incomplete output. Failure preserves the last
+successful files and manifest. Supported numeric constraints are projected faithfully, including mutually contradictory
+bounds. JSON Schema generation does not perform numeric-domain satisfiability analysis.
+Root selection, binary inputs and output ownership retain the existing tracked Gradle task contract.</p>
+<p>Complete unsupported direct field declarations appear one per line after the authored prose, without a heading or
+Markdown list. Every annotation line except the last ends in a comma, so the result remains comma-separated in editors
+that flatten line breaks. Entries use unqualified annotation names, omit empty parentheses and show explicitly authored
+attributes when available. A closure-backed <code>@Validate</code> appears as
+<code>custom validation</code>. When the same field has default <code>@Required</code> and the exact compiler-lowered default <code>@Validate()</code>
+fact, only the duplicate <code>@Validate()</code> prose is suppressed; distinct authored validation semantics remain visible.
+Generation does not evaluate annotation defaults or constraint code.
+Explicit groups/payload (including explicit Default groups), unsupported composed/repeatable declarations, Size and
+unsupported Pattern forms, quantity grammars and relationship closures
+receive no hard mapping in this slice. Getter/return, parameter/type-use and container-element projection, contextual
+relationship/default projection and provider XML/programmatic configuration are deferred. No projection SPI is provided.
+Issue <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/959">#959</a> remains open for these broader decisions.</p>
+<h2 id="decimal-constraints">Decimal constraints</h2>
+<p>Generation automatically projects exact direct Jakarta <code>@DecimalMin</code>/<code>@DecimalMax</code> bounds on ordinary <code>BigDecimal</code>
+and supported integral scalar properties. Direct integral Min/Max restrictions conjoin with decimal bounds on integral
+targets. BigDecimal Min/Max declarations remain runtime descriptions, preserving the supported numeric-type subset.
+No global numeric flag or profile selector is provided.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'generate exact direct decimal authoring bounds by default from source-free binaries with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Price {
+    @DecimalMin(value = '0.10', inclusive = false)
+    @DecimalMax('9007199254740993.0000000001')
+    BigDecimal amount
+}
+
+klumSchema.jsonSchema {
+    rootTypes.add('example.Price')
+}
+// amount: type number, exclusiveMinimum 0.10, maximum 9007199254740993.0000000001
+</code></pre>
+<p>Inclusive bounds use numeric <code>minimum</code>/<code>maximum</code>; exclusive bounds use Draft 2020-12 numeric
+<code>exclusiveMinimum</code>/<code>exclusiveMaximum</code>. Parsing and JSON rendering preserve exact mathematical decimal
+values, including exponent, leading-plus and zero spellings, without conversion to double. JSON text need not retain
+its authored scale/spelling. Consumers must use precision-capable JSON parsers and validators to retain this guarantee;
+JavaScript Number and other binary floating representations may round these tokens.</p>
+<p>Each declared bound and the structural integer type/machine restrictions remain conjunctive. Independent keywords
+coexist directly; repeated numeric keywords use <code>allOf</code>. Contradictory bounds, equal exclusive endpoints and fractional
+intervals containing no integer generate valid schemas that reject supplied values for that property. Optional properties
+remain omittable. Generation performs no numeric satisfiability analysis. Invalid decimal values and unrepresentable
+exponent/scale still fail before replacing previous output, with source, external-name and public-contract diagnostics.
+Neither bounds nor contradictions infer raw requiredness.</p>
+<p>Only one effective direct declaration of each bound, empty groups/payload and no relevant hierarchy group redefinition
+are supported. String, float/double/Number, unsupported composed/repeatable, type-use, getter/parameter and authored-operation
+arguments receive no decimal assertions. All original requiredness, null admission, interpreter, Jackson, defaults,
+Templates and lifecycle behavior remains unchanged. This is a supplied-input authoring policy, with no Bean Validation
+equivalence or final construction-success promise.</p>
+<p>The matching supported metadata protocol and complete explicit numeric facts are required on root, declaring/inherited
+and participating owned contracts. Missing, malformed or incompatible facts fail atomically with Schema/Builder,
+artifact and recompilation guidance. Align compiler, runtime and Gradle plugin versions and recompile participating
+Schema dependencies. This does not change numeric assertion semantics.</p>
+<h2 id="supported-input-and-limits">Supported input and limits</h2>
+<p>Reusable definition identities and references retain fully qualified generated Builder names internally. For example,
+<code>example.Deployment.schema.json</code> retains this root reference:</p>
+<pre><code class="language-json">{&quot;$ref&quot;: &quot;#/$defs/example.Deployment_DSL%24Builder&quot;}
+</code></pre>
+<p>The generated document uses reusable <code>$defs</code>/<code>$ref</code> for concrete owned objects, closed object properties, literal String
+keys for ordinary data maps and keyed owned maps, scalar/enum values, supported field containers, and admitted authored
+<code>@Builder.Method</code> operations with one payload. Inherited members and retained prose are preserved. A Map/List operation
+payload remains one value. Exclusion, compatible literal rename, type profile and identity fallback determine external names.
+For a <a rel="nofollow" href="../Structured-Input/#select-a-string-operation">selected String operation</a>, only that operation's <code>type: string</code>,
+prose and examples are projected. Superseded candidates supply no assertions. Multiple eligible marks and incomplete
+selection facts fail generation before output replacement; excluded/unsupported operations remain unavailable.
+Concrete owned relationships in compatible binary API/Schema dependencies follow the same admission rules as local
+relationships, including inherited fields and keyed Map values. No alternate naming strategy is currently configurable.</p>
+<p>Unclassified helpers and dynamic factory controls are absent. Unsupported declarations, including abstract relationships,
+multi-argument operations, LINK input and unresolved payloads, are omitted with source/reason diagnostics in the
+<code>x-klum-unsupported</code> annotation. Unknown properties are rejected, rather than represented by permissive placeholders.
+An abstract root, an empty enum or malformed/missing required enrichment fails generation.
+An admitted relationship whose required key cannot be represented also fails, even when the relationship is optional;
+it is not silently omitted as unsupported. Native enum values use <code>type: string</code> and an <code>enum</code> assertion listing their
+<a rel="nofollow" href="../Structured-Input/#enum-value-names">effective Structured Input tokens</a>. An annotated constant contributes only its
+<code>@Struct.Name</code> token, while an unannotated constant contributes its declared name. Projection reads the same mapping as
+Structured Input without invoking <code>values()</code> or initializing the enum. No Schema constructors, factories, initializers, defaults, callbacks, converters or
+annotation closures execute, including while diagnosing unsupported declarations.</p>
+<p>An ordinary unannotated property named <code>key</code> is a normal generated property. Actual <code>@Key</code> members follow their construction position, as described below.</p>
+<h2 id="owned-child-sequences">Owned child sequences</h2>
+<p><a rel="nofollow" href="../Structured-Input/#owned-child-sequences">Admitted ordinary owned sequences</a> emit <code>type: array</code> with <code>items</code>
+referencing the concrete child's closed input grammar. List, Set, SortedSet and NavigableSet use this same input
+shape. Duplicate mappings are valid input operations: no <code>uniqueItems</code>, cardinality, final-order or comparator rules are
+emitted. The schema describes Struct input, not every Groovy expression or the completed collection's contents.
+Structural validity cannot guarantee successful insertion, lifecycle or materialization. The destination collection
+remains authoritative at runtime, including native comparison failures.</p>
+<p>The compiler records the owned field relationship and its element invocation name on the public field accessor.
+Keyed sequence items use the child's closed self-contained definition, including its required externally named String
+construction key. Key renaming and naming profiles match Struct interpretation. This differs from outer-keyed Map
+values, whose bodies omit their construction key. Repeated keys remain permitted by the input schema; destination
+collection equality and comparator behavior still determine the completed result.</p>
+<p>Source-free inspection checks the declared container and concrete nongeneric child Builder/DSL type without invoking
+initializers, comparators or other user code. Public creator overloads are not selected by this route; customized,
+overridden or absent overloads do not exclude an otherwise usable relationship. Missing/corrupt required relationship
+facts fail before output replacement. Compatible binary and
+inherited declarations use the same grammar; abstract, generic, custom/specialized and aggregation forms do not
+acquire sequence admission. <code>BinaryOwnedRelationshipsTest</code> and <code>validate_owned_sequence_schema.py</code> exercise the actual
+G3/G4/G5 emitted outputs and accepted/rejected inputs independently of runtime success.</p>
+<h2 id="concrete-virtual-scopes">Concrete virtual scopes</h2>
+<p>An <a rel="nofollow" href="../Structured-Input/#concrete-virtual-builder-scopes">admitted concrete virtual field</a> is a reference to the target
+Builder's closed object definition, just like an unkeyed direct child. For the executable Registry example, <code>repository</code>
+accepts an object whose <code>url</code> property is a String; unknown properties, scalar bodies and null reject structurally.
+The virtual sink itself is not a completed-model property or export rule.</p>
+<p>The generator reads the compiler-owned association between the exact public virtual sink and its existing creator.
+Missing or inconsistent association facts fail generation before output replacement. An unchanged inherited scope
+retains its target; unsupported/redeclared virtual families are not advertised. Child-field constraints retain their
+own authority; no sink-parameter constraints are inferred or projected onto the mapping. Inspection does not invoke
+the creator, sink, defaults or lifecycle. Structural validity cannot guarantee successful runtime configuration.</p>
+<h2 id="native-derived-key-map-values">Native derived-key Map values</h2>
+<p><a rel="nofollow" href="../Structured-Input/#derived-key-map-values">Native derived-key Maps</a> project an array of the selected scalar/enum
+inputs, even though the completed destination is a Map. The generator validates the existing exact field/adder
+selection against the declared String-keyed Map value type. It never evaluates <code>keyMapping</code>, predicts stored keys or
+adds uniqueness assertions. Supplied order, duplicate replacement, mapping failures and destination ordering remain
+runtime behavior. A structurally valid item can still fail when its ordinary Builder adder derives a key.</p>
+<h2 id="compiled-converter-parameters">Compiled converter parameters</h2>
+<p>For an <a rel="nofollow" href="../Converters/#structured-string-input">admitted generated String or CharSequence converter route</a>, the field's effective external
+member has <code>type: string</code>. Field closures, same-compilation values and external adapters retain field prose/examples;
+they do not gain C1 parameter assertions. CharSequence routes likewise emit String structure without parameter assertions. Their destination-field constraints describe the converted domain value and
+never constrain the raw String. No converter or user initialization runs during generation.</p>
+<p><a rel="nofollow" href="../Structured-Input/#converter-backed-list-elements">Converter-backed List elements</a> emit an array with
+<code>items: {type: string}</code> for the selected exact String or CharSequence element route. This is structural grammar only: no element
+parameter assertions are inferred or projected, including when the element's scalar-field route would qualify for C1.
+The List retains field prose/examples and domain-value constraint attribution.
+<a rel="nofollow" href="../Structured-Input/#converter-backed-set-elements">Converter-backed Set elements</a> likewise emit an array of String
+items, without <code>uniqueItems</code>, cardinality, comparator, final-order or replacement claims. Every supplied item remains an
+ordered conversion/addition operation, including duplicates. Source-free inspection executes no converters.</p>
+<p><a rel="nofollow" href="../Structured-Input/#converter-backed-map-values">Converter-backed Map values</a> similarly emit an object with
+<code>additionalProperties: {type: string}</code> for exact <code>Map&lt;String, T&gt;</code> value routes. Keys are literal data; root/Builder members
+remain closed. Map values carry no converter parameter assertions, including for C1-qualified domain constructors.
+Neither shape initializes Schemas or runs converters; a structurally valid String may still fail during conversion.</p>
+<p>For C1-qualified separately compiled declared domain routes, selected-parameter projection remains exact. A qualified Pattern appears at that same property, without a parameter object or domain
+<code>$defs</code> entry. For <code>@Pattern(regexp='[0-9]{1,8}')</code>, the existing finite recognizer emits:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;string&quot;,
+  &quot;allOf&quot;: [
+    { &quot;pattern&quot;: &quot;^[0-9]{1,8}$&quot; },
+    { &quot;not&quot;: { &quot;type&quot;: &quot;string&quot;, &quot;pattern&quot;: &quot;[^ -~]&quot; } }
+  ]
+}
+</code></pre>
+<p>Only one effective declaration-parameter Jakarta Pattern with empty flags, groups and payload is eligible. An equivalent
+Groovy annotation-collector result has the same compiled meaning. The current <a rel="nofollow" href="#conservative-pattern-projection">bounded ASCII subset</a>
+is unchanged: <code>+</code>, groups, alternation and escaped-dot memory grammars are not newly admitted. Complete unsupported
+Pattern facts remain descriptions; custom/composed/repeated/type-use parameter constraints receive no hard assertions.
+No custom annotation hierarchy is inspected.</p>
+<p><code>@Struct.ConstraintProjection</code> also targets the selected parameter. PROJECT (default) contributes qualified assertions and
+unsupported descriptions; TEXT_ONLY retains descriptions; OMIT suppresses parameter constraint output and attribution.
+All policies validate required facts first. An invalid regexp or missing API/member type is an error even under OMIT.
+A genuinely absent and a producer-stripped Pattern are indistinguishable compiled contracts and emit no Pattern assertion;
+rebuild the producer and Schema if a constraint was expected.</p>
+<p>Parameter policy is independent of field policy. The field keeps its external naming/exclusion, ordinary documentation,
+explicit examples and deprecation. Its own constraints still describe the domain value and never become raw String
+assertions. <code>x-klum-converter-constraint-source</code> identifies the exact domain executable descriptor and parameter index;
+field constraint attribution remains separate. Converter-method Javadoc is not field documentation.</p>
+<p>Generation reads paired public Builder/domain artifacts with non-initializing, statically bound inspection of the selected
+signature and closed annotation facts. It executes no domain initializer, constructor, converter, default, lifecycle or
+validator code. Keep all participating artifacts and compiler/runtime/plugin matched, and recompile Schema hierarchies
+after domain contract changes. Missing or corrupt facts fail before output/manifest replacement, including omitted owned
+children and excluded members. No stale-JAR or artifact-integrity guarantee is introduced.</p>
+<p>Actual Pattern enforcement at converter invocation remains absent (#971); JSON Schema validation is not run automatically.
+An optional absent property remains allowed; supplied null and non-String values reject structurally.</p>
+<h2 id="construction-key-definitions">Construction-key definitions</h2>
+<p>The default root artifact describes a self-contained structured document, independently of runtime entry-point delivery.
+A keyed root and each supplied direct caller-key child require their actual external key member with <code>type: string</code>.
+This <code>required</code> comes from construction identity, independently of completed <code>@Required</code>. Optional relationship
+properties remain optional unless explicitly marked <code>@Struct.Required</code>; a supplied child must provide its own identity.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'generate structural input schemas from explicit DSL Model roots with Groovy #generation'</code>
+and <code>StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'</code>.)</p>
+<p>For the <a rel="nofollow" href="../Structured-Input/#construction-keys">Deployment/Service example</a>, a self-contained root document contains
+<code>name</code>, a supplied <code>service</code> contains <code>service-id</code>, and <code>services.worker</code> omits <code>service-id</code> because the Map entry
+supplies identity. Fixed/derived-key direct relationships, including fixed Cluster fields, also use keyless bodies.
+The same Builder can therefore have two closed definitions in one document: its fully qualified Builder name for the
+member-key form and a private deterministic <code>::keyless</code> suffix for the body form. References escape URI/JSON Pointer
+characters, reserve each definition before recursion and reuse the appropriate shape for cyclic or mixed-position
+relationships. Unkeyed types use one definition. No <code>allOf</code> extension of a closed base is used.</p>
+<p>Inherited keys, literal renames, ignores and ordinary property admission use the same compiled facts as interpretation.
+An ignored or colliding required root key fails generation. An admitted direct child requiring such a key also fails,
+even if that child could be absent from a particular input. The error identifies the selected root, relationship/key
+source, public Builder, key position and reason. Independently representable keyed Map or Schema-provider uses of that
+type can still generate keyless bodies; a key collision does not globally suppress an ordinary body property.
+Compiler-rejected operations continue to be absent with <code>x-klum-unsupported</code> diagnostics. There is no new categorical
+positional exclusion or arbitrary-input fallback for a projector limitation. Failure retains previous successful output.</p>
+<p>This default artifact describes self-contained input. For a caller-pre-keyed root, explicitly select the
+<a rel="nofollow" href="#caller-pre-keyed-builder-bodies">Builder-body artifact</a>. See the
+<a rel="nofollow" href="../Migration/#caller-pre-keyed-builder-body-schemas">migration guidance</a>.</p>
+<p>Generated JSON Schema preserves structural restrictions and projects the supported authoring bounds described above. It does not guarantee Java numeric conversion, input interpretation, binding,
+lifecycle, materialization or completed validation. Integral primitives/wrappers retain exact bounds; float/double use
+<code>number</code> as a structural approximation, while BigInteger/BigDecimal retain mathematical numeric semantics. Completed
+<code>@Required</code> is not translated into raw-input <code>required</code>; defaults and arbitrary Groovy validation are not evaluated.
+Schema key providers, state-dependent existing-child key mismatches and duplicate raw parser members are runtime/parser
+concerns that structural validation cannot settle. There is no ordering, layering, merge/patch, polymorphic alias or round-trip promise. Runtime interpretation is delivered as the separate optional
+<a rel="nofollow" href="../Structured-Input/">structured-input feature</a>, including public Factory/Builder entry points.</p>
+<p><a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/529">#529</a> is closed delivered work. Qualification of a particular ScHelm
+root/output against a newer matched build remains consumer-owned; historical acceptance does not qualify that build.
+Generation selects no ScHelm roots, packaging or publication policy.</p>
+<h2 id="literal-collection-alternative">Literal collection alternative</h2>
+<p>For the <a rel="nofollow" href="../Structured-Input/#literal-collection-alternative">finite compiler-literal keyed Map family</a>, the generated
+relationship is a closed object with exactly the recorded alias properties, emitted in deterministic alias order. Each
+alias is a String-keyed object whose values reference that concrete subtype's keyless body definition:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;object&quot;,
+  &quot;additionalProperties&quot;: false,
+  &quot;properties&quot;: {
+    &quot;fixed&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;additionalProperties&quot;: {&quot;$ref&quot;: &quot;#/$defs/example.ConcreteElement_DSL%24Builder%3A%3Akeyless&quot;}
+    },
+    &quot;rolling&quot;: {
+      &quot;type&quot;: &quot;object&quot;,
+      &quot;additionalProperties&quot;: {&quot;$ref&quot;: &quot;#/$defs/example.RollingElement_DSL%24Builder%3A%3Akeyless&quot;}
+    }
+  }
+}
+</code></pre>
+<p>Without an explicit <code>@Struct.Required</code> on the relationship field, neither the relationship nor any alias is required.
+Marking the relationship requires only that member, not any alias. One or several groups may be present. Empty mappings are valid; a child
+body cannot supply its construction key, owner, unknown member or type selector. This shape promises only structural admission. Ordering, partial effects,
+existing-child reuse, lifecycle and completed validation remain runtime behavior. Unsupported alternative families remain
+omitted with diagnostics. Source-free producer/plugin/binary coverage lives in <code>BinaryOwnedRelationshipsTest</code>; the
+emitted-schema oracle is <code>validate_literal_alternative_schema.py</code>.</p>
+<h2 id="caller-pre-keyed-builder-bodies">Caller-pre-keyed Builder bodies</h2>
+<p>A caller that supplies root identity before configuring its Builder needs a body schema that omits that identity.
+Select <code>bodyRootTypes</code> explicitly, using the same fully qualified DSL Model binary names as <code>rootTypes</code>
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/953">#953</a>, S7).</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'select self-contained and Builder-body schemas for the same binary roots with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">klumSchema.jsonSchema {
+    rootTypes.add('example.Service')
+    bodyRootTypes.add('example.Service')
+}
+</code></pre>
+<p>Running <code>generateKlumJsonSchema</code> emits both <code>example.Service.schema.json</code> (self-contained) and
+<code>example.Service.builder-body.schema.json</code> (caller-pre-keyed body). Either set may be empty if the other selects a root;
+<code>bodyRootTypes</code> defaults to empty. The selections are independent Gradle task inputs. An unkeyed Model has identical
+schema contents in the two separately named artifacts. Output names identify generation purpose; they never supply an
+instance key. Consumers explicitly choose the matching artifact for their editor/validator and own packaging/use.</p>
+<p>For the externally renamed <code>Service#name</code> key in the
+<a rel="nofollow" href="../Structured-Input/#construction-keys">construction-key example</a>, the self-contained artifact requires <code>service-id</code>.
+The body artifact rejects that member through its closed root definition. Direct caller-key children still require
+their keys; fixed/derived/Cluster children and keyed Map values still omit theirs. Recursive relationships reuse the
+appropriate member or keyless definition independently of the selected root purpose. Private definition suffixes are
+implementation details and are not root-selection values or a public body-schema API. Ordinary body properties retain
+admission, including a property whose external spelling overlaps a suppressed construction key.</p>
+<p>The body variant describes the admitted structural grammar for caller-pre-keyed roots. Public construction belongs on
+the accepted Factory/Builder capabilities; the interpreter is internal. Common/keyed Factory creation and active-Builder application are delivered under
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/07cd974558d009463db4ef62539634d22e4b4dc2/docs/adr/0032-builder-oriented-structured-input.md#public-factory-creation-and-builder-application-953">#953</a>;
+<a rel="nofollow" href="../Templates/#structured-input-templates">structured Templates</a> are also delivered. Selecting a body artifact only changes
+schema output; it adds no runtime entry point, parser/file/URL loading, key derivation or Template mode. It does not qualify every independently keyed consumer format or prescribe editor/file discovery. Schema validity
+still does not guarantee construction, lifecycle or completed validation success.</p>
+<p>Both purposes use the same isolated compiled-contract inspection and no-user-code boundary. Build/configuration caches,
+manifest ownership, root removal and failure preservation cover both selections: a failed root in either set leaves all
+last-successful artifacts and the manifest intact. A successful selection change removes only previously tracked files.
+Use a dedicated output directory, as for default generation; unrelated files are not generation inputs or identity.</p>
+<h2 id="advisory-input-examples">Advisory input examples</h2>
+<p><code>@Struct.Examples</code> provides documentary strings. They are emitted as JSON Schema string examples, without parsing or
+validation against the property type or runtime constraints.</p>
+<p>(See: <code>KlumJsonSchemaGenerationTest#'project advisory examples at exact source-free input positions with Groovy #generation'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Service {
+    @Struct.Examples(['localhost', 'database.internal']) String host
+    @Struct.Examples(['42', 'many replicas']) int replicas
+    @Struct.Examples(['API endpoint settings'])
+    @Builder.Method void endpoint(Map&lt;String, String&gt; input) { /* configure Builder state */ }
+}
+</code></pre>
+<p>The <code>host</code> property receives <code>examples: [&quot;localhost&quot;, &quot;database.internal&quot;]</code>. The numeric <code>replicas</code> property receives
+<code>examples: [&quot;42&quot;, &quot;many replicas&quot;]</code>: both values are strings, with no promise that they are valid instances of that
+property. Text such as <code>null</code>, <code>{not JSON</code>, quotes, backslashes, newlines and Unicode remains documentation; the ordinary
+JSON Schema serializer escapes it. Order, duplicate strings and empty strings are retained. An empty annotation array
+supplies no examples. Values must be compile-time constant strings, and no authored code is executed to obtain them.</p>
+<table>
+<thead>
+<tr>
+<th>Declaration</th>
+<th>Placement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eligible ordinary field, including List/Map</td>
+<td>Exact effective property, rather than its items or values</td>
+</tr>
+<tr>
+<td>Selected construction key</td>
+<td>Actual member-key property; absent from keyless bodies and outer instance keys</td>
+</tr>
+<tr>
+<td>Admitted authored one-payload <code>@Builder.Method</code></td>
+<td>Exact operation payload</td>
+</tr>
+<tr>
+<td>Owned relationship or keyed owned Map</td>
+<td>Parent relationship-use property, alongside its reference/container schema</td>
+</tr>
+</tbody>
+</table>
+<p>Inherited examples retain their effective source declaration. Naming profiles, literal names and exclusions select the
+same input member as before. Parent relationship notes stay local to that use; they never enter shared child definitions
+or sibling uses. An owned type retains documentation on its own members. <code>Struct.ConstraintProjection</code>, ordinary prose and
+<code>deprecated</code> remain independent. Unsupported members gain no admission.</p>
+<p>Examples supply no defaults, change no requiredness or runtime input types, and do not participate in validation,
+conversion, templates or lifecycle. There is no content grammar or example evaluator. Ordinary annotation/JVM constraints
+apply; excessively large carried documentation is rejected defensively. The source-free public Builder metadata remains
+authoritative, and malformed or missing required metadata fails before replacing successful output. The unified
+<a rel="nofollow" href="../Migration/#structured-input-metadata-protocol">development metadata protocol</a> remains version 1.</p>
+<h3 id="runtime-order-and-failure">Runtime order and failure</h3>
+<p>Schema validation describes structural grammar; it does not predict execution order, side effects or successful
+construction. The interpreter validates and invokes operations in supplied Map/List order and stops on the first
+encountered failure, retaining earlier effects. See <a rel="nofollow" href="../Structured-Input/#order-and-failures">order and failures</a>.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
