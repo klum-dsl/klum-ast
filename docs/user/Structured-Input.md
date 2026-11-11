@@ -10,26 +10,8 @@ nonempty diagnostic text, never a locator or a model key.
 
 ## Adopt YAML for a Schema
 
-Start with the same Schema used for ordinary Groovy DSL authoring:
-
-(See: `StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'`.)
-
-```groovy
-import com.blackbuild.klum.ast.DSL
-import com.blackbuild.klum.ast.Key
-import com.blackbuild.klum.ast.Struct
-
-@DSL class Service {
-    @Key @Struct.Name('service-id') String name
-    String host
-}
-
-def ordinary = Service.Create.With('catalog') {
-    host 'api'
-}
-```
-
-Before writing YAML, decide who owns the root key. That choice determines the Factory call and the JSON Schema artifact:
+Start with the same Schema used for ordinary Groovy DSL authoring, then decide who owns the root key. That choice
+determines the Factory call and the JSON Schema artifact:
 
 | Root shape | Key authority | Factory call | Gradle selector | Editor schema |
 | --- | --- | --- | --- | --- |
@@ -48,10 +30,29 @@ host: api
 The caller chooses a parser dependency and parses the document into a String-keyed Map. For example, using Groovy's
 `YamlSlurper`, `FromStruct` produces the same completed Model:
 
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'`.)
+
 ```groovy
+package example
+
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.Struct
 import groovy.yaml.YamlSlurper
 
-Map document = new YamlSlurper().parseText(yamlText)
+@DSL class Service {
+    @Key @Struct.Name('service-id') String name
+    String host
+}
+
+def ordinary = Service.Create.With('catalog') {
+    host 'api'
+}
+String documentYaml = '''
+service-id: catalog
+host: api
+'''
+Map document = new YamlSlurper().parseText(documentYaml)
 def configured = Service.Create.FromStruct(document, 'service.yaml')
 assert configured.name == ordinary.name
 assert configured.host == ordinary.host
@@ -68,12 +69,15 @@ host: api
 The caller may derive `'catalog'` from a filename, containing folder, outer Map key, or another application convention,
 then supplies it explicitly. KlumAST does not derive it:
 
+(See: `StructuredYamlDocumentaryTest#'caller parsed YAML creates keyed roots and configures an active Builder body'`.)
+
 ```groovy
+String bodyYaml = 'host: api'
 String serviceId = 'catalog' // supplied by caller policy, perhaps from the source path
-Map body = new YamlSlurper().parseText(yamlText)
+Map body = new YamlSlurper().parseText(bodyYaml)
 def configured = Service.Create.FromStruct(serviceId, body, 'services/catalog.yaml')
 assert configured.name == serviceId
-assert configured.host == ordinary.host
+assert configured.host == 'api'
 ```
 
 The optional `sourceName` (`services/catalog.yaml` here) is diagnostic context only. KlumAST never opens it, parses it,
