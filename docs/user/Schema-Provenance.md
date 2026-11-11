@@ -1,5 +1,8 @@
 # Schema Compiler Provenance
 
+This implementation-facing reference belongs to [Behind the Curtain](Behind-the-Curtain.md). Most Schema and Model
+authors do not need it for ordinary construction.
+
 ## Generated compiler provenance
 
 Starting with 4.2, every transformed `@DSL` Schema class, including an abstract Schema, declares a runtime-retained
