@@ -9,6 +9,59 @@ then `Service.Create.FromStruct(document)` constructs the Model through its ordi
 that same compiled Schema for editor feedback or an explicitly invoked validator. Neither generation nor `FromStruct`
 selects a parser, opens input files or automatically runs JSON Schema validation.
 
+## Choose the root shape
+
+Choose the artifact that matches who supplies a keyed root's identity. The two artifacts project the same compiled
+Builder contract at different root positions:
+
+| YAML shape | Runtime call | Gradle selector | Generated file |
+| --- | --- | --- | --- |
+| Self-contained: `service-id: catalog` plus `host: api` | `Service.Create.FromStruct(document)` | `rootTypes` | `example.Service.schema.json` |
+| Caller-pre-keyed body: `host: api` | `Service.Create.FromStruct('catalog', body)` or `builder.applyStruct(body)` | `bodyRootTypes` | `example.Service.builder-body.schema.json` |
+
+For example, generate both purposes explicitly:
+
+```groovy
+klumSchema.jsonSchema {
+    rootTypes.add('example.Service')
+    bodyRootTypes.add('example.Service')
+}
+```
+
+The matching YAML and Factory calls are:
+
+```yaml
+# self-contained service.yaml
+service-id: catalog
+host: api
+```
+
+```groovy
+def service = Service.Create.FromStruct(document, 'service.yaml')
+```
+
+or:
+
+```yaml
+# caller-pre-keyed services/catalog.yaml
+host: api
+```
+
+```groovy
+String serviceId = 'catalog' // caller-owned path, outer-key, or application policy
+def service = Service.Create.FromStruct(serviceId, body, 'services/catalog.yaml')
+```
+
+The caller parses the YAML, derives or otherwise obtains `serviceId`, supplies the key, and associates the matching
+generated file with the YAML in its editor. `sourceName` is only diagnostic context. Selecting `bodyRootTypes` changes
+only schema output: it does not parse files, derive keys from paths, add a runtime mode, discover editor configuration,
+or make `FromStruct` / `applyStruct` run JSON Schema validation.
+
+Generation and interpretation have distinct responsibilities. Generation projects compiled Builder contracts into
+Draft 2020-12 for editor or explicit structural validation. Structured Input interprets caller-provided Maps through
+admitted Builder operations and then runs the ordinary KlumAST lifecycle. A structurally valid document can still fail
+construction or completed-Model validation.
+
 ## Generating files
 
 Apply `com.blackbuild.klum-ast-schema` as described in [Gradle Plugins](Gradle-Plugins.md). Select roots by fully qualified DSL Model binary name,
