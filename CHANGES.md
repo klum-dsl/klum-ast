@@ -35,6 +35,10 @@
   Builder bodies. Generation follows the admitted Struct shapes, names and construction-key positions, including binary
   dependencies, without initializing or executing Schema code. See [JSON Schema generation](docs/user/Json-Schema.md)
   ([#529](https://github.com/klum-dsl/klum-ast/issues/529), [#953](https://github.com/klum-dsl/klum-ast/issues/953)).
+- Document the complete Groovy-to-YAML adoption journey, including caller-owned parsing, the self-contained versus
+  caller-pre-keyed root choice, matching `rootTypes` / `bodyRootTypes` artifacts, and consumer-owned editor association.
+  See [YAML adoption](docs/user/Structured-Input.md#adopt-yaml-for-a-schema)
+  ([#1083](https://github.com/klum-dsl/klum-ast/issues/1083)).
 - Project supported Jakarta numeric bounds, pragmatic `@NotBlank`, conservative String Pattern assertions and first-level AND compositions,
   including constraints on qualified String-converter parameters. `@Struct.ConstraintProjection` selects assertion,
   description-only or omitted constraint output; unsupported forms remain descriptive where policy permits. Add

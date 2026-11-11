@@ -52,7 +52,8 @@ configuration's structure, but a checked-in structure is not necessarily a verif
 
 Model Writers can also use caller-parsed YAML or JSON for admitted Schema operations. Start with the
 [keyed-service Groovy/YAML example](Structured-Input.md#adopt-yaml-for-a-schema), then generate a JSON Schema for
-editor feedback. The guide explains caller-owned parsing, Factory construction and the validation boundaries.
+editor feedback. The journey compares a self-contained key-bearing document with a caller-pre-keyed Builder body,
+including the matching Factory call, Gradle selector, generated artifact and responsibility boundaries.
 
 ## Example
 

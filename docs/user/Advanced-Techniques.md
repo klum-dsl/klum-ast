@@ -1,4 +1,8 @@
-# Advanced Techniques
+# Advanced Builder Contracts
+
+This page is reference material for Schema Developers who need to expose precise construction-time contracts on generated
+Builders: Builder-only methods, shared queries, explicit Builder inputs/results, type narrowing, and delegation hints.
+For outcome-oriented combinations of these contracts, start with [Recipes and Patterns](Tips-and-Tricks.md).
 
 ## Builder-only Methods
 
@@ -37,7 +41,7 @@ timing. Do not combine both annotations on one method. See
 [Builder First Migration](Builder-First-Migration.md#mutator-to-buildermethod) for the mechanical migration.
 
 For a domain-named relationship helper that combines `@Builder.Method`, `@Builder.Input`, and `copyFrom`, see
-[Tips and Tricks](Tips-and-Tricks.md#name-a-builder-helper-for-a-seeded-relationship). This keeps a seeded-child shortcut
+[Recipes and Patterns](Tips-and-Tricks.md#name-a-builder-helper-for-a-seeded-relationship). This keeps a seeded-child shortcut
 distinct from an existing domain converter.
 
 For caller-parsed Struct input, an eligible zero-argument Builder method is invoked with an

@@ -1,8 +1,8 @@
-# Tips and Tricks
+# Recipes and Patterns
 
-These patterns help Schema Developers give Model Writers concise, domain-meaningful construction methods using existing
-KlumAST capabilities. The Builder annotations in this example require KlumAST 4.1; see
-[Advanced Techniques](Advanced-Techniques.md) for their contracts.
+This page combines established KlumAST capabilities into outcome-oriented recipes. Use it when the individual contracts
+are already settled and you want a practical pattern for a Model Writer. For the precise generated-Builder API rules,
+read [Advanced Builder Contracts](Advanced-Techniques.md). The Builder annotations in this example require KlumAST 4.1.
 
 ## Name a Builder Helper for a Seeded Relationship
 

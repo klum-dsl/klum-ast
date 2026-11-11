@@ -2,7 +2,8 @@
 
 Most pages describe the stable authoring API first. This page collects the implementation mechanics that explain why
 some advanced calls have lifecycle boundaries or targeted diagnostics. You normally do not need these details to write a
-Schema or Model.
+Schema or Model. This section also contains [Schema Compiler Provenance](Schema-Provenance.md), which explains the
+compiler identity recorded in generated Schema classes without treating it as a compatibility guarantee.
 
 ## Builder Projection for Custom Producers
 

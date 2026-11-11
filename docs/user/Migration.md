@@ -659,7 +659,7 @@ accepted in 4.1 and produces the same generated Builder API, but is deprecated. 
 `@Builder.Method` annotation, including newly emitted runtime metadata. Migrate it when the Schema is next edited; do not
 combine both annotations. See the spelling-only
 [`@Mutator` to `@Builder.Method`](Builder-First-Migration.md#mutator-to-buildermethod) guidance and the canonical example
-in [Advanced Techniques](Advanced-Techniques.md#builder-only-methods).
+in [Advanced Builder Contracts](Advanced-Techniques.md#builder-only-methods).
 
 For test fixtures that need materialized Templates across a Spock lifecycle, use one non-`@Shared` `TemplateScope` field
 with `@AutoCleanup`. A Schema or Model module already receives `klum-ast-test-support` through its plugin's
