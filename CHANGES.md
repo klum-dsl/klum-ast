@@ -65,6 +65,9 @@
 
 ## Other improvements and fixes
 
+- Suppress the spurious validation-closure compiler warning for `@Optional` and explicit
+  `@Validate(Validate.Ignore)` and `@Validate(Validate.GroovyTruth)` declarations
+  ([#1087](https://github.com/klum-dsl/klum-ast/issues/1087)).
 - Add caller Builder closure overlays to ordinary-root compiled `DelegatingScript` and classpath recipe factories:
   recipe, then overlay, then one normal lifecycle completion, preserving completed external LINK identity.
   See [root recipe overlays](docs/user/Convenience-Factories.md#compiled-root-recipe-overlays)

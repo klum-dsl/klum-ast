@@ -817,9 +817,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             convertClosureExpressionToAssertStatement(validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
-        } else {
+        } else if (!isValidationSentinel(validationExpression)) {
             addCompileWarning(sourceUnit, "Only closures are supported for validation, consider using a @Validate method instead", validateAnnotation);
         }
+    }
+
+    private static boolean isValidationSentinel(Expression expression) {
+        if (!(expression instanceof ClassExpression classExpression)) return false;
+        ClassNode type = classExpression.getType();
+        return type.equals(make(Validate.Ignore.class)) || type.equals(make(Validate.GroovyTruth.class));
     }
 
     private void convertClosureExpressionToAssertStatement(ClosureExpression closure, String message) {
