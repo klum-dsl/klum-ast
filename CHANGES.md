@@ -1,4 +1,6 @@
-# 4.2.0 (unreleased)
+# 4.2.x Bugfixes
+
+# 4.2.0 (2026-11-17)
 
 ## Structured Import
 
