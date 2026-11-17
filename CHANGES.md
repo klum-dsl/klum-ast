@@ -1,3 +1,5 @@
+# Unreleased
+
 # 4.2.x Bugfixes
 
 # 4.2.0 (2026-11-17)
