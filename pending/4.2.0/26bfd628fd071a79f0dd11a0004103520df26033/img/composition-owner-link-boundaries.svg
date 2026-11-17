@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 790" role="img" aria-labelledby="title desc">
+  <title id="title">Composition, Owner backlinks, and LINK boundaries</title>
+  <desc id="desc">A completed Deployment composition tree contains Service, Endpoint, and Database. Solid arrows are owned composition. Dashed arrows from Endpoint to Service and Deployment are framework-managed Owner backlinks. A dotted LINK arrow points from Service to an existing completed Policy outside the tree. A timeline shows configuration, Owner phase, then materialization.</desc>
+  <style>
+    text { font-family: system-ui, sans-serif; fill: #152a38; }
+    .heading { font-size: 27px; font-weight: 700; }
+    .subheading { font-size: 17px; font-weight: 700; }
+    .label { font-size: 16px; font-weight: 650; }
+    .detail { font-size: 14px; }
+    .small { font-size: 13px; }
+    .node { fill: #ffffff; stroke: #17384b; stroke-width: 2.5; }
+    .external { fill: #f5f2eb; stroke: #17384b; stroke-width: 2.5; stroke-dasharray: 8 5; }
+    .note { fill: #edf4f7; stroke: #4a7186; stroke-width: 1.5; }
+    .solid { fill: none; stroke: #17384b; stroke-width: 3; marker-end: url(#arrow); }
+    .back { fill: none; stroke: #17384b; stroke-width: 2.5; stroke-dasharray: 9 5; marker-end: url(#arrow); }
+    .link { fill: none; stroke: #17384b; stroke-width: 2.5; stroke-dasharray: 2 7; marker-end: url(#arrow); }
+    .timeline { fill: #ffffff; stroke: #17384b; stroke-width: 2; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#17384b"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="790" fill="#fbfaf7"/>
+  <text x="55" y="55" class="heading">Completed model: composition defines the structural tree</text>
+  <text x="55" y="82" class="detail">Line style and labels carry the meaning; the diagram does not depend on colour.</text>
+
+  <rect x="55" y="118" width="660" height="440" rx="12" fill="#f8fbfc" stroke="#4a7186" stroke-width="2"/>
+  <text x="80" y="151" class="subheading">One owned composition root</text>
+  <text x="80" y="174" class="small">Structural paths follow solid ownership edges only.</text>
+
+  <rect x="285" y="198" width="190" height="72" rx="10" class="node"/>
+  <text x="380" y="226" text-anchor="middle" class="label">Deployment</text>
+  <text x="380" y="248" text-anchor="middle" class="detail">&lt;root&gt;</text>
+
+  <rect x="105" y="350" width="190" height="72" rx="10" class="node"/>
+  <text x="200" y="378" text-anchor="middle" class="label">Service</text>
+  <text x="200" y="400" text-anchor="middle" class="detail">services[0]</text>
+
+  <rect x="475" y="350" width="190" height="72" rx="10" class="node"/>
+  <text x="570" y="378" text-anchor="middle" class="label">Database</text>
+  <text x="570" y="400" text-anchor="middle" class="detail">database</text>
+
+  <rect x="105" y="472" width="190" height="62" rx="10" class="node"/>
+  <text x="200" y="498" text-anchor="middle" class="label">Endpoint</text>
+  <text x="200" y="518" text-anchor="middle" class="detail">services[0].endpoint</text>
+
+  <path d="M330 270 L235 350" class="solid"/>
+  <path d="M430 270 L535 350" class="solid"/>
+  <path d="M200 422 L200 472" class="solid"/>
+  <text x="262" y="324" class="small">owned</text>
+  <text x="474" y="324" class="small">owned</text>
+  <text x="212" y="457" class="small">owned</text>
+
+  <path d="M166 472 C105 450, 95 412, 105 390" class="back"/>
+  <text x="68" y="452" class="small">@Owner Service service</text>
+  <path d="M255 472 C335 438, 420 355, 405 270" class="back"/>
+  <text x="293" y="448" class="small">@Owner(root = true)</text>
+  <text x="293" y="465" class="small">Deployment deployment</text>
+
+  <rect x="825" y="310" width="300" height="120" rx="10" class="external"/>
+  <text x="975" y="344" text-anchor="middle" class="label">Policy</text>
+  <text x="975" y="368" text-anchor="middle" class="detail">existing completed DSL Object</text>
+  <text x="975" y="392" text-anchor="middle" class="detail">outside this composition tree</text>
+  <path d="M295 386 C490 450, 650 452, 825 395" class="link"/>
+  <text x="540" y="474" text-anchor="middle" class="label">LINK</text>
+  <text x="540" y="495" text-anchor="middle" class="small">optional, non-owning side connection</text>
+
+  <rect x="775" y="120" width="365" height="135" rx="10" class="note"/>
+  <text x="800" y="151" class="subheading">Reading the relationship edges</text>
+  <line x1="802" y1="178" x2="850" y2="178" class="solid"/><text x="868" y="183" class="detail">owned composition</text>
+  <line x1="802" y1="205" x2="850" y2="205" class="back"/><text x="868" y="210" class="detail">framework-managed @Owner backlink</text>
+  <line x1="802" y1="232" x2="850" y2="232" class="link"/><text x="868" y="237" class="detail">LINK to an existing object</text>
+
+  <text x="55" y="610" class="subheading">Builder-first lifecycle boundary</text>
+  <rect x="55" y="635" width="255" height="92" rx="10" class="timeline"/>
+  <text x="182" y="667" text-anchor="middle" class="label">Configure Builders</text>
+  <text x="182" y="691" text-anchor="middle" class="detail">create owned children</text>
+  <text x="182" y="712" text-anchor="middle" class="detail">no Owner side effect yet</text>
+  <path d="M310 681 L390 681" class="solid"/>
+  <rect x="390" y="635" width="255" height="92" rx="10" class="timeline"/>
+  <text x="517" y="667" text-anchor="middle" class="label">Owner phase (15)</text>
+  <text x="517" y="691" text-anchor="middle" class="detail">establish every matching</text>
+  <text x="517" y="712" text-anchor="middle" class="detail">@Owner field or method</text>
+  <path d="M645 681 L725 681" class="solid"/>
+  <rect x="725" y="635" width="365" height="92" rx="10" class="timeline"/>
+  <text x="907" y="667" text-anchor="middle" class="label">INSTANTIATE (40)</text>
+  <text x="907" y="691" text-anchor="middle" class="detail">materialize the completed graph</text>
+  <text x="907" y="712" text-anchor="middle" class="detail">with relationship fields assigned internally</text>
+
+  <text x="55" y="765" class="small">Owner and LINK edges are relationships, not structural paths: they do not add ownership or change the composition root.</text>
+</svg>
