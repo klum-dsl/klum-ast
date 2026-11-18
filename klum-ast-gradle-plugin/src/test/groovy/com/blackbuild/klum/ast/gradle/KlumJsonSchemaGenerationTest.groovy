@@ -822,6 +822,60 @@ tasks.register('exampleControl', JavaExec) {
         'Release' | 'textOnly' | 'unknown-pattern' | 'Unknown constraint member futurePatternFact'
     }
 
+    @Issue('1093')
+    def 'project selected root Schema documentation from binaries with Groovy #generation'() {
+        given:
+        fixture(generation)
+        ['api', 'schema'].each { new File(producer, "$it/build/classes").deleteDir() }
+        new File(consumer, 'build.gradle').append('''
+klumSchema.jsonSchema {
+    rootTypes.set(['example.Deployment', 'example.Service', 'example.SecretReference', 'other.Service'])
+    bodyRootTypes.set(['example.Deployment', 'example.Service'])
+}
+''')
+
+        when:
+        run('generateKlumJsonSchema', '--no-build-cache')
+        def deployment = document('example.Deployment')
+        def service = document('example.Service')
+        def body = document('example.Service.builder-body')
+        def properties = deployment.'$defs'.'example.Deployment_DSL$Builder'.properties
+        def models = ['example.Deployment', 'example.Service', 'example.SecretReference', 'other.Service',
+                      'example.Deployment.builder-body', 'example.Service.builder-body']
+        def first = models.collectEntries { [(it): output(it).bytes] }
+        File validation = new File(System.getProperty('schemaValidationDirectory'), 'root-documentation-' + generation)
+        validation.mkdirs()
+        models.each { new File(validation, it + '.schema.json').bytes = output(it).bytes }
+
+        then:
+        deployment.description == 'Deployment configuration for München services.'
+        document('example.Deployment.builder-body').description == deployment.description
+        service.description == 'A deployable service.'
+        body.description == service.description
+        !document('other.Service').containsKey('description')
+        !document('example.SecretReference').containsKey('description')
+        models.every { !document(it).containsKey('$comment') && !document(it).containsKey('title') }
+        properties.region.description == 'Inherited region documentation.'
+        properties.'configure-input'.description == 'Configure deployment labels.'
+        service.'$defs'.'example.Service_DSL$Builder'.properties.'service/id~'.description == 'Service identity.'
+        body.'$defs'.'example.Service_DSL$Builder::keyless'.properties.image ==
+                service.'$defs'.'example.Service_DSL$Builder'.properties.image
+        !trap.exists()
+        !new File(producer, 'schema/src').exists()
+        !new File(producer, 'api/src').exists()
+
+        when:
+        models.each { assert output(it).delete() }
+        run('generateKlumJsonSchema', '--no-build-cache')
+
+        then:
+        models.every { output(it).bytes == first[it] }
+        !trap.exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
     @Issue('1068')
     def 'generate readable nested JSON Schema with stable bytes'() {
         given:
@@ -836,7 +890,7 @@ tasks.register('exampleControl', JavaExec) {
         def service = schema.'$defs'.'example.Service_DSL$Builder'
 
         then:
-        rendered.startsWith('{\n    "$comment": ')
+        rendered.startsWith('{\n    "$defs": ')
         rendered.contains('''\
                 "mode": {
                     "enum": [
@@ -1815,7 +1869,7 @@ custom validation,
         'Unrepresentable'    | 'Invalid decimal bound'
     }
 
-    @Issue('959')
+    @Issue(['959', '1093'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#integral-constraints')
     def 'generate integral authoring bounds by default from binary Builder contracts with Groovy #generation'() {
@@ -1837,7 +1891,7 @@ custom validation,
         numericBounds(root.properties.percentage, 'maximum') == [2147483647G, 100G]
         root.properties.percentage.description.contains('Percentage of available capacity.')
         !root.containsKey('required')
-        schema.description.contains('raw-input authoring')
+        !schema.containsKey('description')
         !trap.exists()
         !new File(producer, 'schema/src').exists()
         !new File(producer, 'api/src').exists()
@@ -2380,6 +2434,7 @@ package example
 import com.blackbuild.klum.ast.*
 import com.blackbuild.klum.ast.layer3.Cluster
 import java.lang.annotation.*
+/** Deployment configuration for München services. */
 @DSL class Deployment extends DeploymentApi {
     static { new File('${trap.absolutePath}').text = 'initialized'; throw new AssertionError('Schema initialization control') }
     Map<String, Service> services
@@ -2399,11 +2454,13 @@ import java.lang.annotation.*
     Map<String, String> annotations
     @Default(code={ throw new AssertionError('default executed') }) String computed
     String initialized = { throw new AssertionError('initializer executed') }()
+    /** Configure deployment labels. */
     @Builder.Method @Policy(Mode.SAFE)
     void configure(Map<String, List<String>> input) { throw new AssertionError('operation executed') }
     @Builder.Method void unsupported(Object input) {}
     @PostCreate void created() { throw new AssertionError('lifecycle executed') }
 }
+/** A deployable service. */
 @DSL class Service extends ServiceApi {
     String image
     Mode mode
@@ -2424,6 +2481,7 @@ import java.lang.annotation.*
 @DSL class FallbackKey { @Key @JsonProperty('id/~') String key; @JsonIgnore(false) String value }
 @DSL class EmptyRename { @Key @JsonProperty('') @JsonIgnore(false) String name }
 @DSL class IgnoredOperationCollision { @Key @JsonProperty('value') String name; @JsonIgnore String value }
+/** Base secret documentation must not become a subclass root description. */
 @DSL class BaseSecret { String inherited }
 @DSL class SecretReference extends BaseSecret { String name; String key }
 @DSL abstract class AbstractDeployment { String value }
@@ -3540,7 +3598,10 @@ import java.lang.annotation.*
 package example
 import com.blackbuild.klum.ast.*
 import com.fasterxml.jackson.annotation.JsonProperty
-@DSL abstract class ServiceApi { @Key @JsonProperty('service/id~') String name }
+@DSL abstract class ServiceApi {
+    /** Service identity. */
+    @Key @JsonProperty('service/id~') String name
+}
 @DSL abstract class DeploymentApi {
     /** $documentation */
     String region
