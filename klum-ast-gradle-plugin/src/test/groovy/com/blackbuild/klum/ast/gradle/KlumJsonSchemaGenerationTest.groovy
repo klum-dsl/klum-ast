@@ -916,7 +916,7 @@ klumSchema.jsonSchema {
         schemaFile.bytes == first
     }
 
-    @Issue(['529', '950', '954'])
+    @Issue(['529', '950', '954', '1093'])
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Json-Schema.md#generating-files')
     def 'generate structural input schemas from explicit DSL Model roots with Groovy #generation'() {
@@ -953,7 +953,7 @@ klumSchema.jsonSchema {
         !child.get('properties').containsKey('service/id~')
         !child.containsKey('required')
         child.get('properties').get('nested').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
-        selfContained.get('properties').get('service/id~') == [type: 'string']
+        selfContained.get('properties').get('service/id~') == [type: 'string', description: 'Service identity.']
         selfContained.get('required') == ['service/id~']
         root.get('properties').get('service').get('$ref') == '#/$defs/example.Service_DSL%24Builder'
         root.get('properties').get('fixed').get('$ref') == '#/$defs/example.Service_DSL%24Builder%3A%3Akeyless'
