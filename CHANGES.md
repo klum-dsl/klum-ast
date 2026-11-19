@@ -1,12 +1,26 @@
-# 4.2.x Bugfixes
+# 4.2.1 (unreleased)
 
-- Add a [4.2 upgrade checklist](docs/user/Migration.md#to-42) and document the required construction key in
-  supported keyed sequence items ([#1097](https://github.com/klum-dsl/klum-ast/issues/1097)).
-
-- Use the selected Schema class's documentation as the generated JSON Schema root description and remove generic
-  root validation caveats. Field, key and operation descriptions remain unchanged. See
-  [JSON Schema generation](docs/user/Json-Schema.md)
-  ([#1093](https://github.com/klum-dsl/klum-ast/issues/1093)).
+- [Generated JSON Schema](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Json-Schema.md)
+  uses the selected Schema class's embedded Javadoc for the root description, replacing generic validation caveats.
+  If the class has no retained documentation, the root description is omitted
+  ([#1093](https://github.com/klum-dsl/klum-ast/issues/1093), [PR #1094](https://github.com/klum-dsl/klum-ast/pull/1094)).
+- The [Model Phases guide](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Model-Phases.md)
+  shows Model authors what happens from Builder configuration through completion. A dedicated Lifecycle Participants
+  reference covers extension authoring
+  ([#1095](https://github.com/klum-dsl/klum-ast/issues/1095), [PR #1096](https://github.com/klum-dsl/klum-ast/pull/1096)).
+- The [4.2 upgrade checklist](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Migration.md#to-42)
+  walks through recompilation, JSON Schema regeneration, optional IDE source mirror refresh, and representative Model
+  tests. The migration guide explains why each item in a supported keyed sequence supplies its own construction key
+  ([#1097](https://github.com/klum-dsl/klum-ast/issues/1097), [PR #1100](https://github.com/klum-dsl/klum-ast/pull/1100)).
+- The [ownership guide](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Basics.md#ownership-and-owner)
+  explains `@Owner`, `LINK`, and when `OPTIONAL_LINK` owns a child or references an existing target. The
+  [construction-key guide](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Structured-Input.md#construction-keys)
+  identifies where Structured Input supplies keys, including within sequence items and through outer Map entries
+  ([#1098](https://github.com/klum-dsl/klum-ast/issues/1098), [PR #1102](https://github.com/klum-dsl/klum-ast/pull/1102)).
+- The [illustrated Structured Input guide](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Structured-Input.md#from-authoring-to-a-completed-model)
+  follows a keyed Service from authoring to a completed Model. It shows how optional external JSON Schema checks and
+  the validation that runs during `FromStruct` can produce different results
+  ([#1099](https://github.com/klum-dsl/klum-ast/issues/1099), [PR #1103](https://github.com/klum-dsl/klum-ast/pull/1103)).
 
 # 4.2.0 (2026-11-17)
 
