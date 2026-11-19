@@ -447,7 +447,7 @@ See [#883](https://github.com/klum-dsl/klum-ast/issues/883).
 
 Domain annotations can select creators/mutators on direct DSL relationships in four existing Builder phases, or mutators
 on Schema types. Handlers use generated public Builder contracts; existing lifecycle callbacks remain valid. See
-[Model Phases](Model-Phases.md#external-field-participants-lp-1) for context, sealed FAIL/SKIP, validation and module access.
+[Lifecycle Participants](Lifecycle-Participants.md) for context, sealed FAIL/SKIP, validation and module access.
 Collection/Map field annotations remain rejected, no HANDLE or Closure helper API is supplied, and late-created children
 never replay earlier phases. Existing ownership, session, Template/import and materialization rules still apply.
 

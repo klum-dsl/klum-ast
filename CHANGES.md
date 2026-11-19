@@ -178,7 +178,7 @@ and rename Schema methods colliding with reserved Builder input/copy signatures.
   Java and dynamic/static Groovy 3/4/5 consumers, Groovy 4/5 named modules, existing validation and bounded
   Template/import/serialization routes are qualified. Collection/Map field participation is rejected for this release;
   HANDLE and a Closure helper have no public API. Late-created children do not replay earlier phases.
-  See [participant guidance](docs/user/Model-Phases.md#external-field-participants-lp-1) and
+  See [participant guidance](docs/user/Lifecycle-Participants.md) and
   [final acceptance](docs/implementation/issue-867-lp8-evidence.md)
   ([#867](https://github.com/klum-dsl/klum-ast/issues/867)).
 
