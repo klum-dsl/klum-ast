@@ -9,6 +9,11 @@ then `Service.Create.FromStruct(document)` constructs the Model through its ordi
 that same compiled Schema for editor feedback or an explicitly invoked validator. Neither generation nor `FromStruct`
 selects a parser, opens input files or automatically runs JSON Schema validation.
 
+The generated root `description` uses the selected Schema class's embedded Javadoc, for both self-contained and
+Builder-body schemas. If that class has no retained documentation, the root description is omitted; documentation from
+a parent class or generated Builder is not substituted. Field, key and authored-operation descriptions retain their
+own declaration documentation.
+
 ## Choose the root shape
 
 Choose the artifact that matches who supplies a keyed root's identity. The two artifacts project the same compiled
