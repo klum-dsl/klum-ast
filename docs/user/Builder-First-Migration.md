@@ -301,7 +301,7 @@ model checks are the handoff from mechanical edits to the actual migration.
 
 Schema type annotations may now select external mutating lifecycle participants; creators remain field-only.
 Type handlers receive the visited Builder, with null containing Builder/name at root. See
-[Model Phases — type mutation](Model-Phases.md#type-mutation-lp-5) for ordering and inherited annotation lookup.
+[Lifecycle Participants](Lifecycle-Participants.md#type-mutation) for ordering and inherited annotation lookup.
 
 ## Builder Lifecycle Field Types
 

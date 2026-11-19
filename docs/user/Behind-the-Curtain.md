@@ -5,6 +5,16 @@ some advanced calls have lifecycle boundaries or targeted diagnostics. You norma
 Schema or Model. This section also contains [Schema Compiler Provenance](Schema-Provenance.md), which explains the
 compiler identity recorded in generated Schema classes without treating it as a compatibility guarantee.
 
+See [Lifecycle Participants](Lifecycle-Participants.md) for handler contracts and ordering in the built-in phases.
+
+## Plugin phase actions
+
+Use `BuilderVisitingPhaseAction` before materialization and `ModelVisitingPhaseAction` after it. The untyped
+`VisitingPhaseAction` is deprecated. Plugins can register actions
+through the Java ServiceLoader mechanism. Numeric phase IDs determine their order and leave room between built-in phases.
+The [phase registration ADR](../adr/0008-phase-registration.md)
+records the planned registration design.
+
 ## Builder Projection for Custom Producers
 
 During construction, owned relationships hold Builders rather than completed DSL Objects. A source-visible custom factory

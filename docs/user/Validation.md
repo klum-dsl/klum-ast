@@ -346,8 +346,41 @@ called by helpers reached from a lifecycle callback, but it is not a general out
 
 (See: `KlumValidationReporterTest#'reports a current validation-method issue through the static Groovy property'`.)
 
-External lifecycle participants should use an explicit Domain Builder target for nested findings; see the
-[participant example](Model-Phases.md#participant-validation) and its materialization/Verify contract.
+### Participant validation
+
+Use an explicit Domain Builder target for a nested finding from a
+[lifecycle participant](Lifecycle-Participants.md). The current-object reporter uses the current lifecycle context,
+which may identify the containing object. Use `issueAt` or `errorAt` to identify the affected member.
+
+(See: `LifecycleParticipantValidationDocumentaryTest#'reports missing Facts on the explicit Domain and transfers findings to the completed Model'`.)
+
+```groovy
+@CompileStatic
+class CheckFactsHandler implements LifecycleParticipant.MutationHandler<CheckFacts> {
+    void mutate(LifecycleParticipant.MutationContext<CheckFacts> context) {
+        def domain = Domain.Create.narrowBuilder(context.targetBuilder)
+        if (!domain.facts)
+            KlumSchemaSupport.klumValidationForObject(domain)
+                .issueAt('facts', 'facts are required', Validate.Level.WARNING)
+    }
+}
+@Retention(RUNTIME) @Target(FIELD)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = CheckFactsHandler)
+@interface CheckFacts {}
+@DSL class Facts {}
+@DSL class Domain { Facts facts }
+@DSL class Application { @CheckFacts Domain domain }
+
+def application = Application.Create.With { domain {} }
+def issue = KlumObjectSupport.of(application.domain).validation.result.issues.first()
+assert issue.member == 'facts'
+assert issue.level == Validate.Level.WARNING
+```
+
+Normal materialization transfers the Domain Builder's findings to that completed Domain. Existing suppression applies to
+later findings on the selected target. The default fail level is `ERROR`, so this `WARNING` permits completion.
+With `klum.validation.failOnLevel` set to `WARNING`, Verify throws `KlumValidationException`. Use `errorAt` for an
+ERROR-level finding. Findings recorded against a sealed wrapper do not transfer to its existing completed LINK target.
 
 ## On Inner Classes (Validation Classes)
 
