@@ -1,6 +1,9 @@
-# Unreleased
-
 # 4.2.x Bugfixes
+
+- Use the selected Schema class's documentation as the generated JSON Schema root description and remove generic
+  root validation caveats. Field, key and operation descriptions remain unchanged. See
+  [JSON Schema generation](docs/user/Json-Schema.md)
+  ([#1093](https://github.com/klum-dsl/klum-ast/issues/1093)).
 
 # 4.2.0 (2026-11-17)
 

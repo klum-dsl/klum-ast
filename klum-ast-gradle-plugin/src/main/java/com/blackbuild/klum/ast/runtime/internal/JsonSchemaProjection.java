@@ -26,7 +26,13 @@ package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.Required;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Validate;
+import groovyjarjarasm.asm.AnnotationVisitor;
+import groovyjarjarasm.asm.ClassReader;
+import groovyjarjarasm.asm.ClassVisitor;
+import groovyjarjarasm.asm.Opcodes;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.math.BigDecimal;
@@ -89,16 +95,47 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                 document.put("$schema", DIALECT);
                 document.put("$ref", reference(rootDefinition));
                 document.put("$defs", new TreeMap<>(definitions));
-                document.put(DESCRIPTION, "Faithful raw-input authoring bounds for supplied direct numeric properties; "
-                        + "schema validity does not guarantee construction or completed Model validation.");
-                document.put("$comment", "Raw-input authoring bounds only; "
-                        + "defaults, lifecycle, conversion and completed validation are not evaluated.");
+                appendDescription(document, renderAuthoredDescription(RootDocumentation.read(getClass().getModule(), root)));
                 document.put("x-klum-unsupported", new TreeMap<>(diagnostics));
                 result.put(root + suffix, json(document, 0) + "\n");
-            } catch (ClassNotFoundException | LinkageError | RuntimeException failure) {
+            } catch (ClassNotFoundException | IOException | LinkageError | RuntimeException failure) {
                 throw new IllegalArgumentException("Cannot generate JSON Schema for root '" + root
                         + "', key position " + position + "; supply the complete resolved Schema/API/runtime/annotation classpath and recompile with generated input enrichment: "
                         + failure.getMessage(), failure);
+            }
+        }
+    }
+
+    /** Load the optional prose reader only after the root contract has resolved, preserving classpath diagnostics. */
+    private static final class RootDocumentation {
+        private RootDocumentation() { }
+
+        private static String read(Module module, String root) throws IOException {
+            try (InputStream bytes = module.getResourceAsStream(root.replace('.', '/') + ".class")) {
+                if (bytes == null) return null;
+                Visitor documentation = new Visitor();
+                new ClassReader(bytes).accept(documentation, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+                return documentation.text;
+            }
+        }
+
+        /** Only exact Schema prose is inspected; implementation members and unrelated annotations remain untouched. */
+        private static final class Visitor extends ClassVisitor {
+            private String text;
+
+            private Visitor() {
+                super(Opcodes.ASM9);
+            }
+
+            @Override
+            public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+                if (!descriptor.equals("Lcom/blackbuild/annodocimal/annotations/AnnoDoc;")) return null;
+                return new AnnotationVisitor(Opcodes.ASM9) {
+                    @Override
+                    public void visit(String name, Object value) {
+                        if (name.equals("value")) text = (String) value;
+                    }
+                };
             }
         }
     }
