@@ -519,6 +519,7 @@ services:
 | Active Builder body | Allocated Builder | Forbidden, even if equal |
 | Supplied direct keyed child | Input, unless Schema supplies identity | Required String |
 | Fixed/derived-key direct child, including fixed Cluster fields | Schema relationship | Forbidden, even if equal |
+| [Keyed owned sequence item](#keyed-child-sequences) | Item mapping | Required String |
 | Keyed owned Map value | Outer literal Map entry | Forbidden, even if equal |
 
 Thus `services.worker` must omit `service-id`: `worker` already supplies its identity. A nested direct child inside
@@ -1209,7 +1210,7 @@ selected operation's String grammar, prose and examples; constraints from a supe
 
 Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts
 and selection facts are required even for unmarked or excluded operations; missing or inconsistent facts fail closed.
-The development metadata protocol remains version 1. See [migration](Migration.md#structured-string-operation-selection).
+These facts are part of metadata protocol version 1. See [migration](Migration.md#structured-string-operation-selection).
 
 ## Zero-argument commands
 

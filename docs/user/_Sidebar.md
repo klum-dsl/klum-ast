@@ -44,6 +44,7 @@
 * More
   * [FAQ](FAQ.md)
   * [Changelog](Changelog.md)
+  * [Upgrade to 4.2](Migration.md#to-42)
   * [Migration](Migration.md)
   * [Builder First Migration](Builder-First-Migration.md)
   * [Roadmap](Roadmap.md)

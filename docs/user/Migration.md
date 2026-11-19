@@ -1,36 +1,46 @@
 # Migration
 
-## Opt-in JSON Schema tooling
+## To 4.2
+
+If you already use KlumAST, start here when moving to the 4.2.x line.
+
+1. **Recompile with matching 4.2.x versions.** Align your KlumAST annotations, compiler, runtime, BOM and Gradle
+   plugins where used. Rebuild and replace the participating Schema and API artifacts, including separately compiled
+   parents, derived Schemas and owned types. Rebuilding only the Model cannot refresh generated Builder metadata in a
+   Schema dependency. Recompile consumers of changed generated Factory and Builder signatures against the rebuilt artifacts.
+2. **Regenerate JSON Schemas you use.** After rebuilding, run [`generateKlumJsonSchema`](Json-Schema.md) for your
+   configured roots and share the new output with the editors and validators that consume it. Generation is opt-in.
+3. **Refresh IDE source mirrors if you use them.** For same-project IntelliJ completion, run
+   `createKlumDslSourceMirrors` in a single-project build or `generateAllKlumDslSourceMirrors` from the root of a
+   multi-project build, then reload the Gradle project. The [Schema plugin](Gradle-Plugins.md) supplies these IDE-only
+   tasks. Compilation and JSON Schema generation use the compiled contracts.
+4. **Run representative Model tests.** Exercise the entry points your Models actually use, including compiled Groovy
+   recipes and caller-parsed YAML where applicable. Check completed Model state and the validation failures you rely on.
+   If you regenerate JSON Schemas, also check representative input with the editors or validators that use them.
+   See [Testing Models and Schemas](Testing-Models-and-Schemas.md).
+
+For examples of adding YAML to an existing Schema, follow the
+[Structured Input adoption guide](Structured-Input.md#adopt-yaml-for-a-schema). If your input contains
+[keyed child sequences](#owned-sequence-structured-input), check how each item supplies its key. When upgrading
+from 3.x, also use the [Builder-first migration checklist](Builder-First-Migration.md).
+
+### Opt-in JSON Schema tooling
 
 The Schema plugin's `generateKlumJsonSchema` task uses compiled public contracts with current generated input enrichment.
 Recompile older Schemas and keep plugin/compiler/runtime versions aligned before enabling it. Configure explicit DSL Model names as strings;
 output filenames use those fully qualified Model names. No source discovery, input parser or publication change is required.
 See [JSON Schema generation](Json-Schema.md).
 
-## Unreleased
-
 ### Raw-input presence and the 4.2 contract
 
-For `@Struct.Required`, recompile every participating Schema/API, binary parent, derived and owned artifact with matching
-4.2 annotations/compiler/runtime/Schema-plugin inputs, then regenerate JSON Schema and distribute it to editors/clients.
-Rebuilding only the final application does not regenerate its dependencies' Builder metadata. Direct and transitive
-domain-annotation markers need the same matched compilation path.
+`@Struct.Required` marks a field as required in generated JSON Schema. Rebuild the artifacts carrying the marker,
+including direct and transitive domain annotations, and regenerate the schema. The released
+[version 1 metadata contract](#structured-input-metadata-protocol) includes field-presence facts.
 
-Development protocol v1 remains unreleased. Its current contract adds optional field presence: marked fields emit true;
-omission and explicit false mean false. Earlier development-v1 producers/readers are outside the supported contract;
-there is no historical compatibility matrix or partial-metadata fallback. All other required facts and participating
-contracts must be complete. Missing/incompatible versions or malformed facts fail closed; this adds no stale-artifact
-or release-provenance detector.
-
-This feature changes generated JSON Schema presence only. It does not enforce omission in `FromStruct`/`applyStruct`,
-change null/default/lifecycle behavior or reinterpret `@Required`/Jakarta validation. See
+Presence is checked by an editor or validator that uses the generated schema. `FromStruct` and `applyStruct` keep
+their existing omission, null, default and validation behavior. See
 [the Schema example and documentary coverage](Json-Schema.md#raw-input-field-presence) and
 [Struct import guidance](Structured-Input.md#raw-input-presence).
-
-Before a public 4.2 RC, maintainers must record the final v1 freeze, recompile the entire participating Schema closure,
-and qualify the **exact public candidate** with its matching published coordinates and regenerated schemas. Branch-local
-G3/G4/G5, binary and G4/G5 JPMS evidence does not complete those release obligations. An incompatible post-freeze change
-requires a new decision and a further RC ([#1055](https://github.com/klum-dsl/klum-ast/issues/1055)).
 
 ### Reserved Builder copy signature
 
@@ -67,8 +77,8 @@ public Factory contract. Groovy 3 remains classpath-only; Groovy 4/5 retain the 
 
 ### Structured Factory and Builder capabilities
 
-The unreleased development reader `KlumStructuredInput` has been removed without a forwarding alias. Replace its root
-calls with `Type.Create.FromStruct(document, sourceName)` or, for an explicitly keyed body,
+If you tried the pre-release `KlumStructuredInput` reader, replace its root calls with
+`Type.Create.FromStruct(document, sourceName)` or, for an explicitly keyed body,
 `Type.Create.FromStruct(rootKey, body, sourceName)`. Unkeyed callers omit the old null root-key argument.
 Replace `applyToBuilder(builder, body, sourceName)` with `builder.applyStruct(body, sourceName)`; the method returns void.
 A generic helper needing its original typed Builder can return that same receiver after the call.
@@ -106,7 +116,7 @@ specificity preference. Either exact signature can receive a String payload. Ren
 authored operation names and selection intent; inherited C1 converter override rejection remains unchanged.
 
 Recompile participating Schema hierarchies with matching compiler/runtime/plugin artifacts for the new explicit operation
-completeness and selection facts (development protocol 1). Old or stripped facts reject before execution/generation.
+completeness and selection facts (metadata protocol version 1). Old or stripped facts reject before execution/generation.
 See [String selection](Structured-Input.md#select-a-string-operation) and [ADR 0032](../adr/0032-builder-oriented-structured-input.md).
 
 ### String converter origins
@@ -115,8 +125,8 @@ Exact public String Builder projections now admit field closures, same-compilati
 external adapters. Missing or colliding generated projections still reject. Recompile matched compiler/runtime/plugin and
 Schema artifacts: every converter association now explicitly records whether C1 parameter facts apply. C1 assertions and
 policies remain unchanged on qualified routes; other origins emit String structure and field prose without inferring
-constraints. Exact String List-element and Map-value routes are covered by the later L1-A/L1-B extensions below;
-DSL-object conversion remains deferred.
+constraints. See also [String List elements](#string-list-element-converters) and
+[String Map values](#string-map-value-converters). DSL-object conversion remains deferred.
 See [converter authoring](Converters.md#structured-string-input) and [schema output](Json-Schema.md#compiled-converter-parameters).
 
 ### CharSequence scalar routes
@@ -163,8 +173,8 @@ Exact `Set<T>` String element routes now accept ordered Struct/YAML sequences th
 Recompile matched Schema/compiler/runtime/plugin artifacts for the exact association. Each source element converts,
 including duplicates, before native Set insertion; defaults, equality/comparator behavior, Template recipes, lifecycle
 and earlier effects on indexed failure remain ordinary. Empty input makes zero calls. JSON Schema emits String arrays
-without uniqueness or result-order/cardinality promises. CharSequence-only routes and specialized Set declarations remain
-outside this slice. See [Set elements](Structured-Input.md#converter-backed-set-elements).
+without uniqueness or result-order/cardinality promises. This route requires an exact String adder and an ordinary
+`Set<T>` declaration. See [Set elements](Structured-Input.md#converter-backed-set-elements).
 
 ### String Map-value converters
 
@@ -195,9 +205,9 @@ parameter enforcement is added. See [converter authoring](Converters.md#structur
 [projection rules](Json-Schema.md#compiled-converter-parameters).
 
 Recompile participating Schema hierarchies with matched compiler/runtime/plugin and domain artifacts, including after
-converter contract changes. Required explicit converter association/completeness facts retain development protocol marker
-1; old incomplete artifacts receive recompile guidance. Supply the domain, Jakarta API and referenced member types on
-the inspection classpath. There is no compatibility decoder or changed-JAR-without-recompilation guarantee.
+converter contract changes. Metadata protocol version 1 requires explicit converter association and completeness
+facts. Incomplete artifacts receive recompile guidance. Supply the domain, Jakarta API and referenced member types
+on the inspection classpath. There is no compatibility decoder or changed-JAR-without-recompilation guarantee.
 
 ### Structured-input metadata protocol
 
@@ -222,7 +232,7 @@ Review generated schemas when adopting the change: supplied values can now be re
 keeping ordinary Javadoc, structural bounds, explicit examples and deprecation. Runtime enforcement and direct calls are
 unchanged. Recompile all participating declaring/inherited/owned Schema artifacts with matching compiler/runtime/plugin
 versions for complete composition/description facts. There is no Model/source fallback, and suppression cannot hide
-corrupt metadata. The development protocol marker remains 1; this is not a mixed-toolchain compatibility promise.
+corrupt metadata. These facts are part of metadata protocol version 1.
 See [the supported boundary and example](Json-Schema.md#composed-constraints-and-documentary-meta-annotations).
 
 ### Advisory input examples
@@ -231,8 +241,7 @@ See [the supported boundary and example](Json-Schema.md#composed-constraints-and
 validation against the property type or runtime constraints. Write `@Struct.Examples(['localhost'])`, without JSON quoting.
 A note on a numeric, boolean or object property is still a string and is not promised to be a valid instance value.
 
-Current development Builder facts retain source-specific string arrays, including empty absence arrays. The unified
-`GeneratedInput.Schema.version` remains 1; this slice adds no metadata version, feature gate or compatibility mechanism.
+Builder facts retain source-specific string arrays, including empty arrays for absent examples.
 Keep the current compiler/runtime/plugin aligned. See [syntax and placement](Json-Schema.md#advisory-input-examples).
 
 
@@ -246,9 +255,7 @@ independent. No new task flag exists.
 
 Recompile and package roots and participating inherited/owned Schemas with matching compiler/runtime/plugin versions.
 Explicit decoded regexp and flag-emptiness facts are required even for descriptive or omitted constraints. Missing or
-malformed metadata fails before execution or output replacement. `GeneratedInput.Schema.version` stays at its current
-value during 4.2 development; formal release-protocol cutover/recompilation preparation remains deferred. This grants
-no historical or mixed-toolchain compatibility promise.
+malformed metadata fails before execution or output replacement. These facts are part of metadata protocol version 1.
 
 
 ### Literal names and exclusion
@@ -303,8 +310,8 @@ JSON Schema generation always projects supported direct integral and decimal bou
 klumSchema.jsonSchema { rootTypes.add('example.Capacity') }
 ```
 
-The unreleased `integralConstraints` and `decimalConstraints` properties are removed without aliases or a replacement
-selector. Recompile/package root, inherited and owned dependency Schemas with matching compiler/runtime/plugin versions:
+If you tried the pre-release `integralConstraints` or `decimalConstraints` options, remove them from your build.
+Recompile and package root, inherited and owned dependency Schemas with matching compiler/runtime/plugin versions:
 complete supported numeric metadata is required for all generation. Missing facts fail before replacing previous output;
 Model bytes never fill gaps. Contradictory numeric declarations remain valid schema assertions, without satisfiability
 analysis. Construction, completed validation, omission, null admission and construction keys remain unchanged. See
@@ -325,7 +332,7 @@ unchanged; there are no implicit reset/clear semantics. See [commands](Structure
 
 Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Each authored public
 operation now carries an explicit compiler role, checked against its exact signature; missing, malformed or inconsistent
-facts fail closed. The development metadata protocol remains version 1. This adds no mixed-toolchain compatibility.
+facts fail closed. Command facts are part of metadata protocol version 1. This adds no mixed-toolchain compatibility.
 
 ### Ordered structured-input failures
 
@@ -353,14 +360,26 @@ A supplied direct caller-key child now requires its key before construction; inp
 with null identity rejects before that child's allocation. Omitted optional children remain legal. Fixed/derived/Cluster-key children
 and keyed Map values continue to forbid inner identity. Their providers and outer keys retain authority.
 
-Generated keyed-root JSON Schema now describes the self-contained document and gains a required String key member.
-It no longer describes explicit-rootKey or active-Builder payloads. Admitted direct relationships with an ignored or
+Generated keyed-root JSON Schema describes the self-contained document and requires a String key member.
+Use the [caller-pre-keyed Builder-body schema](#caller-pre-keyed-builder-body-schemas) for explicit-key root bodies
+and bodies applied to keyed Builders. Admitted direct relationships with an ignored or
 colliding required key fail generation, including optional ones; retain and distinguish the previous successful output
 when generation fails. Use matching compiler/runtime/plugin versions and recompile binary parents as needed for key facts.
 
 See [construction-key examples](Structured-Input.md#construction-keys) and
 [position-specific JSON Schema](Json-Schema.md#construction-key-definitions). `Create.FromMap`, ordinary Groovy DSL
 construction and managed Jackson keep their independent behavior. File/URL loading and broader grammar are separate work.
+
+### Owned sequence structured input
+
+Ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields of supported concrete, nongeneric
+DSL children accept sequences of child mappings. Each [keyed item](Structured-Input.md#keyed-child-sequences)
+must carry its actual externally named String construction key. A keyed Map gets identity from its outer entry.
+Repeated sequence keys create fresh children, with retention determined by the destination collection.
+
+Regenerate the [JSON Schema for owned sequences](Json-Schema.md#owned-child-sequences) so editors and validators
+see the required key in keyed items. For supported declarations and examples, see
+[owned child sequences](Structured-Input.md#owned-child-sequences).
 
 ### Literal CollectionFactory alternative input
 
@@ -379,10 +398,11 @@ for the required association/count facts, including inherited artifacts. See
 Default `rootTypes` schemas still require a keyed root's actual external key member. For an already keyed Builder body,
 select `klumSchema.jsonSchema.bodyRootTypes` explicitly. The same Model may appear in both sets, producing independent
 `<Model>.schema.json` and `<Model>.builder-body.schema.json` artifacts. The body artifact forbids root identity while
-retaining all child key positions. Public construction uses the accepted Factory/Builder boundary, with the interpreter
-internal; delivery of those remaining entry points is separate. No runtime call or filename-key convention changes. Choose the matching artifact
-explicitly; generation does not configure editors or file discovery. See
-[the Gradle example](Json-Schema.md#caller-pre-keyed-builder-bodies) ([#953](https://github.com/klum-dsl/klum-ast/issues/953), S7).
+retaining all child key positions. Use that artifact for input to `Create.FromStruct(rootKey, body)` or
+`builder.applyStruct(body)` on an already keyed Builder. Choose the matching artifact explicitly in your editor or
+validator. See [the Gradle example](Json-Schema.md#caller-pre-keyed-builder-bodies) and
+[the adoption walkthrough](Structured-Input.md#adopt-yaml-for-a-schema)
+([#953](https://github.com/klum-dsl/klum-ast/issues/953)).
 
 ## To 4.1
 
@@ -985,13 +1005,3 @@ Recompile and package root, inherited and participating owned Schemas with match
 The shared [metadata protocol](#structured-input-metadata-protocol) requires explicitly retained field policies and numeric
 facts. Older or incomplete contracts are rejected; no mixed-version fallback remains. See the
 [field policy example and limits](Json-Schema.md#field-constraint-projection).
-
-## Owned sequence structured input
-
-Ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields of concrete unkeyed DSL children now accept
-[sequences of child-body mappings](Structured-Input.md#owned-child-sequences). Recompile participating Schema hierarchies
-with matched compiler/runtime/plugin artifacts to carry the exact creator selection. Protocol version 1 alone does not
-establish compatibility with older development output. Existing Groovy attachment, Template and collection semantics
-are preserved; the new input index in Struct diagnostics is separate from ordinary Builder placement paths.
-JSON Schema emits array grammar without uniqueness, cardinality or final-order guarantees. Keyed, abstract, generic,
-custom/specialized, CollectionFactory and aggregation forms retain their existing boundaries.
