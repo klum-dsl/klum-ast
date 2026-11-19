@@ -1,5 +1,7 @@
 # Builder-First Construction Migration
 
+For the current release upgrade checklist, see [Upgrade to 4.2](Migration.md#to-42).
+
 KlumAST 4.0 changes how model creation works internally: it configures Builders first and then materializes one completed,
 structurally immutable model graph. Most schemas and model scripts that already use generated factories should continue to
 work without changes:

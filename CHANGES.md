@@ -1,5 +1,8 @@
 # 4.2.x Bugfixes
 
+- Add a [4.2 upgrade checklist](docs/user/Migration.md#to-42) and document the required construction key in
+  supported keyed sequence items ([#1097](https://github.com/klum-dsl/klum-ast/issues/1097)).
+
 - Use the selected Schema class's documentation as the generated JSON Schema root description and remove generic
   root validation caveats. Field, key and operation descriptions remain unchanged. See
   [JSON Schema generation](docs/user/Json-Schema.md)
@@ -93,12 +96,10 @@
 
 ## Migration
 
-Recompile the complete participating Schema/API, parent, derived and owned artifact set with matching 4.2
-annotations/compiler/runtime/BOM/Schema-plugin versions, then regenerate JSON Schemas and refresh IDE mirrors.
-The shared generated-input v1 contract requires complete matching metadata; it provides no mixed-toolchain or historical
-development-artifact compatibility fallback. Recompile consumers of changed generated Factory/CollectionFactory signatures,
-and rename Schema methods colliding with reserved Builder input/copy signatures. Development callers of the removed reader facade use
-`Create.FromStruct`/`applyStruct` instead. See [Migration](docs/user/Migration.md) for overload, naming and copy-route details.
+Use the [4.2 upgrade checklist](docs/user/Migration.md#to-42) for matched recompilation, JSON Schema regeneration,
+optional IDE source-mirror refresh and representative Model tests. It links to the migration details for changed
+generated signatures and reserved Builder operations.
+
 
 # 4.1.0 (2026-10-20)
 

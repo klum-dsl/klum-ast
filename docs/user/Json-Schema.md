@@ -483,7 +483,6 @@ The compiler emits explicit decoded `regexp` and `patternFlagsEmpty` facts even 
 consumers require complete facts before applying any field policy, including omitted owned relationships. Corrupt/missing
 facts fail atomically with public Builder/artifact/source and recompile/package guidance. Use matching compiler/runtime/
 plugin versions and recompile participating artifacts; see [migration](Migration.md#conservative-pattern-projection).
-The current shared metadata marker remains unchanged during 4.2 development; release-protocol preparation is separate.
 
 ## Composed constraints and documentary meta-annotations
 
@@ -542,8 +541,7 @@ first-level composing prose reads as the inner constraint carried by the outer a
 `@NotBlank via @MandatoryInput`. Generation
 needs neither domain annotations nor Bean Validation on its classpath. Both consumers validate complete facts before
 policy suppression, including `OMIT`; malformed or stripped facts fail before replacing output. Recompile participating
-Schema hierarchies with matching compiler/runtime/plugin versions. The shared development protocol marker remains 1;
-release protocol preparation is separate. See [migration](Migration.md#composed-constraints-and-documentary-meta-annotations).
+Schema hierarchies with matching compiler/runtime/plugin versions. See [migration](Migration.md#composed-constraints-and-documentary-meta-annotations).
 
 ## Integral constraints
 
@@ -943,7 +941,7 @@ Examples supply no defaults, change no requiredness or runtime input types, and 
 conversion, templates or lifecycle. There is no content grammar or example evaluator. Ordinary annotation/JVM constraints
 apply; excessively large carried documentation is rejected defensively. The source-free public Builder metadata remains
 authoritative, and malformed or missing required metadata fails before replacing successful output. The unified
-[development metadata protocol](Migration.md#structured-input-metadata-protocol) remains version 1.
+[metadata protocol](Migration.md#structured-input-metadata-protocol) is version 1 in 4.2.
 
 ### Runtime order and failure
 
