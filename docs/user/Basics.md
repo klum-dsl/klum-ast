@@ -756,10 +756,11 @@ Builders keep mutable construction collections. Materialization publishes indepe
 Builder collection nor an input collection can mutate the completed model afterward. Sorted collections preserve their
 comparator. `EnumSet` getters return defensive copies.
 
-For caller-parsed Struct/YAML input, ordinary concrete unkeyed owned List/Set/SortedSet/NavigableSet fields accept
-[child-body sequences](Structured-Input.md#owned-child-sequences). Supplied mappings run in input order; the declared
-collection retains its ordinary equality, comparator and final iteration behavior. The input schema makes no uniqueness
-or completed-order promise.
+For caller-parsed Struct/YAML input, ordinary owned `List<T>`, `Set<T>`, `SortedSet<T>` and `NavigableSet<T>` fields
+accept [child-body sequences](Structured-Input.md#owned-child-sequences) when `T` is a concrete, nongeneric DSL type.
+If `T` is keyed, each item mapping supplies its own [construction key](Structured-Input.md#keyed-child-sequences).
+Supplied mappings run in input order. The declared collection retains its ordinary equality, comparator and final
+iteration behavior. The input schema makes no uniqueness or completed-order promise.
 
 **Be careful when using a simple `Set`.** Since Klum creates barebone hashcode implementations
  (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted)`Set` of
@@ -779,9 +780,9 @@ following consequences:
 
 Owned DSL Object relationships form one single-rooted composition tree. `@Owner` may annotate multiple fields or
 methods on an object; matching owner fields are framework-managed backlinks for navigating upward through that tree,
-not values configured by a Model Writer. `LINK` relationships add side connections to existing completed objects without
-changing composition ownership or its root. See [Static Models](Static-Models.md#relationship-graph) for the same graph
-boundary in the static-model overview.
+not values configured by a Model Writer. [`LINK`](#link) relationships add non-owning side connections.
+[`OPTIONAL_LINK`](#optional_link) can contribute either an owned edge or a non-owning connection, depending on the target.
+See [Static Models](Static-Models.md#relationship-graph) for the same graph boundary in the static-model overview.
 
 ![Completed model relationships: solid arrows form the owned composition tree; dashed arrows are framework-managed Owner backlinks; a dotted LINK arrow reaches an existing object outside the tree; the lifecycle runs from Builder configuration to Owner establishment to materialization.](img/composition-owner-link-boundaries.svg)
 
@@ -791,8 +792,8 @@ structural paths only through solid owned-composition edges. `Endpoint` declares
 are framework-managed navigation relationships, not additional ownership; a type may declare more than one matching
 Owner field.
 
-The dotted `LINK` from `Service` to an existing completed `Policy` is an optional non-owning side connection. The
-`Policy` remains outside the `Deployment` composition tree: `LINK` does not adopt it, change either root identity, or
+The dotted `LINK` from `Service` to an existing completed `Policy` is a non-owning side connection. The `Policy`
+remains outside the `Deployment` composition tree: `LINK` does not adopt it, change either root identity, or
 contribute to structural model paths. The timeline is deliberate: Builder configuration creates the owned graph, the
 Owner phase establishes matching backlinks, and `INSTANTIATE` then materializes the completed model. Owner assignment is
 therefore not an immediate side effect of a relationship configuration call.
@@ -1024,14 +1025,16 @@ Builder. As with PROTECTED this means that these fields can effectively only be 
 from inside lifecycle or mutator methods.
 
 ## LINK
-`LINK` fields model aggregation. They accept existing completed DSL Objects through sealed Builder wrappers but do not
-create or re-own those targets. All non-`LINK` DSL Object relationships are owned composition and must be created within
-the owner's Builder lifecycle.
+`LINK` fields model aggregation only. They can reference an already owned Builder in the same construction session or
+a completed DSL Object through a sealed Builder wrapper. The target keeps its existing ownership.
 
 ## OPTIONAL_LINK
-`OPTIONAL_LINK` accepts either a locally created child Builder as owned composition or an existing completed DSL Object
-as an aggregation target. `@LinkTo` selects this mode by default; use `@Field(FieldType.LINK) @LinkTo` when a
-relationship must be aggregation-only. See
+`OPTIONAL_LINK` determines ownership for each relationship entry. It claims a fresh child Builder in the same
+construction session as owned composition. An already owned Builder in that session or a completed DSL Object is an
+aggregation target, as with `LINK`. Ordinary DSL Object relationships are composition-only and create or claim
+children within the owner's Builder lifecycle.
+
+`@LinkTo` selects `OPTIONAL_LINK` by default. Use `@Field(FieldType.LINK) @LinkTo` for aggregation-only relationships. See
 [Behind the Curtain](Behind-the-Curtain.md#builder-backed-linkto-providers) for provider reads through active Builders
 and sealed wrappers, including the boundary between dynamic reads and generated typed getters.
 
