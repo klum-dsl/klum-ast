@@ -467,7 +467,9 @@ with matching tools and regenerate schema output as described in [Migration](Mig
 
 Self-contained keyed documents require the actual Schema `@Key String` member. A supplied direct owned keyed child requires its key too, at any depth, unless its
 relationship supplies identity through `@Field.key` or a fixed Cluster key. An absent optional child remains absent.
-Unkeyed roots have no synthetic identity property.
+Each item in a [keyed owned sequence](#keyed-child-sequences) supplies its actual `@Key String` member in the item
+mapping. Keyed owned Maps take each child's identity from the outer literal Map entry. Unkeyed roots have no synthetic
+identity property.
 
 (See: `StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'`.)
 
@@ -519,7 +521,7 @@ services:
 | Active Builder body | Allocated Builder | Forbidden, even if equal |
 | Supplied direct keyed child | Input, unless Schema supplies identity | Required String |
 | Fixed/derived-key direct child, including fixed Cluster fields | Schema relationship | Forbidden, even if equal |
-| [Keyed owned sequence item](#keyed-child-sequences) | Item mapping | Required String |
+| [Keyed owned sequence item](#keyed-child-sequences) | Each item's own mapping | Required String under the effective external key name |
 | Keyed owned Map value | Outer literal Map entry | Forbidden, even if equal |
 
 Thus `services.worker` must omit `service-id`: `worker` already supplies its identity. A nested direct child inside
