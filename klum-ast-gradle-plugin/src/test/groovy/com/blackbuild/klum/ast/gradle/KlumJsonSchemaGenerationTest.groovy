@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.gradle
 
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import groovy.transform.CompileStatic
 import groovyjarjarasm.asm.AnnotationVisitor
 import groovyjarjarasm.asm.ClassReader
 import groovyjarjarasm.asm.ClassVisitor
@@ -33,6 +34,7 @@ import groovyjarjarasm.asm.Opcodes
 import groovyjarjarasm.asm.MethodVisitor
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.function.BiFunction
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -874,6 +876,101 @@ klumSchema.jsonSchema {
 
         where:
         generation << ['3', '4', '5']
+    }
+
+    @Issue('1093')
+    def 'missing optional root documentation resource preserves both input schemas'() {
+        given:
+        fixture('3')
+
+        when:
+        Map<String, String> documents = projectWithDocumentationResource('missing')
+        def schema = new JsonSlurper().parseText(documents['example.Deployment.schema.json'])
+        def body = new JsonSlurper().parseText(documents['example.Deployment.builder-body.schema.json'])
+
+        then:
+        !schema.containsKey('description')
+        !body.containsKey('description')
+        !schema.containsKey('$comment')
+        !body.containsKey('$comment')
+        schema.'$schema' == 'https://json-schema.org/draft/2020-12/schema'
+        schema.'$defs' == body.'$defs'
+        schema.'$defs'.'example.Deployment_DSL$Builder'.properties.region.description == 'Inherited region documentation.'
+        schema.'$defs'.'example.Deployment_DSL$Builder'.properties.'configure-input'.description == 'Configure deployment labels.'
+        !trap.exists()
+    }
+
+    @Issue('1093')
+    def 'root documentation #failureMode failure retains root context and its IO cause'() {
+        given:
+        fixture('3')
+
+        when:
+        projectWithDocumentationResource(failureMode)
+
+        then:
+        def failure = thrown(IllegalArgumentException)
+        failure.message.contains("Cannot generate JSON Schema for root 'example.Deployment'")
+        failure.message.contains('Schema/API/runtime/annotation classpath')
+        failure.cause instanceof IOException
+        failure.cause.message == "documentation $failureMode failed"
+        !trap.exists()
+
+        where:
+        failureMode << ['read', 'close']
+    }
+
+    private Map<String, String> projectWithDocumentationResource(String failureMode) {
+        List<File> classpath = [new File(System.getProperty('schemaPluginJar')),
+                               new File(repository, 'fixture/api/1.0/api-1.0.jar'),
+                               new File(repository, 'fixture/schema/1.0/schema-1.0.jar'),
+                               new File(System.getProperty('gdslGroovy3'))]
+        classpath.addAll(System.getProperty('gdslRuntimeClasspath').split(File.pathSeparator).collect { new File(it) })
+        URL[] urls = classpath.collect { it.toURI().toURL() } as URL[]
+        new DocumentationResourceLoader(urls, failureMode).withCloseable { loader ->
+            Class<?> implementation = Class.forName('com.blackbuild.klum.ast.runtime.internal.JsonSchemaProjection', true, loader)
+            def constructor = implementation.getDeclaredConstructor()
+            constructor.setAccessible(true)
+            def projector = (BiFunction<List<String>, List<String>, Map<String, String>>) constructor.newInstance()
+            projector.apply(['example.Deployment'], ['example.Deployment'])
+        }
+    }
+
+    /** Fault only the optional Schema prose resource; executable classes and Builder metadata stay intact. */
+    @CompileStatic
+    private static final class DocumentationResourceLoader extends URLClassLoader {
+        private final String failureMode
+
+        private DocumentationResourceLoader(URL[] urls, String failureMode) {
+            super(urls, ClassLoader.getPlatformClassLoader())
+            this.failureMode = failureMode
+        }
+
+        @Override
+        protected URL findResource(String moduleName, String name) throws IOException {
+            URL resource = super.findResource(moduleName, name)
+            if (name != 'example/Deployment.class') return resource
+            if (failureMode == 'missing') return null
+            String mode = failureMode
+            new URL(null, resource.toExternalForm(), new URLStreamHandler() {
+                @Override
+                protected URLConnection openConnection(URL ignored) {
+                    new URLConnection(resource) {
+                        @Override void connect() { }
+
+                        @Override InputStream getInputStream() throws IOException {
+                            if (mode == 'read') throw new IOException('documentation read failed')
+                            new FilterInputStream(resource.openStream()) {
+                                @Override void close() throws IOException {
+                                    super.close()
+                                    throw new IOException('documentation close failed')
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        }
     }
 
     @Issue('1068')
