@@ -62,10 +62,8 @@ generated file with the YAML in its editor. `sourceName` is only diagnostic cont
 only schema output: it does not parse files, derive keys from paths, add a runtime mode, discover editor configuration,
 or make `FromStruct` / `applyStruct` run JSON Schema validation.
 
-Generation and interpretation have distinct responsibilities. Generation projects compiled Builder contracts into
-Draft 2020-12 for editor or explicit structural validation. Structured Input interprets caller-provided Maps through
-admitted Builder operations and then runs the ordinary KlumAST lifecycle. A structurally valid document can still fail
-construction or completed-Model validation.
+Follow the [keyed Service from authoring to a completed Model](Structured-Input.md#from-authoring-to-a-completed-model)
+to see where structural checks and completed-Model rules can disagree.
 
 ## Generating files
 
