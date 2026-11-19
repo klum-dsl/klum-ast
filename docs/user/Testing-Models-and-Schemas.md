@@ -166,6 +166,19 @@ exception.message.contains('A deployment image is required')
 
 See [Validation](Validation.md) for choosing `@Required`, field validation, and cross-field validation methods.
 
+## Test structured input boundaries
+
+Use the [keyed Service journey](Structured-Input.md#from-authoring-to-a-completed-model) to choose what your test asserts.
+
+- **Input shape.** Run an external Draft 2020-12 validator against the generated schema for the matching
+  [root shape](Json-Schema.md#choose-the-root-shape). Check a representative valid input and a rejection such as an
+  omitted `@Struct.Required` member. The [raw-input presence example](Json-Schema.md#raw-input-field-presence) links to
+  executable coverage of validator rejection and runtime defaults.
+- **Model construction.** Pass the caller-parsed Map to `Create.FromStruct`. Assert completed state, including defaults,
+  or assert a stable diagnostic for a failed Model invariant. The keyed-root case in `StructuredYamlDocumentaryTest`
+  exercises caller parsing and public entry points. The validation-cleanup case in `StructuredInputKeyTest` asserts a
+  Model validation failure on keyed input.
+
 ## Reuse Templates across a Spock feature
 
 For a Schema or Model module, the corresponding plugin already provides the published test-only `TemplateScope` artifact on
