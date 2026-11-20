@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "stage": "final",
+  "version": "4.2.1",
+  "sha": "25943e95b28d3b2d4c5e2680469910f4739e36fb",
+  "proofRun": "44716897499.1",
+  "pendingManifestSha256": "55f62571087ea19cb01fc35865793a144a2e247e1c5514c6e15c1543fbabef46",
+  "publicManifestSha256": "17bd9902d729bfdf039c9d912be2c98dcd5d67de67c10f267cd25d22e6d0497f",
+  "aliases": [
+    "stable",
+    "4.2",
+    "preview"
+  ],
+  "outcome": "promoted-public-documentation"
+}
