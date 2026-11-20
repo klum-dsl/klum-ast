@@ -39,10 +39,12 @@
   * [Jackson Integration](Jackson-Integration.md)
 * Behind the Curtain
   * [Implementation mechanics](Behind-the-Curtain.md)
+  * [Lifecycle Participants](Lifecycle-Participants.md)
   * [Schema Compiler Provenance](Schema-Provenance.md)
 * More
   * [FAQ](FAQ.md)
   * [Changelog](Changelog.md)
+  * [Upgrade to 4.2](Migration.md#to-42)
   * [Migration](Migration.md)
   * [Builder First Migration](Builder-First-Migration.md)
   * [Roadmap](Roadmap.md)

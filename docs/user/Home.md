@@ -48,6 +48,8 @@ These capabilities make KlumAST especially useful for GitOps and other *\*aC* (a
 configuration's structure, but a checked-in structure is not necessarily a verified model. Read
 [why *\*aC* needs model-level tests](Why-aC-is-not-enough.md) before treating configuration in Git as the end of the story.
 
+Already using KlumAST? Start with [Upgrade to 4.2](Migration.md#to-42).
+
 ## Author YAML with the same Schema
 
 Model Writers can also use caller-parsed YAML or JSON for admitted Schema operations. Start with the

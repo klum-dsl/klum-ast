@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 486" role="img" aria-labelledby="title desc">
+  <title id="title">Structured authoring and runtime construction for a keyed Service</title>
+  <desc id="desc">The Schema Gradle plugin projects the compiled Service Schema into example.Service.schema.json.
+    An editor or an explicitly invoked external validator can use that artifact. Independently, the caller parses YAML
+    or JSON and passes the Map to FromStruct. KlumAST invokes admitted Builder operations, runs normal construction,
+    and validates the completed Model.</desc>
+  <style>
+    text { font-family: system-ui, sans-serif; fill: #152a38; }
+    .heading { font-size: 19px; font-weight: 700; }
+    .label { font-size: 17px; font-weight: 650; }
+    .detail { font-size: 15px; }
+    .panel { fill: #f8fbfc; stroke: #4a7186; stroke-width: 1.5; }
+    .node { fill: #ffffff; stroke: #17384b; stroke-width: 2; }
+    .external { fill: #f5f2eb; stroke: #17384b; stroke-width: 2; stroke-dasharray: 8 5; }
+    .flow { fill: none; stroke: #17384b; stroke-width: 2.5; marker-end: url(#arrow); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#17384b"/>
+    </marker>
+  </defs>
+
+  <rect width="760" height="486" fill="#fbfaf7"/>
+  <rect x="16" y="16" width="354" height="454" rx="12" class="panel"/>
+  <rect x="390" y="16" width="354" height="454" rx="12" class="panel"/>
+  <text x="193" y="48" text-anchor="middle" class="heading">Schema generation and tooling</text>
+  <text x="567" y="48" text-anchor="middle" class="heading">Structured Input construction</text>
+
+  <rect x="34" y="66" width="318" height="62" rx="10" class="node"/>
+  <text x="193" y="93" text-anchor="middle" class="label">Compiled Schema</text>
+  <text x="193" y="114" text-anchor="middle" class="detail">example.Service</text>
+
+  <path d="M193 128 V174" class="flow"/>
+  <text x="205" y="155" class="detail">generate on demand</text>
+
+  <rect x="34" y="174" width="318" height="62" rx="10" class="node"/>
+  <text x="193" y="201" text-anchor="middle" class="label">Generated JSON Schema</text>
+  <text x="193" y="222" text-anchor="middle" class="detail">example.Service.schema.json</text>
+
+  <path d="M193 236 V282" class="flow"/>
+  <text x="205" y="263" class="detail">use to check input</text>
+
+  <rect x="34" y="282" width="318" height="85" rx="10" class="external"/>
+  <text x="193" y="309" text-anchor="middle" class="label">Optional schema check</text>
+  <text x="193" y="330" text-anchor="middle" class="detail">Associate in an editor or explicitly</text>
+  <text x="193" y="351" text-anchor="middle" class="detail">invoke an external validator</text>
+
+  <rect x="408" y="66" width="318" height="62" rx="10" class="external"/>
+  <text x="567" y="93" text-anchor="middle" class="label">Caller-parsed YAML or JSON</text>
+  <text x="567" y="114" text-anchor="middle" class="detail">Map with service-id and host</text>
+
+  <path d="M567 128 V174" class="flow"/>
+  <text x="579" y="155" class="detail">call FromStruct</text>
+
+  <rect x="408" y="174" width="318" height="62" rx="10" class="node"/>
+  <text x="567" y="201" text-anchor="middle" class="label">Admitted Builder operations</text>
+  <text x="567" y="222" text-anchor="middle" class="detail">configure the catalog Service</text>
+
+  <path d="M567 236 V282" class="flow"/>
+  <text x="579" y="263" class="detail">finish configuration</text>
+
+  <rect x="408" y="282" width="318" height="62" rx="10" class="node"/>
+  <text x="567" y="309" text-anchor="middle" class="label">Normal construction lifecycle</text>
+  <text x="567" y="330" text-anchor="middle" class="detail">apply defaults and materialize</text>
+
+  <path d="M567 344 V390" class="flow"/>
+  <text x="579" y="371" class="detail">after materialization</text>
+
+  <rect x="408" y="390" width="318" height="62" rx="10" class="node"/>
+  <text x="567" y="417" text-anchor="middle" class="label">Completed-Model validation</text>
+  <text x="567" y="438" text-anchor="middle" class="detail">check Service invariants</text>
+</svg>

@@ -9,6 +9,11 @@ then `Service.Create.FromStruct(document)` constructs the Model through its ordi
 that same compiled Schema for editor feedback or an explicitly invoked validator. Neither generation nor `FromStruct`
 selects a parser, opens input files or automatically runs JSON Schema validation.
 
+The generated root `description` uses the selected Schema class's embedded Javadoc, for both self-contained and
+Builder-body schemas. If that class has no retained documentation, the root description is omitted; documentation from
+a parent class or generated Builder is not substituted. Field, key and authored-operation descriptions retain their
+own declaration documentation.
+
 ## Choose the root shape
 
 Choose the artifact that matches who supplies a keyed root's identity. The two artifacts project the same compiled
@@ -57,10 +62,8 @@ generated file with the YAML in its editor. `sourceName` is only diagnostic cont
 only schema output: it does not parse files, derive keys from paths, add a runtime mode, discover editor configuration,
 or make `FromStruct` / `applyStruct` run JSON Schema validation.
 
-Generation and interpretation have distinct responsibilities. Generation projects compiled Builder contracts into
-Draft 2020-12 for editor or explicit structural validation. Structured Input interprets caller-provided Maps through
-admitted Builder operations and then runs the ordinary KlumAST lifecycle. A structurally valid document can still fail
-construction or completed-Model validation.
+Follow the [keyed Service from authoring to a completed Model](Structured-Input.md#from-authoring-to-a-completed-model)
+to see where structural checks and completed-Model rules can disagree.
 
 ## Generating files
 
@@ -478,7 +481,6 @@ The compiler emits explicit decoded `regexp` and `patternFlagsEmpty` facts even 
 consumers require complete facts before applying any field policy, including omitted owned relationships. Corrupt/missing
 facts fail atomically with public Builder/artifact/source and recompile/package guidance. Use matching compiler/runtime/
 plugin versions and recompile participating artifacts; see [migration](Migration.md#conservative-pattern-projection).
-The current shared metadata marker remains unchanged during 4.2 development; release-protocol preparation is separate.
 
 ## Composed constraints and documentary meta-annotations
 
@@ -537,8 +539,7 @@ first-level composing prose reads as the inner constraint carried by the outer a
 `@NotBlank via @MandatoryInput`. Generation
 needs neither domain annotations nor Bean Validation on its classpath. Both consumers validate complete facts before
 policy suppression, including `OMIT`; malformed or stripped facts fail before replacing output. Recompile participating
-Schema hierarchies with matching compiler/runtime/plugin versions. The shared development protocol marker remains 1;
-release protocol preparation is separate. See [migration](Migration.md#composed-constraints-and-documentary-meta-annotations).
+Schema hierarchies with matching compiler/runtime/plugin versions. See [migration](Migration.md#composed-constraints-and-documentary-meta-annotations).
 
 ## Integral constraints
 
@@ -938,7 +939,7 @@ Examples supply no defaults, change no requiredness or runtime input types, and 
 conversion, templates or lifecycle. There is no content grammar or example evaluator. Ordinary annotation/JVM constraints
 apply; excessively large carried documentation is rejected defensively. The source-free public Builder metadata remains
 authoritative, and malformed or missing required metadata fails before replacing successful output. The unified
-[development metadata protocol](Migration.md#structured-input-metadata-protocol) remains version 1.
+[metadata protocol](Migration.md#structured-input-metadata-protocol) is version 1 in 4.2.
 
 ### Runtime order and failure
 

@@ -105,7 +105,7 @@ Selecting `bodyRootTypes` changes only the generated schema artifact. It does no
 entry point. The [JSON Schema guide](Json-Schema.md#choose-the-root-shape) covers generation and editor association in
 more detail.
 
-Keep three boundaries explicit:
+Keep parser and execution boundaries explicit:
 
 - **Parsing:** choose and configure the parser, including rejection of duplicate mapping members before they collapse
   into a Map. A later Struct or JSON Schema check cannot recover lost duplicate keys. The example parser choice alone
@@ -113,15 +113,26 @@ Keep three boundaries explicit:
 - **Execution:** preserve Map/List traversal order when it matters. Struct validates and invokes each reached operation
   in that order, stops at the first failure and retains earlier effects. There is no whole-document payload preflight
   or rollback; see [order and failures](#order-and-failures).
-- **Validation:** editor or explicit JSON Schema validation checks the admitted input structure and qualified projected
-  constraints. It does not run automatically in `FromStruct` or guarantee successful construction. `FromStruct` runs
-  ordinary Builder lifecycle, materialization and completed-Model validation; defaults, callbacks, converters and
-  model-level rules can still change or reject the result. See [validation responsibility](Json-Schema.md#runtime-order-and-failure).
 
-In short, JSON Schema generation projects compiled Builder contracts for editor or explicit structural validation.
-Structured Input interprets caller-provided Maps through those admitted Builder operations. Neither capability parses
-YAML files, derives keys from paths, discovers editor configuration, or runs JSON Schema validation during Struct
-interpretation.
+### From authoring to a completed Model
+
+![Two paths for the keyed Service. The schema plugin projects the compiled Schema to JSON Schema for optional editor feedback or explicit external validation. Separately, FromStruct takes caller-parsed YAML or JSON through admitted Builder operations, normal construction and completed-Model validation.](img/structured-input-validation.svg)
+
+*For the self-contained `catalog` Service, the Schema Gradle plugin generates JSON Schema for optional editor feedback
+or an external validator the caller invokes. Independently, `FromStruct` takes the caller's parsed Map, invokes admitted
+Builder operations, runs normal construction and validates the completed Model.*
+
+Suppose the same `Service` marks `host` with [`@Struct.Required`](Json-Schema.md#raw-input-field-presence), defaults it to
+`'api'`, and has an [`@Validate` method](Validation.md) that rejects `'localhost'` on the completed Model. Both inputs
+below still carry `service-id: catalog`.
+
+| Authored `host` | Editor or explicit external validator | `Service.Create.FromStruct(document)` |
+| --- | --- | --- |
+| `host: localhost` | Accepts the present String member. | Fails completed-Model validation because of the host rule. |
+| Omitted | Reports the missing required member. | Uses the default `'api'`, which satisfies the host rule. |
+
+See [testing structured input boundaries](Testing-Models-and-Schemas.md#test-structured-input-boundaries) for checks at
+each point in the journey.
 
 ## Relate Groovy and YAML
 
@@ -467,7 +478,9 @@ with matching tools and regenerate schema output as described in [Migration](Mig
 
 Self-contained keyed documents require the actual Schema `@Key String` member. A supplied direct owned keyed child requires its key too, at any depth, unless its
 relationship supplies identity through `@Field.key` or a fixed Cluster key. An absent optional child remains absent.
-Unkeyed roots have no synthetic identity property.
+Each item in a [keyed owned sequence](#keyed-child-sequences) supplies its actual `@Key String` member in the item
+mapping. Keyed owned Maps take each child's identity from the outer literal Map entry. Unkeyed roots have no synthetic
+identity property.
 
 (See: `StructuredInputKeyDocumentaryTest#'self-contained documents carry root and direct-child keys while Maps supply outer keys'`.)
 
@@ -519,6 +532,7 @@ services:
 | Active Builder body | Allocated Builder | Forbidden, even if equal |
 | Supplied direct keyed child | Input, unless Schema supplies identity | Required String |
 | Fixed/derived-key direct child, including fixed Cluster fields | Schema relationship | Forbidden, even if equal |
+| [Keyed owned sequence item](#keyed-child-sequences) | Each item's own mapping | Required String under the effective external key name |
 | Keyed owned Map value | Outer literal Map entry | Forbidden, even if equal |
 
 Thus `services.worker` must omit `service-id`: `worker` already supplies its identity. A nested direct child inside
@@ -1209,7 +1223,7 @@ selected operation's String grammar, prose and examples; constraints from a supe
 
 Recompile all participating Schema hierarchies with matching compiler/runtime/plugin artifacts. Explicit operation counts
 and selection facts are required even for unmarked or excluded operations; missing or inconsistent facts fail closed.
-The development metadata protocol remains version 1. See [migration](Migration.md#structured-string-operation-selection).
+These facts are part of metadata protocol version 1. See [migration](Migration.md#structured-string-operation-selection).
 
 ## Zero-argument commands
 
