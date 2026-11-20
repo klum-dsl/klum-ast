@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model phases — KlumAST 4.2.1-rc.1</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-4.2-header-optical.svg" alt="KlumAST Season 4.2 — Struct/YAML and Groovy peers at a shared portal"></a>
+    <span class="version-badge">4.2.1-rc.1 · Public release candidate</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="./">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Builder Contracts</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Recipes and Patterns</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>Behind the Curtain
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Implementation mechanics</a></li>
+<li><a rel="nofollow" href="../Lifecycle-Participants/">Lifecycle Participants</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/#to-42">Upgrade to 4.2</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="./">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Builder Contracts</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Recipes and Patterns</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>Behind the Curtain
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Implementation mechanics</a></li>
+<li><a rel="nofollow" href="../Lifecycle-Participants/">Lifecycle Participants</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/#to-42">Upgrade to 4.2</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="public-rc">4.2.1-rc.1 is a prerelease, not stable. <a href="../status/">Version status</a>.</aside>
+      <h1 id="model-phases">Model phases</h1>
+<p>When you write a Model, the Schema can fill in missing children, resolve links, supply defaults, and check the result.
+A root factory first configures a mutable Builder tree from your input. It runs the phases below before returning
+the completed Model. The same Schema rules apply to Groovy configuration and admitted <a rel="nofollow" href="../Structured-Input/">structured input</a>.</p>
+<h2 id="complete-lifecycle-example">Complete lifecycle example</h2>
+<p>The Deployment Schema sets a fallback environment in <code>@AutoCreate</code>. The component reads the environment from its Owner
+in <code>@AutoLink</code>, after the Owner phase has established the backlink. The Model Writer only has to configure the component.</p>
+<p>The <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/25943e95b28d3b2d4c5e2680469910f4739e36fb/klum-ast/src/test/groovy/com/blackbuild/klum/ast/ModelPhasesDocumentaryTest.groovy">Deployment documentary test</a>
+includes the full Schema and asserts callback order.</p>
+<p>(See: <code>ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With {
+    component {}
+}
+
+assert deployment.component.deployment.is(deployment)
+assert deployment.component.environment == 'production'
+</code></pre>
+<h2 id="creation">Creation</h2>
+<p>One root factory owns one Construction session on the current thread. Use the root's generated Builder methods to add
+owned children so they share that session. A separate root factory produces a completed Model, which cannot be adopted
+as owned composition. See <a rel="nofollow" href="../Basics/#ownership-and-owner">Ownership and <code>@Owner</code></a>.</p>
+<p>For each Builder, KlumAST applies <a rel="nofollow" href="../Templates/">Templates</a>, runs <code>@PostCreate</code>, applies explicit configuration, and
+runs <code>@PostApply</code>. These two callbacks are part of creating and configuring each object. The root then runs the
+graph-wide phases in the order shown below.</p>
+<h2 id="lifecycle-annotations">Lifecycle annotations</h2>
+<p>Schema Developers can use lifecycle annotations on methods or, where supported, on Closure fields. Lifecycle callbacks
+such as <code>@AutoCreate</code> and <code>@PostTree</code> take no parameters and must be non-private.
+Before materialization, mutating methods run on Builders and lifecycle Closures use the Builder as their delegate.
+<code>@Validate</code> sees the completed Model.</p>
+<p>Lifecycle callbacks run whenever the object is visited for their phase. The callback decides whether it needs to do
+anything. For example, an annotated <code>@Default</code> method can run even when an explicit value is already present.
+Declarative default fields follow the eligibility rules for <a rel="nofollow" href="../Default-Values/">Default Values</a>.</p>
+<h2 id="phase-details">Phase Details</h2>
+<p>Read the following phases in order. The numbers are the phase IDs used for explicitly scheduled work and plugin actions.</p>
+<h3 id="applylater-1">ApplyLater (1)</h3>
+<p>Runs deferred Builder actions scheduled without a phase during ordinary configuration. This lets Model Writers defer
+configuration until the explicit inputs are available and before automatic lifecycle work starts.
+See <a rel="nofollow" href="#applylater-methods"><code>applyLater</code> methods</a> for other scheduling options.</p>
+<h3 id="early-validation-5">Early Validation (5)</h3>
+<p>Checks configured Builder values before automatic creation and defaults. This is when deprecated-field checks and
+<code>@Notify</code> examine the fields as they stand after configuration.</p>
+<h3 id="autocreate-10">AutoCreate (10)</h3>
+<p>Creates missing children declared with <code>@AutoCreate</code> and runs the corresponding Schema callbacks. Choose this phase
+when other lifecycle work needs the child to exist. For annotation composition, see
+<a rel="nofollow" href="../Annotation-Propagation/#default-only-composition">Annotation Propagation</a>.</p>
+<h3 id="owner-15">Owner (15)</h3>
+<p>Establishes <code>@Owner</code> and <code>@Role</code> values before AutoLink. Declaring or configuring a relationship alone does not
+immediately assign the Owner field. See <a rel="nofollow" href="../Basics/#ownership-and-owner">Ownership and <code>@Owner</code></a>.</p>
+<h3 id="autolink-20">AutoLink (20)</h3>
+<p>Resolves links to existing values, for example through <code>@LinkTo</code>, and runs <code>@AutoLink</code> callbacks.
+See <a rel="nofollow" href="../Behind-the-Curtain/#builder-backed-linkto-providers">Builder-backed providers</a> for provider reads and
+<a rel="nofollow" href="../Completed-Object-Support/#owning-schema-declarations">owning Schema declarations</a> for metadata available after Owner.</p>
+<h3 id="default-25">Default (25)</h3>
+<p>Supplies Schema defaults. Owner-provided defaults run first, before containing-field and type defaults, direct field
+defaults, and <code>@Default</code> callbacks. See <a rel="nofollow" href="../Default-Values/">Default Values</a> for field eligibility and precedence.</p>
+<h3 id="posttree-30">PostTree (30)</h3>
+<p>Runs Schema callbacks on the configured Builder tree after linking and defaulting. Use this phase for final construction
+work that needs values across the tree.</p>
+<h3 id="instantiate-40">Instantiate (40)</h3>
+<p>Materializes the owned graph as structurally immutable DSL Objects, preserving relationship identity and cycles.
+Collection state is snapshotted. From here on, phases receive completed Models.
+See <a rel="nofollow" href="../Behind-the-Curtain/#builder-first-materialization">Builder-first materialization</a> for mechanics.</p>
+<h3 id="validation-50">Validation (50)</h3>
+<p>Collects findings from <code>@Validate</code> on completed Models. Builder findings carry forward through materialization.
+Keep validation read-only. See <a rel="nofollow" href="../Validation/">Validation</a> for defining rules and inspecting findings.</p>
+<h3 id="verify-80">Verify (80)</h3>
+<p>Throws if a collected finding reaches the configured fail level or higher. The default fail level is <code>ERROR</code>.
+A factory returns a completed Model only after verification and completion succeed.</p>
+<h3 id="completion-100">Completion (100)</h3>
+<p>Runs final actions on the verified Model. See <a rel="nofollow" href="../Behind-the-Curtain/#plugin-phase-actions">Plugin phase actions</a>
+for extending the lifecycle.</p>
+<h2 id="ordering-late-children-and-existing-links">Ordering, late children, and existing links</h2>
+<ul>
+<li><strong>A late child joins the current phase.</strong> Containing Builder work runs before descent to its owned children. A child
+added during the containing Builder's AutoLink visit can receive its own AutoLink callback. Earlier phases do not replay.
+AutoCreate has already passed, and the child's Owner field can still be null. Initialize any state the late child needs.</li>
+<li><strong>Creation comes before mutation.</strong> Where a Schema uses external lifecycle participants, one direct field creator can
+claim a field in a phase. It runs only if the field is unset. Mutators run afterwards if a target exists. Repeated
+mutators on one annotation follow declaration order or the explicit container's array order. Relative order is
+unspecified across distinct annotations, across fields, and when a singular marker is mixed with an explicit container.
+Type mutators run before their own Builder's field work, after the parent's field work.</li>
+<li><strong>A completed LINK stays sealed.</strong> Supplying a completed Model as a <code>LINK</code> target keeps it outside owned traversal.
+When a field mutator encounters the sealed target, its policy defaults to <code>FAIL</code> or can explicitly select <code>SKIP</code>.
+Both policies act before handler construction for that target. Type mutators do not visit sealed aggregation targets.</li>
+</ul>
+<p>See <a rel="nofollow" href="../Lifecycle-Participants/">Lifecycle Participants</a> for supported declarations, exact ordering, and handler examples.</p>
+<h2 id="applylater-methods"><code>applyLater</code> Methods</h2>
+<p>Pass a Closure to <code>applyLater</code> to defer a Builder change. Inside a running phase, a call without a phase runs after
+the current phase. During ordinary configuration it runs in <a rel="nofollow" href="#applylater-1">ApplyLater (1)</a>. An explicit phase must
+be below Instantiate (40). Use a <a rel="nofollow" href="../Behind-the-Curtain/#plugin-phase-actions">Model phase action</a> for plugin work on the
+completed Model.</p>
+<p>(See: <code>ModelPhasesDocumentaryTest#'applies a deferred deployment setting before automatic lifecycle work'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With {
+    component {}
+    applyLater {
+        environment 'staging'
+    }
+}
+
+assert deployment.component.environment == 'staging'
+</code></pre>
+<p>A Template stores deferred work for each fresh recipient Builder. See <a rel="nofollow" href="../Templates/#applylater-and-templates"><code>applyLater</code> and Templates</a>
+for replay and Closure capture rules.</p>
+<h2 id="error-handling">Error handling</h2>
+<p>Phase failures can carry the relevant phase and construction path in a <code>KlumException</code>. See
+<a rel="nofollow" href="../Exception-Handling/">Exception Handling</a> for interpreting failures and <a rel="nofollow" href="../Validation/">Validation</a> for collected findings.</p>
+<h2 id="topics-moved-to-the-reference">Topics moved to the reference</h2>
+<p>These links point to the current home of each topic.</p>
+<h3 id="phaseactions"><a rel="nofollow" href="../Behind-the-Curtain/#plugin-phase-actions">PhaseActions</a></h3>
+<h3 id="external-field-participants-lp-1"><a rel="nofollow" href="../Lifecycle-Participants/#declaring-participants">External field participants (LP-1)</a></h3>
+<h3 id="reusing-a-typed-consumer-contract"><a rel="nofollow" href="../Lifecycle-Participants/#using-public-builder-contracts">Reusing a typed consumer contract</a></h3>
+<h3 id="creating-the-annotated-relationship"><a rel="nofollow" href="../Lifecycle-Participants/#creation-and-mutation">Creating the annotated relationship</a></h3>
+<h3 id="context-and-qualification-boundary"><a rel="nofollow" href="../Lifecycle-Participants/#handler-context-and-access">Context and qualification boundary</a></h3>
+<h3 id="participant-composition-lp-2"><a rel="nofollow" href="../Lifecycle-Participants/#creation-and-mutation">Participant composition (LP-2)</a></h3>
+<h3 id="field-participants-in-four-phases-lp-3"><a rel="nofollow" href="../Lifecycle-Participants/#phase-ordering">Field participants in four phases (LP-3)</a></h3>
+<h3 id="sealed-participant-targets-lp-4"><a rel="nofollow" href="../Lifecycle-Participants/#sealed-targets">Sealed participant targets (LP-4)</a></h3>
+<h3 id="type-mutation-lp-5"><a rel="nofollow" href="../Lifecycle-Participants/#type-mutation">Type mutation (LP-5)</a></h3>
+<h3 id="annotation-closure-members"><a rel="nofollow" href="../Lifecycle-Participants/#annotation-closure-members">Annotation Closure members</a></h3>
+<h3 id="participant-validation"><a rel="nofollow" href="../Validation/#participant-validation">Participant validation</a></h3>
+<h3 id="participant-diagnostics"><a rel="nofollow" href="../Lifecycle-Participants/#diagnostics">Participant diagnostics</a></h3>
+<h3 id="methods-that-modify-datastructures"><a rel="nofollow" href="#applylater-methods">Methods that modify datastructures</a></h3>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
