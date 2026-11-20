@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lifecycle Participants — KlumAST 4.2.1-rc.1</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/branding/klumast-season-4-favicon.svg">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-4.2-header-optical.svg" alt="KlumAST Season 4.2 — Struct/YAML and Groovy peers at a shared portal"></a>
+    <span class="version-badge">4.2.1-rc.1 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Builder Contracts</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Recipes and Patterns</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>Behind the Curtain
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Implementation mechanics</a></li>
+<li><a rel="nofollow" href="./">Lifecycle Participants</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/#to-42">Upgrade to 4.2</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Structured-Input/#adopt-yaml-for-a-schema">YAML adoption</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Json-Schema/">JSON Schema generation</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Schema-Style-Guide/">Schema Style Guide</a></li>
+<li><a rel="nofollow" href="../Portable-GDSL/">IntelliJ completion for DelegatingScripts</a></li>
+<li><a rel="nofollow" href="../Testing-Models-and-Schemas/">Testing Models and Schemas</a></li>
+<li><a rel="nofollow" href="../Grab-Model-Scripts/">Standalone Model scripts with <code>@Grab</code></a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Annotation-Propagation/">Annotation Propagation</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Builder Contracts</a></li>
+<li><a rel="nofollow" href="../Tips-and-Tricks/">Recipes and Patterns</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer 3</a></li>
+<li><a rel="nofollow" href="../Structured-Input/">Structured Input</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>Behind the Curtain
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Implementation mechanics</a></li>
+<li><a rel="nofollow" href="./">Lifecycle Participants</a></li>
+<li><a rel="nofollow" href="../Schema-Provenance/">Schema Compiler Provenance</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/#to-42">Upgrade to 4.2</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="lifecycle-participants">Lifecycle Participants</h1>
+<p>Schema Developers can attach reusable domain behavior to a Schema through a domain annotation. A creator supplies a
+missing relationship and a mutator configures a Builder through its generated public contract. See
+<a rel="nofollow" href="../Model-Phases/">Model Phases</a> for the lifecycle sequence.</p>
+<h2 id="declaring-participants">Declaring participants</h2>
+<p>Import <code>com.blackbuild.klum.ast.runtime.LifecycleParticipant</code>. Give the domain annotation runtime retention and
+mark it with <code>@LifecycleParticipant.Creator</code>, <code>@LifecycleParticipant.Mutator</code>, or both. Each marker selects a handler
+and one of four phase annotations: <code>AutoCreate</code>, <code>AutoLink</code>, <code>Default</code>, or <code>PostTree</code>.</p>
+<p>Use field participants on a direct DSL relationship declared in the Model Schema. Scalar, static, and Builder-only
+fields and method placement are outside this contract. Collection and Map fields are rejected even when their element
+type is a DSL type. Consider a containing lifecycle callback or a direct DSL wrapper for those shapes. Ordinary
+composition traversal can still reach <a rel="nofollow" href="#type-mutation">type mutators</a> on owned collection or Map children. This
+supplies no container-field dispatch or key/index context. See <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/879">#879</a>
+for the separate container investigation.</p>
+<h2 id="creation-and-mutation">Creation and mutation</h2>
+<ul>
+<li><code>CreationHandler&lt;A&gt;.create(InvocationContext&lt;A&gt;)</code> returns a <code>KlumBuilder&lt;?&gt;</code> or <code>null</code>. It runs when the field is null.
+A null result leaves it unset. A returned Builder goes through the normal FieldType, ownership, and Construction-session
+checks. Use <code>Create.AsBuilder()</code> to make an owned child in the active session.</li>
+<li><code>MutationHandler&lt;A&gt;.mutate(MutationContext&lt;A&gt;)</code> returns <code>void</code>. It runs on a non-null Builder, whether already present
+or supplied by a creator in the same visit. The context supports configuring the target and provides no field setter.</li>
+</ul>
+<p>Each field can have one direct creator per phase. A second creator for the same slot is a declaration error, including
+competition with a built-in <code>@AutoCreate</code>, <code>@LinkTo</code>, or direct <code>@Default</code> creator in its phase. Different-phase creators
+can coexist. A creator and multiple mutators can share a slot, including built-in creation followed by external mutation.</p>
+<p>Within one domain annotation, repeated <code>@LifecycleParticipant.Mutator</code> markers run in declaration order. An explicit
+<code>@LifecycleParticipant.Mutator.List</code> runs in its <code>value</code> array order. Relative order is unspecified across different
+domain annotations, or between a singular marker and an explicit container on the same annotation. Keep those
+handlers independent of each other's ordering.</p>
+<p>This example configures a supplied Service, appends to the value of an existing Service, and leaves a disabled Service
+unset. The handler names illustrate that the declaration order governs the result.</p>
+<p>(See: <code>LifecycleParticipantCompositionTest#'combines creation and repeated mutations on supplied and existing Builders (#container)'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.AutoLink
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.LifecycleParticipant
+
+import java.lang.annotation.Retention
+import java.lang.annotation.Target
+
+import static java.lang.annotation.ElementType.FIELD
+import static java.lang.annotation.RetentionPolicy.RUNTIME
+
+@Retention(RUNTIME)
+@Target(FIELD)
+@LifecycleParticipant.Creator(phase = AutoLink, handler = Supply)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = ZFirst)
+@LifecycleParticipant.Mutator(phase = AutoLink, handler = ASecond)
+@interface Configured {
+    boolean enabled() default true
+}
+
+class Supply implements LifecycleParticipant.CreationHandler&lt;Configured&gt; {
+    KlumBuilder&lt;?&gt; create(LifecycleParticipant.InvocationContext&lt;Configured&gt; context) {
+        context.annotation.enabled() ? Service.Create.AsBuilder().With([value: 'created']) : null
+    }
+}
+
+class ZFirst implements LifecycleParticipant.MutationHandler&lt;Configured&gt; {
+    void mutate(LifecycleParticipant.MutationContext&lt;Configured&gt; context) {
+        def service = Service.Create.narrowBuilder(context.targetBuilder)
+        service.value(service.value + ':first')
+    }
+}
+
+class ASecond implements LifecycleParticipant.MutationHandler&lt;Configured&gt; {
+    void mutate(LifecycleParticipant.MutationContext&lt;Configured&gt; context) {
+        def service = Service.Create.narrowBuilder(context.targetBuilder)
+        service.value(service.value + ':second')
+    }
+}
+
+@DSL class Service { String value }
+
+@DSL class Application {
+    @Configured Service supplied
+    @Configured Service existing
+    @Configured(enabled = false) Service absent
+}
+
+def application = Application.Create.With {
+    existing { value 'configured' }
+}
+
+assert application.supplied.value == 'created:first:second'
+assert application.existing.value == 'configured:first:second'
+assert application.absent == null
+</code></pre>
+<h2 id="phase-ordering">Phase ordering</h2>
+<p>Only declarations for the current phase execute. The table describes the containing Builder's visit. In each direct
+field slot, eligible creation precedes mutation. Lifecycle methods precede Closure callbacks.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Visit order after any type mutators</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AutoCreate</td>
+<td>Direct field slots, then cluster AutoCreate, then callbacks</td>
+</tr>
+<tr>
+<td>AutoLink</td>
+<td>Direct field slots for LinkTo and participants, then callbacks</td>
+</tr>
+<tr>
+<td>Default</td>
+<td>Owner-provided defaults, containing-field defaults, type defaults, direct field slots, then callbacks</td>
+</tr>
+<tr>
+<td>PostTree</td>
+<td>Direct field slots, then callbacks</td>
+</tr>
+</tbody>
+</table>
+<p>Field enumeration supplies no ordering guarantee across different fields. Cluster AutoCreate can fill a field left null
+by a direct creator. It does not re-run that field's participants, so an AutoCreate mutator does not run on a target
+first created by the later cluster step during that visit.</p>
+<p>Descent to owned children follows containing Builder work. A child added during that visit can join the current phase.
+Earlier phases do not replay. For the implications for late initialization, see
+<a rel="nofollow" href="../Model-Phases/#ordering-late-children-and-existing-links">Ordering, late children, and existing links</a>.</p>
+<p>See <code>LifecycleParticipantPhaseTest#'creates then mutates direct fields before callbacks in #phase'</code>.</p>
+<h2 id="type-mutation">Type mutation</h2>
+<p>An annotation that permits TYPE placement can declare mutators for a Schema type. Creators require field placement.
+Type mutators run on the visited Builder before its own field work and after the containing Builder's visit. A type
+mutator's target is always the visited Builder.</p>
+<p>Java <code>@Inherited</code> semantics apply. A subclass annotation of the same type replaces the inherited one. Unmarked
+annotations and annotations on interfaces do not propagate. Each discovered annotation type is considered as a single
+annotation, including a repeatable domain annotation's container. The container only dispatches its own mutators and
+its entries are never expanded into separate visits. A subclass container can coexist with an inherited singular
+annotation. These rules are separate from <a rel="nofollow" href="#creation-and-mutation">repeated mutator markers on one domain annotation</a>.</p>
+<p>Sealed aggregation targets are outside owned traversal and receive no type invocation.</p>
+<p>See <code>LifecycleParticipantTypeTest#'type mutation follows parent fields and precedes own fields and callbacks in #phase (#existing)'</code>.</p>
+<h2 id="handler-context-and-access">Handler context and access</h2>
+<p>The handler must be a public concrete class with a public no-argument constructor. Each invocation receives a fresh
+instance. Its type parameter must resolve to the exact domain annotation, including when using generic inheritance.
+Raw, wildcard, unresolved, and mismatched parameters are rejected.</p>
+<p><code>InvocationContext&lt;A&gt;</code> exposes the annotation, containing Builder, field name, declared type, and effective
+<code>FieldType</code>. <code>MutationContext&lt;A&gt;</code> adds the target Builder and <code>isType()</code>. Use <code>getAnnotation(Class&lt;B&gt;)</code> for singular
+typed lookup, with an <code>Optional&lt;B&gt;</code> result.</p>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Field invocation</th>
+<th>Type invocation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Declared type and typed annotation lookup</td>
+<td>The original Schema field, including inherited fields</td>
+<td>The visited concrete Schema type, with Java inheritance</td>
+</tr>
+<tr>
+<td>Containing Builder and field name</td>
+<td>The Builder holding the field and the field's name</td>
+<td>The incoming traversal occurrence, both null at the root</td>
+</tr>
+<tr>
+<td><code>FieldType</code></td>
+<td>The effective type of the original field</td>
+<td>The incoming field's effective type when available, otherwise null</td>
+</tr>
+</tbody>
+</table>
+<p>Type invocation's incoming traversal context describes how the visit arrived. Use
+<a rel="nofollow" href="../Completed-Object-Support/#owning-schema-declarations">owning Schema declarations</a> to query authoritative ownership.
+Use contexts during the invocation. Retaining a context grants no rights to a Builder outside its session.</p>
+<p>A domain annotation library depends on the KlumAST runtime. For named modules, export the public handler package to
+the runtime for construction and use the usual <a rel="nofollow" href="../Migration/#named-modules-and-groovy">qualified opens for Schema packages</a>.
+For cross-module Groovy annotation Closures, the Closure's Schema package also needs to be accessible to Groovy.</p>
+<h2 id="using-public-builder-contracts">Using public Builder contracts</h2>
+<p>Use <a rel="nofollow" href="../Advanced-Techniques/#narrowing-a-builder-by-model-type">factory-token narrowing</a> to access generated public
+Builder interfaces. A shared consumer Schema base can expose one typed contract reused by several concrete Schemas.
+Handler code owns the domain behavior, including provider selection. A shared handler across unrelated Schemas can
+use ordinary dynamic Groovy access under a consumer-owned convention.</p>
+<p>On completed LINK wrappers, dynamic reads can reach completed Model properties, while generated typed relationship
+getters can return null. See <a rel="nofollow" href="../Behind-the-Curtain/#builder-backed-linkto-providers">Builder-backed providers</a> for the
+read contract.</p>
+<h2 id="sealed-targets">Sealed targets</h2>
+<p>For each field mutator, <code>onSealed</code> defaults to <code>LifecycleParticipant.Mutator.SealedPolicy.FAIL</code>. Set
+<code>onSealed = LifecycleParticipant.Mutator.SealedPolicy.SKIP</code> to omit the handler when a target is sealed. Both policies
+act before handler construction for that target. Unsealed targets run normally under either policy.</p>
+<p>Creators use checked assignment. A wrapper for a completed Model can attach through <code>LINK</code> or <code>OPTIONAL_LINK</code> where
+the relationship admits it. A subsequent mutator applies its own policy to the resulting target. Use
+<a rel="nofollow" href="../Behind-the-Curtain/#builder-backed-linkto-providers">the normal LINK read mechanisms</a> to inspect an existing Model.</p>
+<p>Value-only Template definitions do not dispatch participants. Applying a Template dispatches them in the recipient
+session. Root imports that use the ordinary lifecycle dispatch there, and in-session imports participate in their
+enclosing root's phases.</p>
+<p>Suppose an Application Schema declares two LINK fields, <code>service</code> and <code>alias</code>, both with a mutator configured for
+<code>SKIP</code>. A Model Writer can pass the same completed Service to both. The handler is omitted, and both links preserve
+the identity of the existing Service.</p>
+<p>(See: <code>LifecycleParticipantSealedTest#'skips completed LINK targets before constructing handlers in #phase'</code>.)</p>
+<pre><code class="language-groovy">def completed = Service.Create.With { value 'completed' }
+def application = Application.Create.With {
+    service completed
+    alias completed
+}
+
+assert application.service.is(completed)
+assert application.alias.is(completed)
+</code></pre>
+<h2 id="annotation-closure-members">Annotation Closure members</h2>
+<p>A handler can evaluate an ordinary Groovy annotation Closure under the domain library's own contract. For example,
+a <code>FactBinding</code> handler can construct and call the Closure in <code>@FactBinding({ [messaging: 'facts'] })</code> to obtain a
+literal mapping. The handler supplies the interpreter and any delegate. See
+<code>LifecycleParticipantClosureProbeTest#'ordinary annotation map configures a relationship without a Klum Closure API'</code>.</p>
+<h2 id="diagnostics">Diagnostics</h2>
+<p>Declaration defects are reported during Schema compilation or as a <code>KlumSchemaException</code> when checking binary
+declarations. Participant construction, invocation, and assignment failures use <code>KlumModelException</code> with the original
+cause and the annotation, handler, phase, and field or Schema type context.</p>
+<p>For domain findings, use the <a rel="nofollow" href="../Validation/#participant-validation">validation reporter with an explicit target</a>.
+Throwing from a handler aborts the lifecycle. Reporting a finding on an owned Builder carries it through
+materialization to the completed Model for Verify.</p>
+<p><a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/25943e95b28d3b2d4c5e2680469910f4739e36fb/docs/adr/0028-annotation-driven-lifecycle-participants.md">ADR 0028</a>
+records the accepted contract. The <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/25943e95b28d3b2d4c5e2680469910f4739e36fb/docs/implementation/issue-867-lp8-evidence.md">final acceptance record</a>
+links the qualification, tests, and deferred capabilities.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
