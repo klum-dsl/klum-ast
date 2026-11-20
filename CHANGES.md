@@ -1,4 +1,4 @@
-# 4.2.1 (unreleased)
+# 4.2.1 (2026-11-20)
 
 - [Generated JSON Schema](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Json-Schema.md)
   uses the selected Schema class's embedded Javadoc for the root description, replacing generic validation caveats.
