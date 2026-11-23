@@ -1,7 +1,8 @@
 # Issue #1108 — KlumAST and related approaches
 
 Retrieved: 2026-11-23. Related: [#1108](https://github.com/klum-dsl/klum-ast/issues/1108).
-Documentation research only; no execution, benchmark, interoperability qualification, or release placement.
+Documentation research, including a syntax-only formatter probe; no benchmark, generated-API execution,
+interoperability qualification, or release placement.
 This receipt follows the issue-named research-note convention in this evidence directory, including
 [the #805 investigation](issue-805-delegating-script-ide-research.md).
 
@@ -9,7 +10,7 @@ This receipt follows the issue-named research-note convention in this evidence d
 
 The main user-facing comparison is what authors write with the generated APIs: KlumAST's nested Groovy closures,
 Sundrio's fluent Java nested-builder navigation, and Lombok's composed builder expressions. The page uses the same
-illustrative Deployment/Component shape with corresponding declarations for each tool; it does not imply shared
+illustrative five-level Campaign/Region/Site/Service/Endpoint shape with corresponding declarations for each tool; it does not imply shared
 classes, source compatibility, or runtime parity. Sundrio's documented [nested-builder](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders)
 `withNew...().and()` pattern and Lombok's
 per-target `builder()...build()` pattern supply the external syntax evidence. These are adapted documentation examples,
@@ -57,6 +58,45 @@ Use the explicit 0.32.2 documentation/source snapshot; no claim that it is the l
 - [Java integration](https://github.com/apple/pkl/blob/0.32.2/docs/modules/java-binding/pages/index.adoc) and
   [configuration binding](https://github.com/apple/pkl/blob/0.32.2/docs/modules/java-binding/pages/pkl-config-java.adoc):
   embedding, code generation and conversion from evaluated configuration are documented integration boundaries.
+
+## Formatting probe
+
+Retrieved/run: 2026-11-23. [google-java-format 2.0.0](https://github.com/google/google-java-format/releases/tag/v2.0.0),
+using its official `google-java-format-2.0.0-all-deps.jar` release asset (SHA-256
+`c78feb48c549fa7114b7ea11db3b456808f7b371ffe84e6643a44dd2f9588639`), with Temurin JDK 25.0.5 and
+`java -jar google-java-format-2.0.0-all-deps.jar --cleanup=false FormatProbe.java`.
+The tool's [usage](https://github.com/google/google-java-format#using-the-formatter) describes Java-source formatting.
+
+Input: Java methods containing the page's five-level builder shapes, with hand-stepped child indentation in the single
+Sundrio-shaped chain and nested child arguments in the Lombok-shaped expression. Observed output: every Sundrio-shaped
+chain call had the same continuation indentation; the Lombok-shaped arguments remained nested, while the shortest
+innermost expression was compacted. A repeat formatting pass was idempotent. The parent-return spelling was also
+checked as the documented `.and()` pattern. The examples are syntax-only; the generated APIs were not compiled.
+This supports one formatter/version observation, not a universal rule for every IDE/formatter.
+
+[Java invocation syntax](https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.12) distinguishes receivers
+from argument expressions. Do not call a chained expression's AST flat: it has recursive receivers. The claim is that
+Sundrio's graph-child transitions do not introduce corresponding lexical blocks or nested child argument expressions.
+Deep readability and repeated endings are authoring observations about these examples, not a measured product ranking.
+
+## Composition, diagnostics, and dependency cost
+
+- KlumAST [script composition](../../user/Convenience-Factories.md#script-and-delegating-script-for-collections-and-maps)
+  and its existing `ConvenienceFactoriesDocumentaryTest` establish separately compiled DelegatingScript recipes in
+  active list/map relationship construction. Root File/URL loading is distinct; do not insert a completed root as owned
+  composition. [Templates](../../user/Templates.md) provide reusable-recipe semantics.
+- [Java methods](https://docs.oracle.com/javase/specs/jls/se25/html/jls-8.html#jls-8.4) and the respective builder guides
+  support Java helper-based composition. Compare extra application-owned signatures/loading convention with KlumAST's
+  supplied recipe contract; do not claim Java models must be one file or statement.
+- [StackTraceElement](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StackTraceElement.html)
+  provides method/file/line context. It does not establish that a fluent statement loses all source locations.
+  KlumAST's [exception contract](../../user/Exception-Handling.md) and `ExceptionHandlingDocumentaryTest` establish DSL
+  construction-path context, including nested recipes/Templates. Do not promise exact source lines for every exception,
+  full provenance, or absence of diagnostics in either comparator.
+- KlumAST [setup](../../user/Usage.md#manual-dependencies) and the public runtime `KlumFactory`'s Groovy signatures
+  establish the Groovy compilation/runtime commitment. Lombok's [Gradle setup](https://projectlombok.org/setup/gradle)
+  explicitly distinguishes compile-time use from runtime deployment. Sundrio's source-backed Java APIs do not require
+  Groovy merely for fluent Java authoring; no claim of zero other Sundrio runtime dependencies is made.
 
 ## Exclusions and limits
 

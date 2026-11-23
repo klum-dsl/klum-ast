@@ -3,7 +3,8 @@
 KlumAST, [Sundrio](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md),
 and [Lombok's builder annotations](https://projectlombok.org/features/Builder) generate construction APIs. For a Model
 Writer, the immediate difference is the code used to describe a graph: nested Groovy closures or fluent Java builder
-calls. The examples below make that authoring experience the main comparison.
+calls. Deep object nesting, Model composition across scripts, and locating construction errors make that authoring experience
+the main comparison; the main adoption cost is the additional Groovy dependency.
 
 Overlapping tools are not automatically substitutes. Similar construction syntax can carry different runtime contracts;
 this page compares the authoring forms and their boundaries without ranking products or promising equivalent features.
@@ -13,100 +14,223 @@ KlumAST's Groovy closure DSL alongside Sundrio and Lombok's fluent Java APIs. Va
 configuration-language approach are supporting considerations. Follow the linked product contracts when adopting a
 particular version. KlumAST terminology follows the [Terms and role guide](Terms.md).
 
-## Writing a Model with the generated API
+## Deeply nested objects: does the source show the tree?
 
-The first question is what Model Writers actually write. The examples below describe the same small graph: a
-Deployment with an environment and one Component with a name and image. Each approach generates an authoring API from
-its own declarations; the snippets illustrate those APIs, not source-compatible types or equivalent runtime behavior.
+The difference becomes clearer with five object levels: Campaign → Region → Site → Service → Endpoint. Each example
+sets a name at every level and a port on the Endpoint. The declarations belong to each tool; the examples compare
+authoring, not source-compatible types or equivalent runtime behavior.
 
-### KlumAST: nested Groovy closures
+### KlumAST: object nesting becomes closure-block nesting
 
-A Schema Developer declares the structure with `@DSL` ([Basics](Basics.md)). For this example:
+A Schema Developer declares the structure with `@DSL` ([Basics](Basics.md)):
 
 ```groovy
 import com.blackbuild.klum.ast.DSL
 
-@DSL
-class Deployment {
-    String environment
-    Component component
-}
-
-@DSL
-class Component {
+@DSL class Campaign {
     String name
-    String image
+    Region region
+}
+@DSL class Region {
+    String name
+    Site site
+}
+@DSL class Site {
+    String name
+    Service service
+}
+@DSL class Service {
+    String name
+    Endpoint endpoint
+}
+@DSL class Endpoint {
+    String name
+    int port
 }
 ```
 
-The Model Writer then uses the generated DSL:
+The Model Writer uses the generated DSL:
 
 ```groovy
-def deployment = Deployment.Create.With {
-    environment 'production'
-    component {
-        name 'catalog'
-        image 'example/catalog:1.0'
+def campaign = Campaign.Create.With {
+    name 'autumn'
+    region {
+        name 'europe'
+        site {
+            name 'central'
+            service {
+                name 'orders'
+                endpoint {
+                    name 'public'
+                    port 8443
+                }
+            }
+        }
     }
 }
 ```
 
-`component { ... }` opens a configuration scope for the child Builder. Inside it, `name` and `image` are calls on that
-Builder; the closing brace returns to the surrounding scope. Groovy permits these calls without dots or parentheses.
-There is one root factory call, and the Model Writer does not call `build()` on each child.
-See [factory construction](Basics.md#factory-construction) and [Model Phases](Model-Phases.md) for the underlying contract.
+Each owned child has its own closure block. Both the source structure and ordinary block indentation follow the
+object hierarchy: the braces delimit where Endpoint configuration ends and Service configuration resumes.
+Calls such as `name 'public'` configure the receiving Builder. The root factory completes the graph without a
+separate child `build()` call. See [factory construction](Basics.md#factory-construction) and [Model Phases](Model-Phases.md).
 
-### Sundrio: a fluent Java chain with nested builders
+### Sundrio: nested builders inside one fluent chain
 
-For corresponding Java POJOs, Sundrio's `@Buildable` on a class or constructor generates Builder/Fluent APIs. The
-properties must have getters and either setters or matching constructor arguments; both types in this example need
-builder generation. With that setup, a Model author can write the following adapted example of the documented
-[nested-builder pattern](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders):
+For corresponding Java POJOs, `@Buildable` on a class or constructor generates Builder/Fluent APIs. Properties need
+getters and either setters or matching constructor arguments, and every type in this example needs builder generation
+([builder guide](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md)).
+Using its documented [nested-builder pattern](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders):
 
 ```java
-Deployment deployment = new DeploymentBuilder()
-    .withEnvironment("production")
-    .withNewComponent()
-        .withName("catalog")
-        .withImage("example/catalog:1.0")
+Campaign campaign = new CampaignBuilder()
+    .withName("autumn")
+    .withNewRegion()
+    .withName("europe")
+    .withNewSite()
+    .withName("central")
+    .withNewService()
+    .withName("orders")
+    .withNewEndpoint()
+    .withName("public")
+    .withPort(8443)
+    .and()
+    .and()
+    .and()
     .and()
     .build();
 ```
 
-The chain changes its receiver to the nested builder at `withNewComponent()`. Here, `and()` returns to the parent
-builder, where `build()` produces the result. Nesting is represented by generated Java method calls and return types;
-indentation helps the reader but does not create the scope
-([builder guide](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md)).
+`withNewRegion()` changes the receiving builder, and each `and()` returns to its parent. Those transitions create
+nested objects, but they do not create corresponding source blocks or nested child argument expressions. Extra
+indentation of the inner calls in a hand-formatted example is added manually; Sundrio does not generate that layout
+in the author's source. Compare the [builder pattern](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders)
+with Java's [method-invocation syntax](https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.12).
 
-### Lombok: compose ordinary builder expressions
+A formatter can therefore remove the manually stepped indentation. In the bounded
+[google-java-format 2.0.0](https://github.com/google/google-java-format/releases/tag/v2.0.0) probe recorded in the
+[research receipt](../implementation/evidence/issue-1108-related-approaches-research.md#formatting-probe), all calls in
+this chain received the same continuation indentation. Other formatter settings may differ; the important distinction
+is that graph depth is encoded in the method transitions, not in graph-shaped blocks that a formatter can indent.
+At this depth, the reader must track the current receiver and count the returns to containing builders.
 
-With Lombok `@Builder` on both corresponding Java classes, each class receives its own builder API. The parent call
-accepts the child object produced by the inner expression ([builder guide](https://projectlombok.org/features/Builder)):
+### Lombok: real expression nesting, with repeated child builders
+
+With `@Builder` on each corresponding Java class, the parent accepts the child object produced by a nested expression
+([builder guide](https://projectlombok.org/features/Builder)):
 
 ```java
-Deployment deployment = Deployment.builder()
-    .environment("production")
-    .component(Component.builder()
-        .name("catalog")
-        .image("example/catalog:1.0")
+Campaign campaign = Campaign.builder()
+    .name("autumn")
+    .region(Region.builder()
+        .name("europe")
+        .site(Site.builder()
+            .name("central")
+            .service(Service.builder()
+                .name("orders")
+                .endpoint(Endpoint.builder()
+                    .name("public")
+                    .port(8443)
+                    .build())
+                .build())
+            .build())
         .build())
     .build();
 ```
 
-This uses a fluent API as well, with a separately built value passed to `component(...)`. The example follows
-Lombok's documented parameter setters and `build()` invocation; it does not assume Sundrio-style nested-builder
-navigation or KlumAST-style closure scopes ([builder guide](https://projectlombok.org/features/Builder)).
+This preserves more of the tree in the source than Sundrio's single chain: child construction is nested inside the
+parent's argument expression ([Java invocation syntax](https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.12)).
+The same formatter probe retained that expression nesting, although it compacted the short Endpoint expression.
+At four or five levels, the repeated class names, `builder()` calls, and closing `build())` sequences become a
+substantial part of the text an author must follow. Extracting child expressions into variables or helper methods can
+shorten it; that is an application-authored refactoring of the builder composition
+([Lombok construction contract](https://projectlombok.org/features/Builder)).
 
-### What changes for the author?
+### Authoring comparison
 
-| Approach | Authoring form | How the example enters and leaves a child |
-| --- | --- | --- |
-| KlumAST | Groovy calls inside closures over typed, generated Builders ([Basics](Basics.md)). | `component { ... }`; braces delimit child configuration, and the root factory returns the Model. |
-| Sundrio | Fluent Java method chain ([nested builders](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders)). | `withNewComponent()` enters; `and()` returns to the parent; root `build()` finishes. |
-| Lombok | Composed Java builder expressions ([builder guide](https://projectlombok.org/features/Builder)). | `Component.builder()...build()` supplies a value to the parent builder's `component(...)`. |
+| Concern | KlumAST | Sundrio nested builders | Lombok builders |
+| --- | --- | --- | --- |
+| Represent a child | A child closure block ([Basics](Basics.md)). | Child-entry and parent-return calls in a chain ([nested builders](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders)). | A child builder expression passed as an argument ([Builder](https://projectlombok.org/features/Builder)). |
+| Source nesting | Blocks follow the owned object tree. | Any tree-shaped indentation of the chain is manual. | Argument expressions follow the composed tree. |
+| Deep models | Additional closure blocks. | More receiver transitions and matching parent-return calls. | More nested builder expressions and `build())` endings. |
+| Split configuration | Script recipes can retain Model notation ([factories](Convenience-Factories.md)). | Java methods/classes can compose the generated API ([builder guide](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md)). | Java methods/classes can compose the generated API ([Builder](https://projectlombok.org/features/Builder)). |
 
-The distinction is the generated language the author uses to express the graph. The examples do not establish a
-readability ranking, equivalent lifecycle semantics, or a reason to replace an existing API solely because it is fluent.
+## Splitting a Model across files and scripts
+
+KlumAST provides Model-loading and recipe composition as part of its authoring surface. A `DelegatingScript` contains
+the same calls as a configuration closure; generated list/map relationship methods can apply separately compiled
+recipe classes to child Builders in the active Construction session
+([script composition](Convenience-Factories.md#script-and-delegating-script-for-collections-and-maps)).
+
+For example, assume a Deployment Schema with `List<Service> services` and a Service with `String endpoint`.
+Keep a child recipe in `CatalogService.groovy`; `BillingService.groovy` uses the same header and its own endpoint:
+
+```groovy
+// CatalogService.groovy
+import groovy.transform.BaseScript
+import groovy.util.DelegatingScript
+
+@BaseScript DelegatingScript base
+
+endpoint 'https://catalog.example.test'
+```
+
+With both recipe classes compiled and available to the Model, the parent script reads:
+
+(See: `ConvenienceFactoriesDocumentaryTest#'applies DelegatingScript recipes to list and map relationship factories'`.)
+
+```groovy
+// DeploymentModel.groovy
+Deployment.Create.With {
+    services(CatalogService, BillingService)
+}
+```
+
+This keeps the configuration language while moving a subtree into its own source file. Root factories also load text,
+Files, URLs, and classpath-selected scripts ([convenience factories](Convenience-Factories.md)); reusable recipes have
+[Template](Templates.md) semantics. Owned recipe composition must stay inside the active session: a regular script
+returning a completed Model is not a replacement for a child Builder recipe.
+
+Java code using either fluent API can also be split across methods and classes. Java supports separate method
+declarations ([JLS methods](https://docs.oracle.com/javase/specs/jls/se25/html/jls-8.html#jls-8.4)); those helpers can return
+child objects or accept builder parameters using the respective [Sundrio](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md)
+or [Lombok](https://projectlombok.org/features/Builder) APIs. The author must design those helper signatures and the
+loading/orchestration convention. KlumAST's advantage for a distributed Model is its existing recipe/loading contract
+and preservation of the Model notation across files, rather than a claim that Java cannot modularize construction.
+
+## Locating errors in a large Model
+
+A deeply chained or composed builder expression can put a large subtree in one Java statement. A failure at a
+constructor or final `build()` then needs to be related back to the configured child and its earlier calls. Standard
+Java stack frames provide method, file, and line information when available
+([StackTraceElement](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StackTraceElement.html));
+they do not themselves record a domain-model construction path. Breaking chains into named helpers can improve the
+local source context. A multiline fluent statement does not erase compiler locations or all runtime line information.
+
+KlumAST adds model-aware context to supported construction failures: `KlumModelException` retains the DSL construction
+path, including script entry context and nested recipe/Template steps. This can identify the failing nested construction
+operation even when the Model spans several files. For example, the
+[exception documentary test](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ExceptionHandlingDocumentaryTest.groovy)
+checks that a conflicting child key reports the second call with a path ending in `/service(green)`.
+[Validation findings](Validation.md) are grouped by completed object. These diagnostics help map a failure to its
+Model context, beyond following a long call chain; they are not a guarantee that every arbitrary exception identifies
+an exact source line. See [Exception Handling](Exception-Handling.md) for the supported exception/path contracts.
+
+## The main cost: the Groovy dependency
+
+The closure DSL comes with a runtime and toolchain commitment. Schemas need Groovy compilation and a compatible Groovy
+version, and the KlumAST runtime uses Groovy types even when Java code consumes a completed Model
+([setup](Usage.md#manual-dependencies), [runtime factory API](../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/KlumFactory.java)).
+For a Java-only application that would otherwise have no Groovy dependency, this is a substantial adoption tradeoff:
+account for Groovy in the dependency graph, packaging, and version alignment. Choosing YAML input does not remove that
+runtime requirement.
+
+Lombok's documented setup, in comparison, uses compile-time annotation processing and does not require the Lombok
+library at runtime ([Gradle setup](https://projectlombok.org/setup/gradle)). Sundrio's generated Java construction API
+also avoids requiring Groovy merely for this authoring style; its own support dependencies depend on the chosen
+features ([builder guide](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md)).
+If retaining a Java-only toolchain matters more than closure-based authoring and script composition, that is a concrete
+reason to prefer one of the Java approaches for this task.
 
 ## How Sundrio relates to KlumAST
 
@@ -131,7 +255,7 @@ for the KlumAST-side boundary.
 ## When each authoring approach fits
 
 **KlumAST fits when** Model Writers should express a reusable domain Schema as nested Groovy configuration, with child
-scopes such as `component { ... }`. Its construction lifecycle can also supply ownership, linking, defaults, and
+scopes such as `region { site { ... } }`, especially for deeply nested or separately scripted Models. Its construction lifecycle can also supply ownership, linking, defaults, and
 validation before client code consumes the completed Model ([Basics](Basics.md), [Model Phases](Model-Phases.md)).
 
 **Another approach fits when** the required authoring surface is primarily:

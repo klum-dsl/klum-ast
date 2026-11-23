@@ -2,8 +2,8 @@
 
 ## Documentation
 
-- Compare Model authoring with KlumAST's Groovy closure DSL and Sundrio/Lombok fluent Java APIs, with examples,
-  primary sources, practical fit guidance, and supporting lifecycle, validation, YAML, and Pkl context.
+- Compare Model authoring with KlumAST's Groovy closure DSL and Sundrio/Lombok fluent Java APIs, with deep-object examples,
+  script composition, diagnostic context, the Groovy dependency tradeoff, and supporting validation/YAML/Pkl context.
   See [related approaches](docs/user/Related-Approaches.md)
   ([#1108](https://github.com/klum-dsl/klum-ast/issues/1108)).
 
