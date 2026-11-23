@@ -1,3 +1,11 @@
+# Unreleased
+
+## Documentation
+
+- Add a bounded comparison of KlumAST, Sundrio, Lombok builders, and Pkl, with primary sources and practical fit guidance.
+  See [related approaches](docs/user/Related-Approaches.md)
+  ([#1108](https://github.com/klum-dsl/klum-ast/issues/1108)).
+
 # 4.2.1 (2026-11-20)
 
 - [Generated JSON Schema](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Json-Schema.md)

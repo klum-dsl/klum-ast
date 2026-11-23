@@ -50,6 +50,9 @@ configuration's structure, but a checked-in structure is not necessarily a verif
 
 Already using KlumAST? Start with [Upgrade to 4.2](Migration.md#to-42).
 
+Evaluating an approach? [KlumAST alongside Sundrio and related approaches](Related-Approaches.md) distinguishes domain
+Model construction, generated Java builders, and configuration-language workflows.
+
 ## Author YAML with the same Schema
 
 Model Writers can also use caller-parsed YAML or JSON for admitted Schema operations. Start with the
