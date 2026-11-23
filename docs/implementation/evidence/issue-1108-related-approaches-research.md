@@ -5,6 +5,16 @@ Documentation research only; no execution, benchmark, interoperability qualifica
 This receipt follows the issue-named research-note convention in this evidence directory, including
 [the #805 investigation](issue-805-delegating-script-ide-research.md).
 
+## Authoring focus
+
+The main user-facing comparison is what authors write with the generated APIs: KlumAST's nested Groovy closures,
+Sundrio's fluent Java nested-builder navigation, and Lombok's composed builder expressions. The page uses the same
+illustrative Deployment/Component shape with corresponding declarations for each tool; it does not imply shared
+classes, source compatibility, or runtime parity. Sundrio's documented [nested-builder](https://github.com/sundrio/sundrio/blob/9365b206d3326a8f21b6e597771b6578d0e27d3a/annotations/builder/readme.md#nested-builders)
+`withNew...().and()` pattern and Lombok's
+per-target `builder()...build()` pattern supply the external syntax evidence. These are adapted documentation examples,
+not compiled interoperability fixtures. YAML, validation, lifecycle details, and Pkl are supporting context.
+
 ## Selection and claims used
 
 **Sundrio** is mandatory and directly relevant to generated typed construction and nested Java builders.
@@ -32,7 +42,8 @@ The inspected repository revision is `9365b206d3326a8f21b6e597771b6578d0e27d3a` 
 - [`@Jacksonized`](https://projectlombok.org/features/experimental/Jacksonized): configures Jackson to deserialize using
   generated builders without changing builder behavior. Parsing/serialization policy belongs to that integration.
 
-**Pkl** supplies the configuration-language comparison: typed configuration authoring and rendered data output.
+**Pkl** supplies a supporting configuration-language angle: typed configuration authoring and rendered data output;
+it is not presented as a generated Java/Groovy DSL peer.
 Use the explicit 0.32.2 documentation/source snapshot; no claim that it is the latest release.
 
 - Language reference: [objects](https://pkl-lang.org/main/0.32.2/language-reference/index.html#objects) are immutable and

@@ -2,7 +2,8 @@
 
 ## Documentation
 
-- Add a bounded comparison of KlumAST, Sundrio, Lombok builders, and Pkl, with primary sources and practical fit guidance.
+- Compare Model authoring with KlumAST's Groovy closure DSL and Sundrio/Lombok fluent Java APIs, with examples,
+  primary sources, practical fit guidance, and supporting lifecycle, validation, YAML, and Pkl context.
   See [related approaches](docs/user/Related-Approaches.md)
   ([#1108](https://github.com/klum-dsl/klum-ast/issues/1108)).
 
