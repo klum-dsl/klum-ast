@@ -1,6 +1,7 @@
 * [Home](Home.md)
 * Introduction
   * [Why *\*aC* is not enough](Why-aC-is-not-enough.md)
+  * [KlumAST and related approaches](Related-Approaches.md)
   * [Terms](Terms.md)
 * Fundamentals
   * [Basics](Basics.md)
