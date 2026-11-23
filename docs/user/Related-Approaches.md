@@ -187,8 +187,8 @@ Deployment.Create.With {
 ```
 
 This keeps the configuration language while moving a subtree into its own source file. Root factories also load text,
-Files, URLs, and classpath-selected scripts ([convenience factories](Convenience-Factories.md)); reusable recipes have
-[Template](Templates.md) semantics. Owned recipe composition must stay inside the active session: a regular script
+Files, URLs, and classpath-selected scripts ([convenience factories](Convenience-Factories.md)).
+[Templates](Templates.md) provide a separate reusable-recipe mechanism. Owned recipe composition must stay inside the active session: a regular script
 returning a completed Model is not a replacement for a child Builder recipe.
 
 Java code using either fluent API can also be split across methods and classes. Java supports separate method
