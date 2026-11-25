@@ -344,3 +344,18 @@ closure/retargeting, curation/release-gate change or follow-up issue creation.
 Handoff must identify ADR/plan paths, design PR, confirmed/open choices, slice dependencies, exact local/hosted check
 scope and review outcomes. Ask the Hive to reconcile the design delivery and required G0/G1/G4 first-slice decisions;
 the worker must not self-archive or mark `(arch)`. Publication of these design documents does not authorize implementation.
+
+### Design validation record — 2026-11-25
+
+- Independent Standards review at `ce953e30c281f7efb90c5f2879d1cb2dc59a4a00`: zero findings, no actionable heuristic
+  smells. ADR conventions, plan content and test/documentary conventions were checked separately from Specification.
+- Independent Specification review at the same revision: zero findings. Reviewed against the complete delegated design
+  request, #1111 and its comments, and the three retained reports; no missing acceptance mapping or premature decision found.
+- Local checks passed for both new Markdown documents: balanced fences, one title each, table-row structure, whitespace,
+  and all 15 relative links/anchors. No repository-wide Markdown linter is configured for these files. The applicable
+  structure/link checker was run locally; it is not a rendered-site or external-network link qualification.
+- `git diff d9bc6b5d27f8e7226ea38bbd12e6ca076f4b0e0e...HEAD --check` passed at the reviewed revision. History/diff
+  inspection confirmed one focused design commit from clean master and exactly the ADR/plan files, without proof ancestry
+  or production edits. This validation record is a documentation-only follow-up; rerun the same checks at its final tip.
+- Groovy/Java/build lanes and local Sonar were intentionally omitted under the documentation-only risk tier. Hosted
+  exact-head CI/Sonar status is a separate delivery observation to report in the PR/handoff, not implied by these results.
