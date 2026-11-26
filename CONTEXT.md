@@ -233,6 +233,18 @@ These terms are sourced from the user documentation and consolidated here. Use t
   A Jackson export is ordinary Jackson serialization of a completed DSL Object as a consumer-facing POJO projection. The
   Schema and mapper own the external shape; KlumAST adds no wire-format metadata and defines no import/export round trip.
 
+- Structured authoring
+
+  Structured authoring expresses configuration through the compiler-admitted Struct language alongside Groovy authoring.
+  Text decoding, completed-Model projection and trusted source migration are distinct responsibilities; see
+  [ADR 0034](docs/adr/0034-bounded-structured-authoring.md).
+
+- Shared value tree
+
+  A shared value tree is finite, acyclic data made of ordered String-keyed Maps, Lists and supported scalar values,
+  including null, without object-identity semantics. Representability as a tree does not establish Struct admission or
+  Model reconstruction.
+
 - Configuration layer
 
   A Configuration layer is a typed, opaque source of Builder configuration consumed by a future root composition
