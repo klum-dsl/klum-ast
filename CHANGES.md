@@ -1,5 +1,12 @@
 # Unreleased
 
+## Fixes
+
+- Copy nested JDK immutable value-factory and legacy empty/singleton List, Map and Set values without constructing their
+  private runtime implementations. Preserve encounter order, nested-value isolation and exact TreeMap/TreeSet comparators.
+  See [copy boundaries](docs/user/Copy-Strategies.md#nested-standard-value-containers)
+  ([#1117](https://github.com/klum-dsl/klum-ast/issues/1117)).
+
 ## Documentation
 
 - Compare Model authoring with KlumAST's Groovy closure DSL and Sundrio/Lombok fluent Java APIs, with deep-object examples,

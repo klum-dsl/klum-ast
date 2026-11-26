@@ -43,11 +43,20 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 import static com.blackbuild.klum.ast.runtime.internal.DslHelper.isDslType;
@@ -58,6 +67,17 @@ import static groovyjarjarasm.asm.Opcodes.*;
  * Will support different override strategies.
  */
 public class CopyHandler {
+
+    // Match factory-produced classes exactly: a general Map/Set wrapper can hide identity or comparator semantics.
+    private static final List<Class<?>> STANDARD_VALUE_LISTS = List.of(
+            List.of().getClass(), List.of(0).getClass(), List.of(0, 1, 2).getClass(),
+            Collections.emptyList().getClass(), Collections.singletonList(0).getClass());
+    private static final List<Class<?>> STANDARD_VALUE_MAPS = List.of(
+            Map.of().getClass(), Map.of(0, 0).getClass(), Map.of(0, 0, 1, 1).getClass(),
+            Collections.emptyMap().getClass(), Collections.singletonMap(0, 0).getClass());
+    private static final List<Class<?>> STANDARD_VALUE_SETS = List.of(
+            Set.of().getClass(), Set.of(0).getClass(), Set.of(0, 1, 2).getClass(),
+            Collections.emptySet().getClass(), Collections.singleton(0).getClass());
 
     private final InternalKlumBuilder<?> target;
     private final Object donor;
@@ -479,7 +499,24 @@ public class CopyHandler {
 
     @SuppressWarnings("unchecked")
     private static <T> T createNewEmptyCollectionOrMapFrom(T source) {
-        return (T) InvokerHelper.invokeConstructorOf(source.getClass(), null);
+        Class<?> sourceType = source.getClass();
+        if (STANDARD_VALUE_LISTS.contains(sourceType))
+            return (T) new ArrayList<>();
+        if (STANDARD_VALUE_MAPS.contains(sourceType))
+            return (T) new LinkedHashMap<>();
+        if (STANDARD_VALUE_SETS.contains(sourceType))
+            return (T) new LinkedHashSet<>();
+        if (sourceType == TreeMap.class)
+            return (T) new TreeMap<>(((SortedMap<?, ?>) source).comparator());
+        if (sourceType == TreeSet.class)
+            return (T) new TreeSet<>(((SortedSet<?>) source).comparator());
+        try {
+            return (T) InvokerHelper.invokeConstructorOf(sourceType, null);
+        } catch (RuntimeException failure) {
+            throw new KlumModelException("Cannot copy container " + sourceType.getName()
+                    + ": use a supported standard JDK value container or a container with a usable no-argument constructor",
+                    failure);
+        }
     }
 
     private OverwriteStrategy.Map getMapStrategy(Field field) {
