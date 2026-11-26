@@ -45,6 +45,28 @@ Fields are marked with one of the following annotations, depending on the type:
 
 Also, fields, the class or the package can be annotated with `@Overwrite` to apply the strategy to all fields in the class or package.
 
+## Nested standard value containers
+
+Ordinary copy paths recursively copy nested container values produced by `List.of`/`List.copyOf`,
+`Map.of`/`Map.ofEntries`/`Map.copyOf`, `Set.of`/`Set.copyOf`, and the `Collections` empty/singleton List, Map and Set
+factories. Copies use mutable `ArrayList`, `LinkedHashMap` or `LinkedHashSet` storage, preserving the donor's encounter
+order and copying nested values independently. An unordered factory does not gain a stable order across executions.
+Normal Model materialization still applies its existing read-only field snapshots.
+
+Exact `TreeMap` and `TreeSet` values retain their comparator, including natural ordering. Other constructible containers
+retain the existing runtime-class constructor path. General `Collections.unmodifiable*` wrappers, fixed-size
+`Arrays.asList` values, and arbitrary custom containers without a usable no-argument constructor remain unsupported as
+nested values. In particular, an unmodifiable Map or Set can hide identity or comparator semantics; KlumAST does not
+silently replace those semantics with ordinary equality. Unsupported construction reports the container class and the
+constructor requirement. This also excludes a Map/List stored in a scalar `Object` field once ordinary materialization
+has replaced its outer container with an unmodifiable wrapper; use declared Map/List fields for the qualified nested-value path.
+
+These rules concern nested value allocation. Declared Map/Collection fields still populate the recipient's existing
+container according to its overwrite strategy; null donors retain the existing skip behavior. Map keys and ordinary
+non-container values keep their existing identity semantics. This repair adds no general object-graph cloning contract.
+Regression examples are in `StandardContainerCopyTest` and `StandardContainerCopyIntegrationTest`
+([#1117](https://github.com/klum-dsl/klum-ast/issues/1117)).
+
 ## Owning declarations during copying
 
 [Owning Schema metadata](Completed-Object-Support.md#templates-copies-and-imports) reports accepted composition claims.
@@ -60,7 +82,8 @@ The metadata capability changes neither route; see the linked copy boundary befo
 ## Single Object
 
 Single object strategies handle how a single object field is copied from a donor recipe. The behaviour differs for DSL
-Objects and ordinary values. Ordinary values are retained, so donor and completed model share the same value instance.
+Objects and ordinary values. Ordinary non-container values are retained, so donor and completed model share the same value instance.
+Nested containers follow the [standard value container rules](#nested-standard-value-containers).
 For owned composition, a DSL Object donor is treated as a recipe: its state is rehydrated into a fresh child Builder and
 copied using that DSL Object type's overwrite strategies. The completed donor object itself is never adopted as owned composition.
 A completed aggregation target assigned to a `FieldType.LINK` field retains its exact identity.
