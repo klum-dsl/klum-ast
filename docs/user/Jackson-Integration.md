@@ -229,6 +229,66 @@ Lifecycle-derived and Jackson read-only values may appear even though they were 
 state, and synthetic members remain omitted in 4.0. Explicit type-level serializers may project public model data and
 `KlumObjectSupport`; internal companion state is not a supported extension seam.
 
+### In-memory effective-value projection
+
+Ordinary Jackson can project a completed Model without encoding JSON text. Keep the mapper, its modules, codecs,
+naming, inclusion and ordering under caller control. For an already configured and qualified mapper (Java first):
+
+```java
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+Map<String, Object> values = configuredMapper.convertValue(
+        completedModel, new TypeReference<LinkedHashMap<String, Object>>() {});
+JsonNode node = configuredMapper.valueToTree(completedModel);
+```
+
+The same existing APIs in Groovy:
+
+```groovy
+def values = configuredMapper.convertValue(completedModel, Map)
+def node = configuredMapper.valueToTree(completedModel)
+```
+
+These calls still execute Jackson serializers and Model getters. They are not a strict shared-tree validator: successful
+conversion can retain nonfinite numbers, and a custom codec can lose decimal precision. Repeated acyclic values can
+become repeated structural values without shared identity. Arbitrary cycles, reference identity, custom Number classes
+and custom codecs need their own qualification. Exact decimal/integer preservation must be checked on actual values;
+preexisting Float/Double values do not recover an originally intended decimal. See the
+[bounded qualification evidence](../implementation/evidence/issue-1113-jackson-tree-qualification.md).
+
+Output describes **effective completed values**. A present null in the chosen output differs from an absent member,
+but getter nullness does not recover whether the author omitted or explicitly cleared that field. `NON_NULL` is a caller
+inclusion policy; it does not add retained configured presence. Current `FromStruct` rejects supplied nulls at every depth.
+
+Reconstruction through `FromStruct` needs a separately named subset. The illustrative `ReleaseDescriptor` fixture qualifies
+String fields, a String List, a concrete unkeyed owned declaration and one closed enum, with matching external names,
+caller-owned enum tokens, explicit property order and null omission. It checks every selected effective field, fresh
+ownership, List order and repeated reconstruction. It is not qualification of every Package descriptor or Model.
+
+(See: `StructuredModelTreeQualificationTest#'a named descriptor subset reconstructs effective values through caller projection: #route #kind #note'`.)
+
+```groovy
+// This fixture's caller mapper maps APPLICATION to 'application', omits the null
+// note and orders both the descriptor and its nested declaration explicitly.
+def values = configuredMapper.convertValue(completedDescriptor, Map)
+def rebuilt = ReleaseDescriptor.Create.FromStruct(values)
+assert rebuilt.jars == ['lib/z.jar', 'lib/a.jar']
+assert rebuilt.root.owner.is(rebuilt)
+```
+
+Struct is an authored operation language. Struct-only names/enum tokens are not Jackson output directives. A keyed Map's
+outer key can make an exported child's inner key illegal input; seeded Lists can accumulate twice; derived/read-only
+fields, noninvertible converters and non-idempotent lifecycle can prevent reconstruction. LINK IDs and Jackson subtype
+IDs do not become Struct reference or type-selection instructions. Normal marked-Template rejection still applies.
+
+Mapping iteration order needs an explicit assertion independently of Map equality. The qualifier checks caller-selected
+property order and literal Map order without sorting semantic Lists. This adds no global property-order or byte-stability
+guarantee. Generated input JSON Schema remains explicit editor/consumer validation and is never an automatic projection
+or `FromStruct` gate. [ADR 0034](../adr/0034-bounded-structured-authoring.md) separates these responsibilities.
+
 ## Errors and Compatibility
 
 The 4.0 importer wraps syntax, mapping, and source-I/O failures in `KlumModelException`, preserving the original exception
