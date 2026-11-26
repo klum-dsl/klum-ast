@@ -2,6 +2,10 @@
 
 ## Documentation
 
+- Document existing Jackson in-memory effective-value projection, with executable examples of a named reconstruction
+  subset and its limits. Caller mapper policy, explicit validation and asymmetric export remain unchanged; no general
+  Model/Struct inverse or new API is introduced. See [Jackson integration](docs/user/Jackson-Integration.md#in-memory-effective-value-projection)
+  ([#1113](https://github.com/klum-dsl/klum-ast/issues/1113)).
 - Compare Model authoring with KlumAST's Groovy closure DSL and Sundrio/Lombok fluent Java APIs, with deep-object examples,
   script composition, diagnostic context, the Groovy dependency tradeoff, and supporting validation/YAML/Pkl context.
   See [related approaches](docs/user/Related-Approaches.md)
