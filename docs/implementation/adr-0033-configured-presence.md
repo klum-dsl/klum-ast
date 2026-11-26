@@ -1,361 +1,220 @@
-# ADR 0033 — configured-presence implementation plan
+# ADR 0033 — decision and conditional tracer plan
 
-Date: 2026-11-25. Design only; no production implementation or release placement authorized.
+Date: 2026-11-26. Supersedes the earlier seven-slice delivery roadmap.
 
-Decision: [ADR 0033](../adr/0033-opt-in-configured-presence.md).
-Tracker: [#1111](https://github.com/klum-dsl/klum-ast/issues/1111), which remains open and untargeted by this work.
-The [accepted boundary](https://github.com/klum-dsl/klum-ast/issues/1111#issuecomment-7169948681) permits authoritative
-configured presence only under the opt-in supported mutation contract, complete producer hierarchy and declaring-field
-coverage. It excludes arbitrary reflection/metaprogramming/raw alias/view tracking and any promise to detect every bypass.
+[ADR 0033](../adr/0033-opt-in-configured-presence.md) compares A (broad native), B (restricted native), C (independent
+improvements) and D (Schelm-managed presence). **Whether to implement native presence remains undecided.** This document
+specifies decision work and a possible consumer tracer, not an approved implementation sequence. No tracer, production
+code, executable test, release target, PR merge or issue closure is authorized. [#1111](https://github.com/klum-dsl/klum-ast/issues/1111)
+remains the full consumer request; choosing B would leave some of it unsatisfied, requiring explicit scope reconciliation.
 
-This is an executable work plan: each slice specifies its prerequisites, code seams, commit reasoning, fixtures and
-pass/fail acceptance. Test names below are proposed new specifications, not existing or passing tests. No prototype
-implementation is promoted, no tests are added by this design PR, and no implementation task is implicitly authorized.
+## Maintainer decision summary
 
-## Retained local evidence
+- **Recommendation:** evaluate B with one bounded consumer tracer only if its restrictions are acceptable; retain D in
+  production until a separate go decision. Do not pursue A by accumulation of exceptions. Consider C1 independently.
+- **Expected benefit:** ordinary fields/generated operations could replace payload slots, markers, state-maintenance
+  setters and presence-only list holders on Schelm's main snapshot path. Wire metadata, domain checks, number handling,
+  JSON-tree freezing and serialization remain consumer code; immutable-tree envelopes remain unless C1 is separately solved.
+- **Essential complexity:** whole-producer and per-declaring-field positive coverage, object-specific validity, successful
+  operation entry (including empties), implicit/default separation, coherent payload/state copy and a neutral completed reader.
+- **Avoidable in B:** per-operation runtime manifests, duplicate producer snapshots if presence is unavailable after stream
+  reload, reason hierarchies, Builder readers, direct-store instrumentation, general escape analysis, Template/deferred
+  origins and every overwrite family. These exclusions narrow useful support; they do not weaken known-state correctness.
+- **Still undecided:** funding any native work; class opt-in/API spelling; exact supported/rejected shapes; default/reset/
+  null/empty semantics; NULL-container snapshots; excluded transfer handling and stream limits. No release placement.
+- **Maintenance:** a small reader does not make AST coverage cheap. Every future change to a promised generator/default/
+  copy path must preserve or withhold its field guarantee across supported Groovy versions. Consumer savings must repay this.
 
-These commits are local-only disposable evidence, **not production ancestors or public GitHub links**. Inspect reports
-with `git show <commit>:<path>` in the retained repository. Do not merge, rebase, publish or copy their experimental
-production changes. This design was branched independently from clean `origin/master` at
+## Evidence and current source
+
+The complete issue and six Hive/maintainer comments were reread on 2026-11-26. The accepted boundary is conditional;
+this task's maintainer clarification explicitly leaves the implement-or-not decision open. The following local disposable
+reports are the only prototype evidence. Read with `git show <commit>:<path>`; do not merge, rebase, publish or copy their
+experimental production changes. This design branch starts independently from master at
 `d9bc6b5d27f8e7226ea38bbd12e6ca076f4b0e0e`.
 
-| Proof | Exact local commit | Report path at that commit | Established limit |
+| Proof | Local commit | Path under docs/implementation/evidence/ | Decision-relevant result |
 | --- | --- | --- | --- |
-| Feasibility | `3aad7474825bca1b38f36bd277cf26365835365e` | `docs/implementation/evidence/issue-1111-presence-feasibility.md` | Companion storage, selected replacement, Template and same-runtime serialization work; setter hooks miss authored writes/empties and confuse implicit work. |
-| Mutation authority | `974e0403b88c334197a99f327a844bbe24ebaa9c` | `docs/implementation/evidence/issue-1111-mutation-authority-prototype.md` | Tested post-success AST writes, explicit operation entry and origin scopes work; raw/shared/stale aliases defeat transparent wrappers. |
-| Capability/coverage | `3f46fc58f01762afec5b012999511f4a17409e08` | `docs/implementation/evidence/issue-1111-capability-coverage-prototype.md` | Positive declaring-field and whole-producer-chain checks preserve availability/U; external reflection still bypasses detection. |
+| Feasibility | `3aad7474825bca1b38f36bd277cf26365835365e` | `issue-1111-presence-feasibility.md` | Companion storage works; runtime setters miss same-value writes/empties and confuse defaults; NULL-container copy skips payload replacement. |
+| Mutation authority | `974e0403b88c334197a99f327a844bbe24ebaa9c` | `issue-1111-mutation-authority-prototype.md` | Bounded AST/entry/origin instrumentation works; wrappers fail raw/shared/stale alias semantics. |
+| Capability/coverage | `3f46fc58f01762afec5b012999511f4a17409e08` | `issue-1111-capability-coverage-prototype.md` | Complete hierarchy plus declaring-field facts can fail closed; reflection still bypasses detection. Its descriptor/snapshot design is evidence, not the minimum possible mechanism. |
 
-For example:
+The last proof ran 63 cases in each Groovy 3/4/5 lane, including retained cases; counts are not additive independent proof.
+Same-runtime serialization and JAR-only hierarchy cases passed for that experimental representation. No full CI/Sonar,
+JPMS, actual historical binaries/streams, mixed-generation matrix or Schelm acceptance was established. In particular,
+none proves the proposed field-level protocol or live-only retention design. Negative alias/reflection cases reproduce
+false state outside the contract; they do not prove automatic downgrade.
 
-```shell
-git show 3f46fc58f01762afec5b012999511f4a17409e08:docs/implementation/evidence/issue-1111-capability-coverage-prototype.md
-```
+Consumer assessment is pinned to Schelm revision `56e5ba6d6dfe2a6d4332814fb81e03a267c60c0e`, as in #1111, not a claim
+about today's consumer branch. Inspected [TargetGenerator](https://github.com/klum-dsl/schelm/blob/56e5ba6d6dfe2a6d4332814fb81e03a267c60c0e/schelm-skeleton/schelm-core/kubernetes-targets/generator/src/main/java/com/blackbuild/schelm/targetgen/TargetGenerator.java)
+emits slots, markers, custom operations, ALWAYS_REPLACE and Items holders;
+[TargetValues](https://github.com/klum-dsl/schelm/blob/56e5ba6d6dfe2a6d4332814fb81e03a267c60c0e/schelm-skeleton/schelm-core/kubernetes-targets/support/src/main/java/com/blackbuild/schelm/targets/TargetValues.java)
+uses JsonTree envelopes for nested immutable containers;
+[TargetWire](https://github.com/klum-dsl/schelm/blob/56e5ba6d6dfe2a6d4332814fb81e03a267c60c0e/schelm-skeleton/schelm-core/kubernetes-targets/support/src/main/java/com/blackbuild/schelm/targets/TargetWire.java)
+reads marker getters and separately owns field metadata, validation and output. These are concrete savings targets,
+not all removable framework workarounds. The generator does not materialize source defaults or invoke Templates here.
 
-Evidence scope: the first report records 22 tracer cases per lane; the second 38 per lane; the third 63 per lane,
-189 total, including earlier/extended cases and deliberate negative controls. Counts are not additive independent
-qualification. Java 17 classpath, separate Schema/consumer compilation, Groovy 3/4/5, JAR-only inheritance and same-runtime
-streams were exercised in bounded fixtures. Full CI/Sonar, JPMS, historical binaries/streams, mixed Groovy producer
-generations and actual Schelm acceptance were not established. Negative reflection/alias tests passed by reproducing
-false facts, not by detecting or supporting those writes. NULL-container snapshots remained unavailable because the
-existing payload path skipped null donors. Lifecycle authorship and non-snapshot policy semantics remained unresolved.
+Current KlumAST seams inspected: CopyHandler selects replacement/retention/combination directly and reconstructs nested
+containers by runtime-class constructor; InternalKlumBuilder stores/transfers ordinary companion metadata; Templates
+capture a separate immutable recipe; DefaultPhase uses effective-value emptiness; Struct can execute internal child
+paths without public creator dispatch. WriteAccessMethodsMover retargets custom direct writes but supplies no native
+presence guarantee. KlumObjectSupport is the established completed-Model entrypoint. Their behavior explains the costs;
+no production source changes belong to this assessment.
 
-## Current implementation and failure paths
+## Minimum mechanism and copy decisions to review
 
-Current master has no native public configured-presence contract. The relevant inspected seams are:
+Prefer one closed protocol version per producer layer with original declaring-field coverage, granted only if the whole
+admitted operation family is covered. Class-wide opt-in alone is insufficient. Custom overrides/unsupported shapes can
+withhold a field, and a missing hierarchy layer withholds all claims. Internal generator call-site assertions replace
+per-operation runtime negotiation; adding one new supported operation still requires qualification or a new contract.
+Object birth validity/state must remain distinct from class capability. Missing state storage is unavailable, never ABSENT.
 
-| Module / seam | Current behavior and required change boundary |
+The proposed B limit of unavailable inspection after Java deserialization makes full retained producer snapshots unnecessary
+in principle: live birth/loaded-class correspondence is used, and reload loses authoritative validity. It must be tested,
+not assumed, and must preserve existing Model serializability. If a consumer requires stream-retained presence, reopen only
+that cost/benefit decision. Existing directional ABI commitments still apply; do not add a historical-stream bridge or
+mixed-producer support matrix speculatively. No public descriptor or new evidence subsystem is planned.
+
+Use CopyHandler's semantic branches, not equality/diffs, to choose presence. The ADR's five-rule table covers replace,
+retain, combine, reset and unavailable evidence. For an eventual configured-values overlay, a **proposal** is: donor ABSENT
+contributes no authored event; accepted donor VALUE configuration establishes parent VALUE even when an empty merge inserts
+nothing; NULL needs an explicit replace/reject rule; unknown necessary donor/receiver contributions remain unavailable.
+This would affect existing effective-value copy choices and needs separate approval. B should withhold combined paths rather
+than implement a second policy engine. No generic OR of states proves the resulting payload's validity.
+
+Exceptions requiring focused assertions are NULL container donors (currently skipped before dispatch), NULL receiver storage,
+owned nested MERGE (parent retained but children changed), no-op/empty contribution and partial failure. A successful child
+transfer cannot certify its parent's configuration; vice versa, a configured parent does not certify every child. Replacing
+from an untracked/partial donor stays unavailable. Map/data imports have no retained native history. Preserve completed-donor
+isolation and normal composition/LINK identity. The immutable-container allocation issue is C1, independently useful even
+under D. Acceptance tables express guarantees; they are not instructions to enumerate all state × shape × strategy cells.
+
+## Stage 0 — choose whether to fund a tracer
+
+Before any new executable work, the maintainer chooses C/D now or explicitly authorizes a bounded B tracer. If authorizing,
+record provisional choices for its class opt-in/direct Optional reader, generated-operation-only contract, implicit defaults,
+reset/null/empty, NULL snapshot and live-only inspection. State exclusions up front: no custom direct stores/overrides,
+mutating callbacks/participants/custom phases, arbitrary initializer helpers, deferred actions, Template replay, combined
+copy policies or new Struct/Jackson null grammar. Recommend standalone nongeneric target Schemas initially; inherited or
+special/shadowed fields remain unavailable unless qualified. Whole-hierarchy checks remain mandatory even for this narrow
+admission. Supported custom Builder helpers may delegate to qualified generated methods only.
+
+Detected excluded declarations should reject or withhold coverage before construction. Known runtime entry into an excluded
+transfer/scheduling route must make availability conservative; arbitrary external bypasses remain unsupported without a
+promise of detection. Ordinary payload behavior outside the subset is preserved, but a serializer must refuse unavailable
+state. Select reject versus unavailable policy explicitly so the tracer is not green merely because all fields are unknown.
+This stage authorizes nothing by itself and creates no follow-up issue/task.
+
+## Stage 1 — smallest meaningful consumer tracer, only if separately authorized
+
+Use one source-neutral target Schema family (for example ServicePlan and owned Endpoint) with a defaulted Integer,
+Boolean, nullable String, owned child, List of owned children and Map. It should use ordinary fields and generated public
+Builders, not consumer slots/markers or Items holders. Construct within one ordinary lifecycle. The public proposal is
+Optional<ConfiguredPresence> on KlumObjectSupport; new spelling stays disposable until the consumer decision.
+
+The **serialization fixture comes first**, rather than after a broad compiler implementation: a separately compiled Java
+reader emits a plain Map/List/null tree using the public presence query plus ordinary getters. It omits ABSENT, emits NULL,
+retains zero/false/empty String/List/Map/object, and rejects Optional.empty(). This means consumer-output serialization,
+not Java ObjectOutputStream. It contains no Kubernetes/GVK/YAML/parser/schema-validation infrastructure. Compare parsed
+value trees against the corresponding Schelm-shaped cases, including a nullable fixture independent of real non-nullable
+resource definitions. Wire-name mapping and nullability/requiredness stay with the fixture consumer.
+
+Keep the vertical bullet to generated operations, neutral completed reads, one implicit scalar default, reset/reconfigure
+and an ALWAYS_REPLACE snapshot from a completed donor over a populated receiver. Include one supported delegating custom
+helper and reject/withhold a direct-store helper; no production direct-write instrumentation. Treat NULL containers as
+an explicit success-or-unavailable decision, never a NULL marker over retained receiver payload. Exercise donor isolation
+with ordinary owned containers; keep the nested immutable JSON-tree limitation visible rather than solving C1 inside B.
+
+Reasoned commit boundaries for that possible local disposable tracer: (1) minimal compiler field guarantee, successful
+operation/state retention and completed reader with the source-neutral fixture green together; (2) explicit/default/reset/
+empty/snapshot exceptions and untracked/unavailable controls, retaining the same fixture; (3) a concise consumer saving and
+stop/go report. Tests accompany working changes, never committed red alone. Do not copy prototype production code or create
+another general metadata format. Stop if the first boundary already demands the machinery excluded from B.
+
+Proportionate acceptance groups, reusable across a few combined scenarios:
+
+| Guarantee | Evidence needed before the decision |
 | --- | --- |
-| `klum-ast-annotations`: `DSL`, `Builder`, `FieldType`, `OverwriteStrategy` | Schema vocabulary and existing strategy enums; opt-in/mutation spelling is undecided. Do not add annotation members until G0. |
-| `klum-ast`: `DSLASTTransformation`, `WriteAccessMethodsMover`, `BuilderMethodProjection` | Moves Schema mutators/lifecycle methods and retargets fields to Builder storage. No authoritative post-write configured-state instrumentation. Generated coverage must follow actual transformed paths, overrides and projections. |
-| `klum-ast`: `AlternativesClassBuilder`, collection/Map/converter generation | Generated bulk methods loop over members; empty operations may do no store. CollectionFactory scope entry is separate. Derive coverage for actual emitted overloads, not broad field categories. |
-| Runtime `InternalKlumBuilder` | `setInstanceAttribute` normalizes then stores; member operations mutate construction storage; `applyConfiguration` runs PostApply. Initializers/default/lifecycle reuse mutation paths, so setter invocation alone cannot decide authorship. |
-| Runtime `InternalKlumBuilder` materialization / Model companion | Graph completion makes read-only container snapshots; `ModelState`/`KlumModelProxy` copy internal metadata without retaining Builders. Presence needs immutable retained validity/state, not an exposed metadata Map. |
-| Runtime `KlumTemplateProxy`, `TemplateRecipeState` | Template companion separately captures immutable deferred closures and replays clones. It has no ordinary Model metadata snapshot. Add independent presence and action-origin retention without changing Template identity or one-lifecycle replay. |
-| Runtime `CopyHandler` | Selects payload directly by target overwrite policy; some collection/Map paths mutate storage without normal member hooks. Both return early for null donors before strategy dispatch. Marker-only transfer would lie for NULL containers or policies retaining receiver payload. |
-| Runtime `DefaultPhase`, owner-provided defaults, AutoCreate, lifecycle participants | Existing value/emptiness predicates drive default eligibility. Proofs show boxed zero and empty String/containers can be replaced while false survives. Origin tracking alone does not preserve authored payload. |
-| Runtime `StructuredInputSupport`, `CompiledBuilderSchema` | Ordered admitted operations populate existing Builders, sometimes through internal owned-child paths rather than public creator overloads. Empty population requires an entry fact; explicit null currently rejects. Keep admission/ordering/partial failure unchanged. |
-| Runtime `KlumObjectSupport`, `KlumBuilderSupport`, generated ABI | Completed support is public; companions/internal metadata are not. Add the selected small read-only contract here or an explicitly chosen alternative. All emitted links use `runtime.generated`, not `runtime.internal`. |
-| Jackson / Gradle plugin | Independent import and compiled-contract/mirror consumers. Audit touched paths; advertise only qualified import coverage. Presence adds no managed wire metadata, parser, JSON Schema requiredness or plugin DSL by default. |
+| Useful output and simplification | Known A/N/V produce the expected trees; false/zero/empty survive; the same tree needs no slots/markers/maintenance setters/Items holders. Identify exactly what consumer code remains. |
+| Explicit versus implicit | Untouched defaulted field stays ABSENT with its effective default; explicit NULL/zero/empty suppress defaults; reset clears stale payload and is eligible only at the normal default step. Assert getter and state together. |
+| Correct mutation boundary | Empty bulk/block entry counts; failed assignment stays neutral; earlier successful partial effects stay coherent; reads do nothing. Excluded direct stores/known transfers cannot yield a false known result. |
+| Snapshot and unknown history | A/N/V(empty) and selected nullable cases replace a populated receiver coherently; untracked/partial donor and producer evidence remain unavailable; donor mutation isolation holds. |
+| Small coverage mechanism | Missing/unknown producer, field and object validity, ambiguous names and a mixed hierarchy control fail closed. Raw alias/reflection counterexamples remain outside the supported contract, with no detection claim. |
+| Real client surface | Separate Schema JAR, Java 17 reader plus Java 21 consumer use, static/dynamic Groovy 3/4/5 narrow fixtures. Recompile each Groovy lane; no marker-name/private-field dependency. |
+| Honest exclusions | Template/deferred/combined-copy/import routes are rejected or unavailable; Java stream reload returns unavailable while ordinary serialization remains viable. No current user behavior silently broadens. |
 
-Relevant existing regression seams include `CopyHandlerRuntimeTest`, `DefaultValuesSpec`, `TemplateCompanionSpec`,
-`StructuredInputRuntimeTest`, Builder projection tests and generated-schema/JPMS artifact fixtures. Use existing shared
-Spock fixtures and `klum-ast/src/test/scenarios/` conventions rather than independent ad hoc compilers where possible.
-The architecture map is a wayfinding index; actual source and the parent ADRs own behavior.
+This is a proposed future feedback loop, not new tests in this PR. Use existing Spock/artifact fixtures, `Test` suffix,
+@Issue("1111") and actionable suppression reasons. The boundary is compiler-sensitive, so all three focused Groovy lanes
+are necessary; a universal history/stream/strategy Cartesian matrix is not. Existing coverage of excluded features is
+regression evidence, not a requirement to make their native presence work.
 
-## Semantic gates and decisions
+## Early stop/go decision
 
-Only the supported-mutation boundary is confirmed. The following decisions must be recorded in #1111/ADR before the
-affected slice starts. Options are recommendations for review, not defaults silently accepted by this document.
+At the end of Stage 1, a named maintainer chooses a result; no automatic continuation:
 
-| Gate | Required maintainer decision | Blocks |
-| --- | --- | --- |
-| G0 — public minimum | Opt-in placement/inheritance/field selection and spelling; completed reader result/facade and logical field identity; collision and unsupported-field policy. Recommend reason-bearing Known-or-Unavailable on `KlumObjectSupport`, name lookup and no enumeration. Select whether Builder/Template readers are included or deferred. | CP-1 onward |
-| G1 — authored/effective semantics | Initializers/defaults/AutoCreate, lifecycle/participants/custom phases, callbacks overwriting configured values and deferred scheduling classification. Select explicit NULL/zero/empty authority and default eligibility, reset timing and any configured-payload requirement. Recommend explicit values suppress implicit defaults on opted-in fields, but this is unaccepted. | CP-2 onward |
-| G2 — explicit operations | Reset/null/empty API names and admission; whole-container replacement versus existing bulk population; nullability versus required presence/element nullability; reset storage/ownership cleanup and reconfigure after NULL/reset. | CP-3; null/reset portions of CP-2/4 |
-| G3 — transfer policy | NULL-container ALWAYS_REPLACE behavior; full state/payload truth tables for all other existing strategies, including unavailable donor/receiver, nested merge and Map/data donors. Select support versus explicit unavailable/rejection for each unqualified combination. | CP-4; transfer portions of CP-5 |
-| G4 — compatibility promise | Historical producer/runtime support set and new generated ABI; Model/Template UID/stream format and old-stream acceptance/rejection; mixed-version transfer interpretation. Existing directional ABI promises still constrain this decision. | CP-1 ABI inventory; CP-5 retention format; CP-6 historical qualification |
-| G5 — delivery | Release target, final scope/deferrals and evidence owner for Schelm acceptance. No milestone is inferred here. | CP-7 release claim only |
+- **Proceed with B** only if ordinary target construction and snapshots produce the expected trees through the public
+  reader, remove all four targeted representations (slots, markers, state-maintenance setters, presence-only Items holders)
+  in that fixture, preserve donor isolation, and keep false/unknown claims out with the small field-level mechanism.
+  Review actual changed seams/remaining consumer code and a bounded maintenance estimate before authorizing production work.
+- **Narrow once** if one separable capability, such as nullable container snapshot or Struct entry, dominates cost and
+  Schelm explicitly accepts retaining its workaround there. Record which #1111 cases remain unmet; do not rename unavailable
+  support as success. Reject a hybrid that duplicates most state machinery and adds a native dependency for little benefit.
+- **Abandon native presence and choose C/D** if correct ABSENT needs detailed runtime operation negotiation, duplicated
+  snapshots, broad AST/escape analysis, arbitrary lifecycle/Template support or another payload; if common generated target
+  paths are unavailable; if list holders/markers must mostly remain; or if the consumer needs excluded stream/merge features
+  such that B becomes A. A false known state within the promised subset is a hard stop until narrowed or corrected.
 
-Before the **first implementation slice**, resolve G0, select the minimum G1 meaning of a known state (so CP-1 cannot
-publish misleading state), and G4's additive-linkage/retained-format approach. Also explicitly authorize CP-1. G2/G3 may
-remain open only if CP-1 withholds their unqualified fields/operations and publishes no reset/null/copy claims. G5 need
-not be selected to begin implementation. Remaining G1 details must be settled before CP-2; do not ship unresolved lifecycle
-facts as apparently authoritative ABSENT. Recommendations for a coherent minimum can be accepted together, but are not
-selected by this plan.
+The three earlier proofs answer feasibility; this decision must answer value versus ownership cost. No further rounds of
+coverage expansion are presumed. Discarding the tracer and leaving #1111 unimplemented is an acceptable outcome.
 
-## Slices and commit boundaries
+## Conditional work after a separate go decision
 
-Dependency graph: CP-1 → CP-2 → CP-3 → CP-4 → CP-5 → CP-6 → CP-7. CP-6's binary/JPMS fixtures and CP-7's consumer
-fixture preparation may begin alongside CP-2 once G0/G4 are stable, but their acceptance depends on the final earlier
-slices. CP-3 depends on G2, CP-4 on G3, and CP-5 on G4. No slice is independently a complete #1111 delivery.
+If B is selected, replace the seven-slice roadmap with two independently reviewable production steps, each requiring its
+own assignment: **P1**, the accepted generated/native snapshot path with the consumer fixture and documentary coverage;
+**P2**, release qualification/documentation for that exact scope. Defer A's direct-write families, Template/deferred origins,
+combined policies and stream retention as unaccepted opportunities, not a promised backlog or prerequisite to B.
 
-### CP-1 — truthful minimal completed inspection and producer coverage
+P1 depends on the tracer decision and finalized API/semantic restrictions. Split compiler/reader and default/reset/copy
+work only at green vertical boundaries with accurate field guarantees; no unsupported path receives a broad covered flag.
+P2 depends on P1: affected module suites and root check under the cross-module risk matrix, Java/static/dynamic Groovy
+artifact consumers, and one minimal Groovy 4/5 named-module scenario using standard exports/opens and runtime.generated
+linkage. Groovy 3 remains classpath-only. Preserve existing directional generated ABI with representative older untracked
+binary behavior and a frozen new reader/schema pair; additional historic/mixed-version/stream matrices need actual promises.
+No --add-exports/add-opens/add-reads workaround or internal companion descriptor is admissible.
 
-Prerequisites: first-slice decisions above. Implement one thin vertical path: opted-in scalar declaration, compiler
-capability, fresh Builder facts, ordinary scalar operation, completion, selected public read-only inspector and Java
-consumer of a separate Schema JAR. Every not-yet-qualified mutation/transfer path stays unavailable or rejects; no broad
-capability flag for the whole field family. Unknown fields and non-opted-in Models return unavailable.
+Re-use core acceptance examples instead of repeating every combination in every lane. Add TestKit/mirror checks only if
+chosen generated contracts affect them. Inspect exact-head CI/Sonar and address findings. A shipped API needs
+@Tag("documentary"), @See to matching docs/user examples, issue/test/page traceability, migration/sidebar updates where
+needed, and CHANGES in a separately chosen release section. Public guides must explain unsupported raw/custom writes and
+unavailable handling. No public docs or changelog claim delivery from this assessment.
 
-Use a private immutable coverage/state module with resolved declaring-field keys and recognized format/contract facts.
-Validate actual whole producer hierarchy separately from object-retained field coverage. Derive operation manifests
-from concrete generation paths and instrumentation results. Missing one producer layer invalidates all field claims;
-missing one field token inside an otherwise qualified hierarchy withholds that field. Never repair unknown imported
-state merely because a setter runs or a runtime allocates metadata.
+## What remains of #1111
 
-Commits: (1) internal coverage/availability rules with focused runtime tests; (2) minimal compiler→completion→public-reader
-scalar path with Schema-JAR Java/static/dynamic Groovy tests and untracked regression. Do not split the public operation
-from its working producer or commit a red test alone. A small API inventory/design amendment may precede these commits.
+B is deliberately narrower than the original request. The issue's eight acceptance criteria reconcile as follows:
 
-Acceptance — proposed `ConfiguredPresenceCoverageTest` and `ConfiguredPresenceConsumerTest`:
+| Criterion | Early evidence / remaining gap |
+| --- | --- |
+| 1. Compiled Schema and Java/Groovy reader without own markers | Stage 1's main success criterion; P2 qualifies the exact published subset. |
+| 2. A/N/V, nullable/empty/reset/reconfigure, neutral reads | Stage 1 core; omitted nullable-container cases must be explicitly accepted as gaps. |
+| 3. Generated ownership/collections, no presence-only Items holders | Prove in Stage 1, not at a distant final consumer step. |
+| 4. Snapshot plus coherent merge/append/missing-only | Snapshot in Stage 1; combined policies remain unavailable in B, so full criterion is unmet. |
+| 5. Donor isolation and nested immutable value trees | Ordinary donor isolation in Stage 1; C1/envelopes remain separate and explicitly reported. |
+| 6. Defaults/initializers/auto-created/lifecycle semantics | Restricted defaults/reset in Stage 1; arbitrary auto-create/callback/deferred behavior is excluded, so full criterion is unmet. |
+| 7. Actual Deployment/KafkaTopic/nullable output and original-schema validation | Bring source-neutral shaped output into Stage 1; real pinned Schelm acceptance must precede any adopter/full-issue claim. No Kubernetes code enters KlumAST. |
+| 8. Existing behavior/public compatibility, unchanged Struct null admission | Required throughout; P2 qualifies release scope, not new historic guarantees. |
 
-- Known untouched scalar versus explicit admitted null/value without reading getters to infer state; reads are neutral.
-- Tracked base/leaf, abstract base, JAR-only base/downstream leaf and both mixed tracked/untracked directions. Exercise
-  base helper and leaf inherited writes. Missing/old/future/mismatched layer or superclass identity makes all unavailable.
-- Remove a declared-field token, operation fact or retained producer snapshot: affected state stays unavailable through
-  completion/inspection. Include unknown state values, ambiguous/shadowed fields, Builder-only/special fields, generics
-  and non-Schema ancestry; either explicitly qualify or verify documented unavailable/rejection.
-- Capability is distinct from one object's available state. Corrupted/partial retained facts and old-format controls
-  cannot be upgraded by reads or successful setters. Producer version/provenance alone never proves capability.
-- Separate-JAR Java and static/dynamic Groovy readers use only public API, no private marker names or Schema source.
+Neither B nor merging this design completes #1111. The Hive must reconcile any selected scope reduction with the maintainer;
+no issue retargeting/closure is performed here. C1/C2/C3 are assessed independently, without tracker creation or code changes.
 
-Risk gate: review the generated/public ABI inventory and fail-closed table before expanding mutation coverage. Bytecode
-damage fixtures are negative controls, not substitutes for historical compiler binaries in CP-6.
+## Assessment validation and handoff
 
-### CP-2 — compiler-covered writes, explicit operation entry and origin
+This refinement changes only the ADR/plan and reduces the former delivery machinery. Validate Markdown structure,
+relative links/anchors, whitespace/diff and scope; use independent Standards and Specification reviews against the pasted
+2026-11-26 request. No production code, prototypes, executable tests or added evidence infrastructure. Groovy/build/local
+Sonar lanes are unnecessary for this documentation-only revision; report hosted checks on its exact head separately.
+Earlier reviews/green hosted checks at 69b92bc9c qualify that old design revision only.
 
-Prerequisites: G1 and the applicable G2 choices. Extend exact generated scalar/owned-child/member/bulk/CollectionFactory
-paths and compiler-qualified direct writes in `@Builder.Method`, moved helpers, nested closures and projections. Place
-post-success hooks after actual normalization/store/attachment; preserve assignment expression results and evaluation
-count. Empty successful operations and existing-child re-entry need facts even without a member store. Keep generation
-and coverage registration adjacent so omission cannot accidentally grant ABSENT.
-
-Origin scopes must distinguish authored work from initialization/default/automatic/lifecycle work under the selected
-policy, including nested Builder initializer calls under an outer authored scope. Restore scope on exceptions and nested
-operations; scheduling origin, not the eventual numeric phase, follows deferred actions. No new origin log API.
-
-Commits: (1) supported moved-write instrumentation and conservative unsupported-form diagnostics/coverage; (2) generated
-empty/member/owned operation entry facts with origin scopes and lifecycle/default integration. Split phase integration
-further only when each commit remains green and advertises exactly its implemented subset.
-
-Acceptance — proposed `ConfiguredPresenceMutationTest` and `ConfiguredPresenceOriginTest`:
-
-- Same-value null assignment, qualified/unqualified/property/direct-attribute forms, compound assignment/result, nested
-  closure/helper, inherited fields, static compilation, local shadow exclusion; test prefix/postfix, super and unknown
-  receiver/index forms as supported or conservative unavailable/rejection, never presumed covered.
-- RHS/coercion/attachment failure leaves that failed write neutral; an earlier successful write followed by a caught
-  later exception remains recorded. Bulk failure retains coherent earlier effects, with no new transaction promise.
-- Empty String, false, zero, explicit empty child and re-entry, empty bulk List/Map and actual owned CollectionFactory
-  blocks; overloads, converter-backed members, literal alternatives, custom overrides and projections each advertise
-  coverage only after execution tests. Returned expressions, ownership and child lifecycle remain unchanged.
-- Origin matrix for initializer, nested initializer helper, Default/owner defaults, AutoCreate/AutoLink, PostCreate,
-  PostApply, PostTree, participants and custom phases, including later writes to already configured fields. Assert both
-  selected presence and effective payload, not marker alone. Explicit-null/zero/empty default behavior follows G1.
-- Deferred actions scheduled from authored and lifecycle code at the same phase retain distinct selected origin;
-  exception/nested-root/thread isolation does not contaminate later construction.
-- Keep negative external-reflection/raw-alias controls demonstrating the documented unsupported limit. Do not assert
-  automatic downgrade after an undetected foreign violation. Detected unknown-target escapes withhold whole coverage.
-
-Risk gate: no public coverage until all advertised AST/generated forms pass separately in Groovy 3/4/5. A narrow hazard
-pattern list is not exhaustive escape analysis. Document unsupported source forms precisely.
-
-### CP-3 — explicit reset/null/empty operations and Struct integration
-
-Prerequisites: G2, CP-2. Add only the selected APIs, with schema-name collision checks and public generated typing/mirrors
-if generated methods are chosen. Reset removes stale logical payload, detaches ownership as required, chooses safe
-declaration-based storage and permits subsequent configuration. NULL container state must not be confused with null
-members. Distinguish whole-value replacement/empty from existing population semantics; preserve non-opted-in behavior.
-
-Instrument Struct's admitted execution seams after shape checks, including scalar population, owned sequences, keyed
-Maps and literal aliases. Custom Struct commands acquire presence only through their qualified internal writes.
-No implicit change to general null admission, JSON Schema requiredness, or Struct grammar for reset/null commands.
-
-Commits: (1) explicit operations with collision, normalization, ownership and reset/reconfigure tests; (2) Struct empty
-execution/origin entry and documentary example. Add grammar only if separately accepted; otherwise retain null rejection.
-
-Acceptance — proposed `ConfiguredPresenceOperationsTest`, `ConfiguredPresenceStructTest` and documentary test:
-
-- Scalar, owned object, List and Map ABSENT/NULL/VALUE sequences; reset populated/null fields, then assignment/block/member
-  addition; mutate detached old raw alias and verify new storage is independent. Do not treat detached mutation as supported.
-- Empty object/List/Map versus untouched; nullable scalar/object/container versus nullable Map entry/element; required
-  presence remains independent of nullability, false, zero and effective defaults. Failed reset/null/empty operations
-  leave coherent state/payload according to the selected failure contract.
-- Struct missing field is neutral; explicit empty child/container is configured. Empty `applyStruct` population over a
-  populated receiver retains existing contents; no invented replacement/clear behavior. Existing null rejection retains
-  field/source diagnostics. Ordered failure retains earlier effects and one ordinary lifecycle.
-- Generated operation names, external Struct names and original declaration identity remain separate. Unknown fields
-  report unavailable through inspection and retain existing Struct errors through construction.
-
-Risk gate: demonstrate public Groovy Schema/Model syntax and Java reader before freezing names. Add `@Issue("1111")`,
-`@Tag("documentary")`, `@See` and matching planned user guidance when the feature becomes executable.
-
-### CP-4 — logical-field copy transfer and strategy qualification
-
-Prerequisites: G3, CP-3. Pair state/availability and payload selection at each `CopyHandler` logical-field decision,
-including direct container changes, nested recipe copies and unavailable donor facts. Transfer into the receiver's own
-capability; do not copy a donor descriptor as proof of receiver coverage. `ALWAYS_REPLACE`'s tested availability behavior
-is the starting evidence, not authority to invent other policies or treat NULL container replacement as solved.
-
-Commits: (1) selected snapshot transfer, including the accepted NULL-container decision and unavailable controls;
-(2) separately green policy-family integrations after explicit truth-table approval, or documented unavailable/rejection
-for unqualified combinations. No copied donor marker after an unrelated retained receiver payload.
-
-Acceptance — proposed `ConfiguredPresenceCopyTest` plus existing copy regressions:
-
-- Complete-snapshot requested cases: donor ABSENT over populated receiver; NULL scalar/child/container; false/zero/empty
-  String/object/List/Map. Compare both state and payload; preserve unavailable donor/partial coverage. A NULL-container
-  path that leaves populated receiver storage cannot claim known NULL. State whether snapshot support is complete yet.
-- G3 must supply expected results for each donor A/N/V/U × receiver A/N/V/U combination, relevant null/empty/nonempty
-  effective payloads and selected strategy. Cover Single REPLACE/ALWAYS_REPLACE/SET_IF_NULL/MERGE, Collection
-  ADD/REPLACE/SET_IF_EMPTY/ALWAYS_REPLACE and Map FULL_REPLACE/SET_IF_EMPTY/ALWAYS_REPLACE/MERGE_KEYS/MERGE_VALUES/
-  ADD_MISSING, plus inherited policy resolution. Distinguish complete replacement from configured-values overlay.
-- Map/data donors and nontracked/old Models have no retained native configured history; select explicit import semantics
-  or unavailable, never infer history from getters or missing map keys in a generic object-copy path.
-- Copy then reset/append/upsert/owned-child reconfigure leaves completed donor untouched. Preserve cycles, aliases,
-  LINK/OPTIONAL_LINK identity and one ordinary recipient lifecycle; reject invalid live Builder sources as today.
-- Reproduce nested immutable JSON-like container limitation and record whether scalar envelopes still remain necessary.
-  This plan leaves that limitation separately scoped; no generic deep-copy fix or envelope-removal claim.
-
-Risk gate: per-field coherence on failure, nested partial copy and null receiver containers need explicit assertions.
-No graph transaction or ordered-composition engine (#304) is introduced. Any deferred policy leaves that portion of
-#1111 acceptance incomplete even if fail-closed behavior is correct.
-
-### CP-5 — Template replay and serialization retention
-
-Prerequisites: G4 and CP-4 transfer behavior. Independently snapshot presence into the Template companion/recipe and
-retain origin with each deferred action. Preserve definition's omitted lifecycle, fresh recipient Builders, scheduling
-order, clone isolation and no relationship Template values. Ordinary Models retain no deferred actions or Builders.
-
-Commits: (1) Template capture/replay with origin-bearing immutable actions; (2) selected Model/Template stream format,
-UID/compatibility handling and retained-state validation with fixture streams. If historical streams are unsupported,
-document/test that chosen boundary rather than inventing a migration reader.
-
-Acceptance — proposed `ConfiguredPresenceTemplateTest` and `ConfiguredPresenceSerializationTest`:
-
-- Template definition/capture/Java serialize/reload/replay preserves known A/N/V and field-local/whole-object unavailable,
-  including partial/mismatched coverage. Recipient capability remains independent; new Builder allocation cannot recover
-  donor history. Recipe snapshot is defensive and unchanged by recipient mutations.
-- Authored and implicit/deferred actions retain G1 meaning across capture/replay, including same-phase actions and nested
-  Templates. Default/reset eligibility runs only at the ordinary recipient lifecycle step; inspection runs no actions.
-- Same-version ordinary Model and Template graphs preserve state and unavailability, composition cycles and LINK identity.
-  Sealed LINK wrappers query the completed target's original retained state. Assert no Builder/session in serialized graph.
-- Missing/unknown/corrupt retained formats fail closed if the stream can be read; incompatible streams may reject under
-  G4. Do not claim all historical streams deserialize as unavailable. Historical producer/runtime tests belong to CP-6.
-- Jackson Template rejection and ordinary POJO export remain unchanged; no presence wire metadata or round trip.
-
-Risk gate: private-field changes may change default serial UIDs even without a public signature change. Review before
-committing retained format; do not infer stream compatibility from the bounded proof's successful same-runtime round trip.
-
-### CP-6 — artifact, binary, Java and module qualification
-
-Prerequisites: G4 and final CP-1–CP-5 interfaces. Extend existing artifact scenarios and named-schema fixtures, not a
-parallel publication mechanism. Compile Schema and consumers separately in every supported lane against one production
-artifact set; no cross-lane Groovy test output. Inventory generated descriptors/calls and reject runtime-internal leakage.
-
-Commits: (1) shared separate-artifact/producer hierarchy and historical ABI fixtures with expected support table;
-(2) Java 17/21 and Groovy 4/5 JPMS qualification, Gradle/plugin/mirror regressions where touched.
-
-Required qualification matrix:
-
-| Axis | Positive acceptance | Negative/limit control |
-| --- | --- | --- |
-| Java | Compile/run public inspector against Schema JAR on Java 17; repeat consumer use on Java 21. | No private-field/marker access or source-Schema dependency. |
-| Groovy | Independently compile/run dynamic and `@CompileStatic` consumers and Schema fixtures in `test`, `groovy4Tests`, `groovy5Tests`. | No reused baseline Groovy fixture/test outputs; verify lane isolation. |
-| Hierarchy/artifacts | Tracked base JAR + downstream tracked leaf, inheritance writes, abstract/generic qualified shapes. | Both mixed tracked/untracked directions, missing/partial producer layer, unsupported special/shadowed forms. |
-| Historical binary | Retain actual supported older Schema/consumer binaries on newer runtime according to G4/ADR 0015. Freeze new consumer binaries for future directional tests. | New generated code on older runtime may lack helpers: verify explicit supported/rejected combinations; no promise that an old runtime implements new inspection. Damaged metadata alone is not historical evidence. |
-| Mixed producer generations | Execute each combination that G4 promises across JAR boundaries and supported Groovy runtimes. | Explicitly list unqualified combinations and unavailable/rejection; compiler version equality is not capability. |
-| JPMS | Groovy 4/5 named Schema + Java/static Groovy consumer, ordinary schema exports/opens and generated-only bridges. | No `--add-exports`, `--add-opens`, `--add-reads` or patched modules; Groovy 3 remains classpath-only. |
-| Serialization | G4-selected same/new/old stream matrix for Model and Template, including unavailable facts. | No historical-stream promise beyond recorded fixtures; incompatible streams reject per selected policy. |
-| Other input routes | Qualify generated Factory/map/script, Struct and Template routes; audit Jackson binding, custom factories/converters and imports. | Routes not fully qualified cannot advertise complete presence coverage; do not silently broaden Jackson/Struct grammar. |
-
-Risk gate: binaries must exercise the actual exported facade, generated linkage and materialization under real loaders/
-modules. Full local root `check` and appropriate artifact/TestKit tasks are required for these cross-module changes.
-Record exact commands, Java/Groovy versions, case counts, ignored reasons and final revision. Do not label CP-6 complete
-while promised cells remain untested.
-
-### CP-7 — consumer acceptance, documentation and delivery reconciliation
-
-Prerequisites: CP-6; G5 only for placement/release claims. First demonstrate a small source-neutral serializer fixture
-using the public reader, ordinary fields and generated Builders without consumer slots/state setters/list-holder wrappers
-solely for presence. Then arrange consumer-owned Schelm qualification against a pinned KlumAST artifact/revision.
-No Schelm/Kubernetes serialization code enters KlumAST. External acceptance need not modify Schelm in this design task.
-
-Commits: (1) documentary native consumer/authoring examples and supported-mutation limitations; (2) user/release/migration
-synchronization and exact acceptance evidence. Reuse the fixture as documentation's executable source.
-
-Acceptance — proposed `ConfiguredPresenceDocumentaryTest` and consumer-owned report:
-
-- Port the issue's false/zero/empty String/nullable scalar/object/container, empty block, reset/reconfigure, Map
-  replacement/upsert and List append cases; known versus unavailable is explicit in the serializer. Raw getter values
-  never decide omission. Required-presence checks and container-member nullability remain distinct.
-- Normal generated owned List/Map construction needs no Schelm `...Items` wrapper solely for presence; uses one ordinary
-  lifecycle. Separately record continued nested immutable value-tree copy limits/scalar-envelope requirement.
-- Schelm wire adapter produces equal parsed Deployment, KafkaTopic and nullable-fixture documents and equal original-schema
-  validation outcomes against a pinned consumer revision. Record artifact, Java/Groovy versions and commands. Native
-  internals cannot substitute for consumer evidence. This is a gate to full #1111 acceptance, not core Kubernetes logic.
-- Add focused `docs/user/` guidance for opt-in, supported mutators/custom methods/direct writes, unavailable handling,
-  defaults/reset/copy/Template rules and compatibility limits. Update affected field/Builder/Struct/Template/copy pages,
-  `Migration.md` and `_Sidebar.md` when needed, plus `CHANGES.md` in the chosen release section only when behavior ships.
-- All new tests use `Test` suffix and `@Issue("1111")` (or a separately assigned slice issue). Documentary coverage uses
-  `ConfiguredPresenceDocumentaryTest`, `@Tag("documentary")` and `@See` to the matching user example. Issue, test and user
-  page cross-reference file/feature method; suppressed/pending cases require actionable reasons and cannot mask a gate.
-- Inspect final-head CI and SonarCloud; repair findings with follow-up commits after reviewed history. Hive reconciles
-  all issue criteria, deferred work and release placement before any closing relationship. Planned/delivered differ.
-
-## Issue acceptance reconciliation
-
-The eight issue checkboxes remain unfulfilled by this design. This maps every requested outcome without presuming open
-policies accepted. An unavailable answer is safe but not completion of a requested positive case.
-
-| #1111 acceptance criterion, in issue order | Planned slices and evidence | Remaining decision or external gate |
-| --- | --- | --- |
-| 1. Separate Schema library; Java/Groovy completed reader without own slots/markers/setters | CP-1 minimal JAR consumer; CP-2–3 native operations; CP-6 complete artifact matrix; CP-7 serializer | G0 public contract and G4 compatibility |
-| 2. Port presence cases, empty String/nullable object/container, reset/reconfigure, neutral reads | CP-2 mutation/origin; CP-3 explicit APIs/Struct; CP-4 copy; CP-7 documentary fixture | G1/G2; scalar versus element nullability separate |
-| 3. Generated owned relationships/collections, one lifecycle, no presence-only Items wrappers | CP-2 generated coverage; CP-3 blocks; CP-5 Template; CP-7 consumer fixture | No ownership or lifecycle redesign |
-| 4. Snapshot A/N/V(empty) over populated receiver; coherent other strategies | CP-4 full state/payload tables and CP-5 transfer retention | G3; NULL-container repair and all non-snapshot policies unresolved |
-| 5. Donor immutability including nested value trees; envelope-removal status explicit | CP-4 donor isolation and limitation control; CP-7 consumer report | Immutable nested-container copy remains separate; no removal promised |
-| 6. Defaults/initializers/auto-create versus explicit values and reset eligibility | CP-2 G1 matrix; CP-3 reset; CP-5 deferred/replay tests | G1/G2; must assert effective values as well as state |
-| 7. Same parsed Schelm documents and original-schema validation | CP-7 pinned external consumer evidence | Consumer-owned execution; no core Kubernetes/YAML logic |
-| 8. Untracked behavior/nullability/copy/public compatibility; no silent Struct-null change | All slices include untracked regressions; CP-3 admission; CP-6 ABI/JPMS/streams; CP-7 migration | G4 and any explicitly reviewed opt-in migration |
-
-Additional accepted boundary requirements map to CP-1 complete hierarchy/field coverage; CP-2 detectable unsupported
-writes and undetected-bypass limit; CP-4 unavailable donor propagation; CP-5 unavailable Template/stream retention;
-CP-6 actual producer/binary/module qualification. No release target is added to this map.
-
-## Risks, validation and handoff
-
-Principal risks are false ABSENT from overbroad compiler coverage, state/payload divergence after implicit writes or
-policy copy, origin leaking through initialization/deferred work, declaration identity loss across JAR inheritance,
-and accidentally freezing prototype metadata/serialized formats. Gates above require positive and negative evidence
-before widening claims. Conservative unavailable/rejection is safe but must not be reported as feature acceptance.
-Performance/storage overhead should be measured on representative opted-in and untracked models; retain class-loader
-isolation and avoid speculative caches/event histories. No performance target is invented here.
-
-For implementation, start each behavior slice with focused Groovy 3 feedback, then affected module suites and Groovy 4/5
-lanes for AST/runtime compatibility. Cross-module changes require root `./gradlew check`, applicable license checks,
-binary/JPMS/artifact/TestKit checks and exact-head CI/Sonar review under the repository risk matrix. Use green reasoned
-commits on dedicated issue branches; review unpublished history before publication and preserve reviewed revisions.
-
-For **this design-only PR**, run Markdown structure and local link/anchor checks, `git diff --check`, inspect only the
-intended documentation diff, and independent Standards and Specification reviews. Groovy lanes are unnecessary because
-no executable inputs or behavior change. Hosted CI status must be reported separately from local documentation checks.
-No public user pages or changelog entries are changed by this plan. Tracker impact: Related #1111 only; no issue
-closure/retargeting, curation/release-gate change or follow-up issue creation.
-
-Handoff must identify ADR/plan paths, design PR, confirmed/open choices, slice dependencies, exact local/hosted check
-scope and review outcomes. Ask the Hive to reconcile the design delivery and required G0/G1/G4 first-slice decisions;
-the worker must not self-archive or mark `(arch)`. Publication of these design documents does not authorize implementation.
-
-### Design validation record — 2026-11-25
-
-- Independent Standards review at `ce953e30c281f7efb90c5f2879d1cb2dc59a4a00`: zero findings, no actionable heuristic
-  smells. ADR conventions, plan content and test/documentary conventions were checked separately from Specification.
-- Independent Specification review at the same revision: zero findings. Reviewed against the complete delegated design
-  request, #1111 and its comments, and the three retained reports; no missing acceptance mapping or premature decision found.
-- Local checks passed for both new Markdown documents: balanced fences, one title each, table-row structure, whitespace,
-  and all 15 relative links/anchors. No repository-wide Markdown linter is configured for these files. The applicable
-  structure/link checker was run locally; it is not a rendered-site or external-network link qualification.
-- `git diff d9bc6b5d27f8e7226ea38bbd12e6ca076f4b0e0e...HEAD --check` passed at the reviewed revision. History/diff
-  inspection confirmed one focused design commit from clean master and exactly the ADR/plan files, without proof ancestry
-  or production edits. This validation record is a documentation-only follow-up; rerun the same checks at its final tip.
-- Groovy/Java/build lanes and local Sonar were intentionally omitted under the documentation-only risk tier. Hosted
-  exact-head CI/Sonar status is a separate delivery observation to report in the PR/handoff, not implied by these results.
+Preserve reviewed commits and publish additive follow-ups on draft PR #1112, updating its title/body to this assessment's
+scope. Post one consolidated response accounting for the request, intentional exclusions and current validation. Report
+the recommendation, unresolved choices and stop/go criteria to Hive and maintainer; request reconciliation rather than
+self-archiving. Publication or merge of decision-support documents does not authorize any implementation.
