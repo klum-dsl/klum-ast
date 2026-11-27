@@ -373,16 +373,22 @@ Each must already have its own public Builder projection and its own `@Struct.Op
 same-name overloads retain collision rejection; one marked String/CharSequence operation retains existing single-route
 selection. Unsupported roles, missing projections and compiler signature collisions cannot be overridden by a mark.
 Generated converter arms do not participate in v1.
+Excluded same-name helpers do not count toward the pair; an additional eligible candidate rejects without fallback.
+Extend the existing resolver and its result for both consumers; do not add a separate family-resolution pipeline.
 
 ```groovy
 import com.blackbuild.klum.ast.Builder
 import com.blackbuild.klum.ast.DSL
 import com.blackbuild.klum.ast.Struct
 
+class OpaqueAddress { }
+
 @DSL class Destination {
     @Struct.Ignore Object value
     @Struct.Operation @Builder.Method void address(Integer input) { value = input }
     @Struct.Operation @Builder.Method void address(String input) { value = input }
+    @Struct.Ignore @Builder.Method void address(Number input) { value = input }
+    @Struct.Ignore @Builder.Method void address(OpaqueAddress input) { value = input }
 }
 
 // Future accepted behavior; not an assertion of current implementation:
@@ -408,18 +414,22 @@ under #971 is separate. A schema-valid payload still may fail the operation body
 
 Exact public descriptors, authored `GeneratedInput.Operation` facts, explicit authority and naming facts, plus declaring
 `Schema.operationCount`, already identify the finite family. Do not add a group carrier, signature registry or protocol
-bump merely for selection. Existing operation facts lack parameter constraints: the plan proposes additive, compiler-frozen
-arm facts with explicit completeness, required for a family even when empty. Missing/old/stripped or inconsistent required
-facts reject the family before use, with recompilation/package guidance; they never reduce it to one arm. Keep the unified
-metadata version authoritative and preserve existing single-route contracts. Matched compiler/runtime/plugin artifacts and
-recompiled participating Schema hierarchies are required; no legacy decoder, version negotiation or mixed-toolchain promise
-is added. The plan distinguishes this proposed transport from the maintainer-accepted language decision.
+bump merely for selection. Existing operation facts lack parameter constraints: capture, inert transport and reading must
+be ordinary authored-operation infrastructure, reusing existing constraint rows. Separately, a newly admitted family
+requires explicit completeness even for empty facts, and only its qualified parameter sites gain JSON Schema projection.
+This does not authorize general parameter projection or enforcement. Missing/old/stripped or inconsistent required facts
+reject the family with recompile/package guidance, never reducing it to one arm. Retain unified protocol 1 unless concrete
+implementation evidence disproves additive compatibility; existing single-route interpretation remains. Matched artifacts
+and recompiled participating hierarchies are required, without a legacy decoder or mixed-toolchain promise.
 
 Ordinary Groovy dispatch, Factory signatures, active-session/sealing checks, positional keys, ownership, supplied ordering,
 first-failure partial effects, Template recipes and completed-Model serialization retain their contracts. No Builder or
 resolved family is persisted. ScHelm [#82](https://github.com/klum-dsl/schelm/issues/82) and
-[PR #85](https://github.com/klum-dsl/schelm/pull/85) establish the concrete downstream need, not a core dependency or an
-adoption claim. #1113 output/reconstruction qualification and #1114 parsing remain separate. This planning change adds
+[PR #85](https://github.com/klum-dsl/schelm/pull/85) establish the concrete downstream need. Consumer acceptance is direct
+FromStruct/applyStruct use of the existing authored pair under the real field name, without artificial names, new Struct
+adapters or duplicated consumer dispatch. Existing downstream value holders, presence and wire serialization remain
+consumer-owned, as does adoption qualification; no ScHelm dependency enters core tests. #1113 output/reconstruction
+qualification and #1114 parsing remain separate. This planning change adds
 no production behavior, dependency, user-guide promise, release entry or tracker mutation; implementation needs a later
 explicit assignment.
 
