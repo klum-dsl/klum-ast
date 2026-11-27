@@ -69,7 +69,20 @@ final class CompiledBuilderSchema {
     record Entry(String externalName, Role role, String source, Class<?> contract, String operation,
                  List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
                  String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples,
-                 Map<String, LiteralAlternative> alternatives, boolean rawInputRequired, String fieldDocumentation) {
+                 Map<String, LiteralAlternative> alternatives, boolean rawInputRequired, String fieldDocumentation,
+                 ScalarAlternatives scalarAlternatives) {
+        Entry(String externalName, Role role, String source, Class<?> contract, String operation,
+              List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
+              String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples,
+              Map<String, LiteralAlternative> alternatives, boolean rawInputRequired, String fieldDocumentation) {
+            this(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey, fixedChildKey,
+                    nameOrigin, documentation, schemaKey, sourceDeprecated, examples, alternatives, rawInputRequired, fieldDocumentation, null);
+        }
+        Entry withScalarAlternatives(Entry stringArm) {
+            return new Entry(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey,
+                    fixedChildKey, nameOrigin, documentation, schemaKey, sourceDeprecated, examples, alternatives,
+                    rawInputRequired, fieldDocumentation, new ScalarAlternatives(this, stringArm));
+        }
         Entry(String externalName, Role role, String source, Class<?> contract, String operation,
               List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
               String nameOrigin, String documentation, boolean schemaKey, boolean sourceDeprecated, List<String> examples, boolean rawInputRequired) {
@@ -82,6 +95,9 @@ final class CompiledBuilderSchema {
             examples = List.copyOf(examples);
         }
     }
+
+    /** Closed Integer/int + String family. Arms retain their complete, exact declaration and dispatch identity. */
+    record ScalarAlternatives(Entry integerArm, Entry stringArm) { }
 
     /**
      * Compiler-frozen constraint facts, not executable annotations. {@code plain} states direct-origin/context

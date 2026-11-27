@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.Required;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Validate;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.ScalarAlternatives;
 import groovyjarjarasm.asm.AnnotationVisitor;
 import groovyjarjarasm.asm.ClassReader;
 import groovyjarjarasm.asm.ClassVisitor;
@@ -202,6 +203,11 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     private Map<String, Object> property(CompiledBuilderSchema.Entry entry, boolean groupRedefined) throws ClassNotFoundException {
+        if (entry.scalarAlternatives() != null) {
+            ScalarAlternatives family = entry.scalarAlternatives();
+            return new LinkedHashMap<>(Map.of("anyOf", List.of(
+                    property(family.integerArm(), groupRedefined), property(family.stringArm(), groupRedefined))));
+        }
         Map<String, Object> value = entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP
                 ? literalAlternatives(entry) : payload(entry.payload(), keyPosition(entry), entry.source());
         if (entry.role() == CompiledBuilderSchema.Role.KEYED_OWNED_MAP)

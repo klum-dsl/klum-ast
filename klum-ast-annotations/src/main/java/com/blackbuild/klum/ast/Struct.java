@@ -67,9 +67,12 @@ public final class Struct {
     }
 
     /**
-     * Selects this exact String-payload Builder operation for its effective external input name.
-     * Exactly one eligible marked operation wins; multiple marks reject. Without a mark the candidate must be unique.
-     * Requires an existing public Builder projection and cannot override exclusion or unsupported operation roles.
+     * Selects a Schema-authored Builder operation for its effective external input name.
+     * One eligible marked String/CharSequence operation wins. Exactly two marked Schema-authored operations may
+     * instead admit one int/Integer and one exact String arm under the same effective name. This bounded family
+     * currently requires compiler-confirmed empty parameter constraint facts; other multiple marks reject.
+     * Without a mark the candidate must be unique. Requires an existing public Builder projection (for example,
+     * {@link Builder.Method}) and cannot override exclusion or unsupported operation roles.
      */
     @Documented
     @Retention(RetentionPolicy.RUNTIME)

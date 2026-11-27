@@ -111,6 +111,10 @@ public final class GeneratedInput {
     public @interface Operation {
         /** Compiler-owned OPERATION, COMMAND, VIRTUAL_OBJECT or excluded LIFECYCLE role; must agree with the exact public signature. */
         String role();
+        /** Original one-payload parameter facts. Unknown historical/unsupported facts retain count -1. */
+        Constraint[] parameterConstraints() default {};
+        int parameterConstraintCount() default -1;
+        Policy parameterConstraintProjection() default Policy.PROJECT;
         /** Explicit author selection intent on this exact public projection, including false. */
         boolean authoritative();
         boolean sourceDeprecated();
