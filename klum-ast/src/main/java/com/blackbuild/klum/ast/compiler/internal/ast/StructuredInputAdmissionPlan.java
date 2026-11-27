@@ -167,7 +167,7 @@ final class StructuredInputAdmissionPlan {
     private static boolean overriddenInputCandidate(DSLASTTransformation transformation, Entry entry) {
         if (entry.role() != Role.COMMAND && (entry.role() != Role.OPERATION && entry.role() != Role.PROPERTY
                 || entry.payload().kind() != PayloadKind.SCALAR
-                || !Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type()))) return false;
+                || !Set.of(String.class.getName(), CharSequence.class.getName(), "int", Integer.class.getName()).contains(entry.payload().type()))) return false;
         return transformation.builderClass.getMethods().stream()
                 .filter(method -> method.getDeclaringClass().redirect().equals(transformation.builderClass.redirect()))
                 .map(GeneratedDslSupport::publicProjectionOf)
@@ -515,6 +515,7 @@ final class StructuredInputAdmissionPlan {
                     AnnotationNode operation = new AnnotationNode(ClassHelper.make(GeneratedInput.Operation.class));
                     operation.setMember("role", new ConstantExpression(operationRole(method)));
                     operation.setMember("authoritative", new ConstantExpression(annotation(method, Struct.Operation.class.getName()) != null));
+                    StructuredInputConstraintMetadata.enrichOperationParameter(method, operation);
                     enrichDeprecation(method, operation);
                     StructuredInputExamples.enrich(method, transformation.annotatedClass, operation, source(method));
                     enrichName(externalName(method), operation);
@@ -756,7 +757,7 @@ final class StructuredInputAdmissionPlan {
         if (operation == null) return;
         validateEnumNames(parameters[0].getOriginType(), payload, method);
         entries.add(new Entry(name.value(), Role.OPERATION, source, operation, payload, name.origin(), null, null, null,
-                StructuredInputConverter.isStringInput(parameters[0].getOriginType()) && annotation(method, Struct.Operation.class.getName()) != null));
+                annotation(method, Struct.Operation.class.getName()) != null));
     }
 
     private static String operationRole(MethodNode method) {
@@ -1004,11 +1005,23 @@ final class StructuredInputAdmissionPlan {
     private static void selectProvisionalGroup(String name, List<Entry> candidates, Set<Entry> rejected,
                                                List<Rejection> rejections) {
         List<Entry> marked = candidates.stream().filter(Entry::authoritative).toList();
+        // Preserve this provisional pair; final effective names and family validation belong to the shared resolver.
+        if (candidates.size() == 2 && marked.size() == 2
+                && marked.stream().anyMatch(entry -> entry.payload().kind() == PayloadKind.SCALAR
+                && entry.payload().type().equals(String.class.getName()))
+                && marked.stream().anyMatch(entry -> entry.payload().kind() == PayloadKind.SCALAR
+                && Set.of("int", Integer.class.getName()).contains(entry.payload().type()))) return;
+        // A lone numeric mark gains no legacy priority. Only String/CharSequence selects a single route.
+        if (marked.size() <= 1) {
+            marked = marked.stream().filter(entry -> entry.payload().kind() == PayloadKind.SCALAR
+                    && Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type())).toList();
+        }
         if (marked.size() > 1) {
             // Final hierarchy naming can separate a literal from an identity spelling under KEBAB_CASE.
             rejectGroup(candidates, rejected, rejections, "multiple provisional @Struct.Operation candidates for '" + name + "'");
         } else if (marked.size() == 1) {
-            candidates.stream().filter(candidate -> candidate != marked.get(0)).forEach(rejected::add);
+            Entry selected = marked.get(0);
+            candidates.stream().filter(candidate -> candidate != selected).forEach(rejected::add);
         } else if (candidates.size() > 1) {
             String declarations = candidates.stream().map(Entry::source).sorted()
                     .reduce((left, right) -> left + ", " + right).orElseThrow();

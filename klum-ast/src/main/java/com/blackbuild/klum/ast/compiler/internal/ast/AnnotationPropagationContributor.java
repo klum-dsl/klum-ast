@@ -100,12 +100,22 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
             }
             return EffectiveDeclarationContribution.none();
         }
+        captureSourceOrigins(declaration, additions);
+        return additions.isEmpty() ? EffectiveDeclarationContribution.none() : new EffectiveDeclarationContribution(additions);
+    }
+
+    private static void captureSourceOrigins(EffectiveDeclaration declaration, List<EffectiveAnnotation> additions) {
+        AnnotatedNode target = declaration.getTarget();
         if (target instanceof FieldNode && StructuredInputSourceOrigins.needed(declaration.getAnnotations())) {
             // Return the transient fact through the existing handoff; never mutate the inspected declaration.
             additions.add(new EffectiveAnnotation(StructuredInputSourceOrigins.capture(declaration.getAnnotations()),
                     "original structured-input field declarations", target));
         }
-        return additions.isEmpty() ? EffectiveDeclarationContribution.none() : new EffectiveDeclarationContribution(additions);
+        if (target instanceof MethodNode method && method.getParameters().length == 1) {
+            // Compiler-only source capture, not parameter annotation propagation. The method marker follows its move.
+            additions.add(new EffectiveAnnotation(StructuredInputSourceOrigins.captureParameter(method),
+                    "original structured-input payload parameter eligibility", target));
+        }
     }
 
     private static void checkSelection(ClassNode selected, AnnotatedNode target, String origin,

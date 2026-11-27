@@ -39,6 +39,30 @@ import groovyjarjarasm.asm.Opcodes
 @Issue(['529', '932'])
 class StructuredInputAdmissionPlanTest extends AbstractDSLSpec {
 
+    @Issue('1129')
+    def 'retains both marked Integer and String AST candidates with one external name'() {
+        given:
+        def unit = compilationUnit('''
+            package alternatives
+            import com.blackbuild.klum.ast.*
+            @DSL class Destination {
+                @Struct.Operation @Builder.Method void address(Integer input) {}
+                @Struct.Operation @Builder.Method void address(String input) {}
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def plan = StructuredInputAdmissionPlan.planOf(unit.AST.classes.find { it.name == 'alternatives.Destination' })
+
+        then:
+        plan.entries().size() == 2
+        plan.entries()*.externalName().unique() == ['address']
+        plan.entries().every { it.authoritative() }
+        plan.entries()*.payload()*.type().toSet() == ['java.lang.Integer', 'java.lang.String'] as Set
+        plan.rejections().empty
+    }
+
     @Issue('952')
     def 'missing converter destination type is not structurally admitted'() {
         expect:

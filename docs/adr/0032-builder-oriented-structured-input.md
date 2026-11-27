@@ -359,7 +359,7 @@ An authored marked wrapper is a viable escape from an otherwise ambiguous genera
 
 ### Finite Integer/String operation alternatives — #1129
 
-Date: 2026-11-27. Status: **Accepted v1 direction; not implemented or release-targeted.**
+Date: 2026-11-27. Status: **Accepted v1 direction; U1 minimal behavior implemented, U2/U3 qualification pending; no release target.**
 Authority: the [maintainer's bounded-v1 decision](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225119384)
 and [separate Builder/Struct annotation clarification](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225170536).
 The [implementation plan](../implementation/issue-1129-struct-scalar-alternatives.md) records source evidence,
@@ -391,7 +391,7 @@ class OpaqueAddress { }
     @Struct.Ignore @Builder.Method void address(OpaqueAddress input) { value = input }
 }
 
-// Future accepted behavior; not an assertion of current implementation:
+// Accepted four-overload shape; its complete qualification belongs to U2:
 assert Destination.Create.FromStruct([address: 8080]).value == 8080
 assert Destination.Create.FromStruct([address: '8080']).value.getClass() == String
 assert Destination.Create.FromStruct([address: 'http']).value == 'http'
@@ -429,9 +429,9 @@ resolved family is persisted. ScHelm [#82](https://github.com/klum-dsl/schelm/is
 FromStruct/applyStruct use of the existing authored pair under the real field name, without artificial names, new Struct
 adapters or duplicated consumer dispatch. Existing downstream value holders, presence and wire serialization remain
 consumer-owned, as does adoption qualification; no ScHelm dependency enters core tests. #1113 output/reconstruction
-qualification and #1114 parsing remain separate. This planning change adds
-no production behavior, dependency, user-guide promise, release entry or tracker mutation; implementation needs a later
-explicit assignment.
+qualification and #1114 parsing remain separate. The planning change itself added
+no production behavior; the later explicitly assigned [U1 slice](../implementation/issue-1129-u1-evidence.md) supplies
+minimal behavior with empty parameter facts. U2/U3 retain the remaining qualification and delivery gates.
 
 ### Scalar converters, scopes and commands
 

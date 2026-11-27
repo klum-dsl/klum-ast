@@ -1,5 +1,13 @@
 # Migration
 
+## Unreleased Integer/String Struct alternatives
+
+To opt into [Integer/String alternatives](Structured-Input.md#integerstring-alternatives), use matched
+compiler/runtime/plugin artifacts and recompile participating Schemas. Both authored operations require their own
+`@Builder.Method` projection and `@Struct.Operation`; existing unmarked collisions and single-String selection retain
+their behavior. This initial slice accepts only compiler-confirmed empty parameter facts. Historical two-mark
+contracts require recompilation; full hierarchy/artifact qualification and arm constraints remain #1129 follow-ups.
+
 ## To 4.2
 
 If you already use KlumAST, start here when moving to the 4.2.x line.

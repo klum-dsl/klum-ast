@@ -126,10 +126,12 @@ final class BuilderContractReader {
                     Boolean schemaKey, boolean rawInputRequired, Boolean sourceDeprecated, Boolean operationDeprecated, Boolean authoritative, String operationRole,
                     String exclusion, String detail, boolean operation, boolean query,
                     List<ConstraintRule> constraints, String constraintProjection,
+                    Integer parameterConstraintCount, List<ConstraintRule> parameterConstraints, String parameterConstraintProjection,
                     List<String> examples, List<String> operationExamples, Integer converterCount, ConverterSelection converter, String scopeCreator, boolean plainVirtualSink, List<AlternativeFacts> alternatives, String sequenceElement) {
         Literals {
             alternatives = List.copyOf(alternatives);
             constraints = constraints == null ? null : List.copyOf(constraints);
+            parameterConstraints = parameterConstraints == null ? null : List.copyOf(parameterConstraints);
             examples = examples == null ? null : List.copyOf(examples);
             operationExamples = operationExamples == null ? null : List.copyOf(operationExamples);
         }
@@ -153,7 +155,8 @@ final class BuilderContractReader {
         return new Literals(value.location, value.key, value.field, value.selection, value.role, value.doc, value.sourceDocumentation,
                 freeze(value.names), freeze(value.operationNames), value.operationFact, value.fixed,
                 value.schemaKey, Boolean.TRUE.equals(value.rawInputRequired), value.sourceDeprecated, value.operationDeprecated, value.authoritative, value.operationRole, value.exclusion, value.detail,
-                value.operation, value.query, value.constraints, value.constraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternatives, value.sequenceElement);
+                value.operation, value.query, value.constraints, value.constraintProjection,
+                value.parameterConstraintCount, value.parameterConstraints, value.parameterConstraintProjection, value.examples, value.operationExamples, value.converterCount, value.converter, value.scopeCreator, value.plainVirtualSink, value.alternatives, value.sequenceElement);
     }
 
     private static NameFacts freeze(MutableNameFacts value) {
@@ -307,6 +310,9 @@ final class BuilderContractReader {
         boolean query;
         List<ConstraintRule> constraints;
         Integer constraintCount;
+        Integer parameterConstraintCount;
+        List<ConstraintRule> parameterConstraints;
+        String parameterConstraintProjection;
         Integer converterCount;
         ConverterSelection converter;
         String constraintProjection;
@@ -773,6 +779,7 @@ final class BuilderContractReader {
     /** Decodes inert strings/longs/booleans only; no Bean annotation classes/proxies or validator code. */
     private static final class ConstraintAnnotationVisitor extends AnnotationVisitor {
         private final MutableLiterals field;
+        private final List<ConstraintRule> target;
         private final Set<String> seen = new LinkedHashSet<>();
         private String annotation;
         private String value = "";
@@ -787,8 +794,13 @@ final class BuilderContractReader {
         private String description;
 
         ConstraintAnnotationVisitor(MutableLiterals field) {
+            this(field, field.constraints);
+        }
+
+        ConstraintAnnotationVisitor(MutableLiterals field, List<ConstraintRule> target) {
             super(Opcodes.ASM9);
             this.field = field;
+            this.target = target;
         }
 
         @Override public void visit(String member, Object literal) {
@@ -854,7 +866,7 @@ final class BuilderContractReader {
             if (plain && !pattern && !notBlank && !decimalRule(annotation) && (!integral
                     || !value.matches("-?\\d+"))) throw invalid("Invalid direct integral constraint fact " + annotation);
             validateOrigin();
-            field.constraints.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty,
+            target.add(new ConstraintRule(annotation, value, plain, declaration, decimalValue, inclusive, regexp, patternFlagsEmpty,
                     origin, owner, description));
         }
     }
@@ -898,6 +910,11 @@ final class BuilderContractReader {
                         throw invalid("Duplicate or invalid authoritative selection fact");
                     }
                     literal.authoritative = (Boolean) value;
+                }
+                case "parameterConstraintCount" -> {
+                    if (!(value instanceof Integer count) || count < -1 || literal.parameterConstraintCount != null)
+                        throw invalid("Duplicate or invalid authored parameter constraint count");
+                    literal.parameterConstraintCount = count;
                 }
                 case SOURCE_DEPRECATED -> literal.operationDeprecated = (Boolean) value;
                 default -> {
@@ -984,6 +1001,14 @@ final class BuilderContractReader {
 
         @Override public void visitEnum(String member, String descriptor, String value) {
             if (member.equals(EXAMPLES) && annotation.startsWith(PREFIX)) throw invalidExamples(1, "unexpected enum");
+            if (annotation.equals(OPERATION_FACT) && member.equals("parameterConstraintProjection")
+                    && descriptor.equals("Lcom/blackbuild/klum/ast/Struct$ConstraintProjection$Policy;")) {
+                if (literal.parameterConstraintProjection != null) throw invalid("Duplicate authored parameter constraint policy");
+                try { Policy.valueOf(value); }
+                catch (IllegalArgumentException failure) { throw invalid("Unknown authored parameter constraint policy " + value); }
+                literal.parameterConstraintProjection = value;
+                return;
+            }
             if (annotation.equals(FIELD) && member.equals("constraintProjection")
                     && descriptor.equals("Lcom/blackbuild/klum/ast/Struct$ConstraintProjection$Policy;")) {
                 if (literal.constraintProjection != null) throw invalid("Duplicate constraint projection policy");
@@ -1018,9 +1043,27 @@ final class BuilderContractReader {
             };
         }
 
+        private AnnotationVisitor parameterConstraintsArray() {
+            if (literal.parameterConstraints != null) throw invalid("Duplicate authored parameter constraint facts");
+            literal.parameterConstraints = new ArrayList<>();
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                private IllegalArgumentException invalidItem() { return invalid("Invalid authored parameter constraint row"); }
+                @Override public void visit(String ignored, Object value) { throw invalidItem(); }
+                @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidItem(); }
+                @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
+                    if (!descriptor.equals(CONSTRAINT)) throw invalidItem();
+                    return new ConstraintAnnotationVisitor(literal, literal.parameterConstraints);
+                }
+                @Override public AnnotationVisitor visitArray(String ignored) { throw invalidItem(); }
+            };
+        }
+
         @Override public AnnotationVisitor visitArray(String member) {
             if (member.equals(EXAMPLES) && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation))
                 return examplesArray();
+            if (annotation.equals(OPERATION_FACT) && member.equals("parameterConstraints")) {
+                return parameterConstraintsArray();
+            }
             if (annotation.equals(FIELD) && member.equals("constraints")) {
                 if (literal.constraints != null) throw invalid("Duplicate constraint facts");
                 literal.constraints = new ArrayList<>();

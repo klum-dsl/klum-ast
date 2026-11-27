@@ -1178,11 +1178,56 @@ Recompile Schemas with matched compiler/runtime/plugin artifacts for the require
 promising that construction will succeed. Existing Factory, active-Builder and Template entry modes retain their
 ordinary lifecycle rules.
 
+## Integer/String alternatives
+
+Two Schema-authored `@Builder.Method` operations can share one effective Struct name when both carry
+`@Struct.Operation`, one takes exact `int` or `Integer`, and the other takes exact `String`.
+Builder projection and Struct admission remain separate annotations. Unmarked collisions and a single marked String
+route keep their existing behavior. Generated converter overloads do not participate.
+
+(See: `StructuredScalarAlternativeTest#'one address accepts an integer or a String without changing its meaning'`;
+[#1129](https://github.com/klum-dsl/klum-ast/issues/1129).)
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class Destination {
+    @Struct.Ignore Object value
+    @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+    @Struct.Operation @Builder.Method void address(String input) { value = input }
+}
+
+assert Destination.Create.FromStruct([address: 8080]).value == 8080
+assert Destination.Create.FromStruct([address: 'http']).value == 'http'
+def text = Destination.Create.With { applyStruct([address: '8080']) }
+assert text.value == '8080'
+assert text.value.class == String
+```
+
+Actual Strings stay Strings, including numeric-looking text. Supported standard numeric wrappers use exact int32
+conversion: integral `BigDecimal('8080.0')` and `1.0d` are accepted; fractions, overflow and nonfinite numbers reject.
+This frontend conversion can differ from a Schema's ordinary Number helper. Struct selects and invokes one recorded
+signature, without retrying the other arm after conversion or operation-body failure. Null, Boolean, Map, List, GString,
+mutable CharSequence and arbitrary objects reject.
+
+This initial slice requires compiler-confirmed **empty parameter constraint facts** on both arms. Nonempty or unqualified
+parameter facts reject the family, even with absent input or an OMIT policy; arm constraint projection and the full effective
+inheritance/override qualification remain follow-up work under #1129. Use matching compiler/runtime/plugin artifacts
+and recompile participating Schemas. Historical two-mark contracts lack these completeness facts and reject with
+recompilation guidance. Existing single-route contracts retain their interpretation.
+
+[JSON Schema](Json-Schema.md#integerstring-alternatives) emits one `anyOf` property, with an int32-bounded integer branch
+then a String branch. Each branch retains its own method prose, examples and deprecation. Generation and Struct do not
+validate operation bodies or imply completed-Model reconstruction. Consumer adoption remains separately qualified.
+
 ## Select a String operation
 
 `@Struct.Operation` marks one Schema-authored method with an existing public Builder projection. For each effective
-external name, one eligible marked String operation wins; multiple eligible marks fail. Without a mark, there must be
-exactly one candidate. Selection is fixed while reading the compiled contract, before seeing any input value.
+external name, one eligible marked String operation wins. The bounded [Integer/String pair](#integerstring-alternatives)
+below is the sole exception to multiple-mark rejection. Without a mark, there must be exactly one candidate.
+Selection is fixed while reading the compiled contract, before seeing any input value.
 
 (See: `StructuredOperationSelectionTest#'select the public endpoint operation before interpreting its String payload'`,
 related to [#952](https://github.com/klum-dsl/klum-ast/issues/952).)
@@ -1261,7 +1306,8 @@ resetTimeout: {}
 
 A blank YAML value (`resetTimeout:`) and explicit null are not call markers. Null, nonempty Maps, Lists and scalars reject;
 `resetTimeout!` is an unknown name. Parsing stays caller-owned. The command follows the same literal/profile naming,
-exclusion, exact inherited override and collision rules as other admitted entries; payload shape never chooses an overload.
+exclusion, exact inherited override and collision rules as other admitted entries. Only the explicitly marked
+[Integer/String family](#integerstring-alternatives) selects one of two prevalidated arms by scalar kind.
 `@Struct.Operation` retains its String-selection role and is not needed on a command. Query, lifecycle and framework helpers
 are not commands. Inherited overrides own their names and exclusions, so an old parent spelling cannot call renamed code.
 

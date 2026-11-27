@@ -33,6 +33,8 @@ import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ArrayExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
@@ -79,6 +81,22 @@ final class StructuredInputConstraintMetadata {
         if (!visited.add(type.getName())) return false;
         return type.getAnnotations().stream().map(AnnotationNode::getClassNode)
                 .anyMatch(meta -> carriesMarker(meta, marker, visited));
+    }
+
+    /** U1 transports only provably empty authored parameter facts; U2 owns nonempty original facts. */
+    static void enrichOperationParameter(MethodNode method, AnnotationNode fact) {
+        if (method.getParameters().length != 1) return;
+        Parameter parameter = method.getParameters()[0];
+        List<AnnotationNode> annotations = parameter.getAnnotations();
+        List<AnnotationNode> policies = parameter.getAnnotations(ClassHelper.make(ConstraintProjection.class));
+        Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
+        fact.setMember("parameterConstraintProjection", selected == null
+                ? new PropertyExpression(new ClassExpression(ClassHelper.make(Policy.class)), "PROJECT") : selected);
+        // An unqualified annotation may carry constraints or source-origin information. Never call it empty.
+        boolean empty = StructuredInputSourceOrigins.emptyParameter(method) && annotations.stream().allMatch(annotation ->
+                annotation.getClassNode().getName().equals(ConstraintProjection.class.getName()));
+        fact.setMember("parameterConstraintCount", new ConstantExpression(empty ? 0 : -1));
+        if (empty) fact.setMember("parameterConstraints", new ListExpression());
     }
 
     static void enrichField(FieldNode field, AnnotationNode fact) {

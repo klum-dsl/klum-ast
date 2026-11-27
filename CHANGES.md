@@ -1,5 +1,13 @@
 # Unreleased
 
+## Features
+
+- Admit an explicitly marked, Schema-authored `int`/`Integer` and `String` operation pair under one Struct name, with
+  exact numeric conversion and matching int32/String JSON Schema alternatives. This initial slice requires empty
+  parameter constraint facts; arm constraints and broader qualification remain follow-ups. See
+  [Integer/String alternatives](docs/user/Structured-Input.md#integerstring-alternatives)
+  ([#1129](https://github.com/klum-dsl/klum-ast/issues/1129)).
+
 ## Fixes
 
 - Copy nested JDK immutable value-factory and legacy empty/singleton List, Map and Set values without constructing their

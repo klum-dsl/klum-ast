@@ -1,6 +1,6 @@
 # #1129: finite Integer/String Struct alternatives
 
-Date: 2026-11-27. Status: **Accepted language direction; implementation plan proposed for review. No implementation authorization.**
+Date: 2026-11-27. Status: **Accepted plan (PR #1130); U1 minimal behavior implemented on its dedicated branch. U2/U3 pending.**
 
 Related: [#1129](https://github.com/klum-dsl/klum-ast/issues/1129).
 Decision: [ADR 0032 extension](../adr/0032-builder-oriented-structured-input.md#finite-integerstring-operation-alternatives--1129).
@@ -26,8 +26,9 @@ The 2026-11-27 Schelm Hive consumer handoff confirms that the five actual usesâ€
 percentages are Strings. Its TargetField/presence/wire metadata supplies no KlumAST admission authority. The refinement
 sharpens excluded-helper handling and consumer acceptance; it changes no accepted language or generated metadata scope.
 
-This assignment edits only this plan and ADR 0032; it adds no production/test/build, issue/milestone, release, user-guide
-or ScHelm change. Documentation checks establish no runtime/schema qualification.
+The planning assignment (PR #1130) edited only this plan and ADR 0032; it added no production/test/build, issue/milestone, release, user-guide
+or ScHelm change. Its documentation checks established no runtime/schema qualification.
+The later, explicitly assigned U1 implementation is recorded in [U1 evidence](issue-1129-u1-evidence.md).
 
 ## Consumer acceptance and neutral fixture
 

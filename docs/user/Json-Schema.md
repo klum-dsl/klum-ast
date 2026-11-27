@@ -14,6 +14,23 @@ Builder-body schemas. If that class has no retained documentation, the root desc
 a parent class or generated Builder is not substituted. Field, key and authored-operation descriptions retain their
 own declaration documentation.
 
+## Integer/String alternatives
+
+The explicitly marked [Integer/String pair](Structured-Input.md#integerstring-alternatives) emits one property:
+
+```json
+{"anyOf": [
+  {"type": "integer", "minimum": -2147483648, "maximum": 2147483647},
+  {"type": "string"}
+]}
+```
+
+Branches always appear integer then String, independent of declaration order. Each owns its method prose, examples
+and deprecation; the wrapper combines no documentation or constraints. This initial slice requires explicit empty
+parameter facts on both arms. Nonempty/unknown parameter facts reject before output replacement, including under OMIT.
+Arm constraint projection and the full hierarchy/artifact qualification remain follow-up work under
+[#1129](https://github.com/klum-dsl/klum-ast/issues/1129). A schema-valid value may still fail the operation body or lifecycle.
+
 ## Choose the root shape
 
 Choose the artifact that matches who supplies a keyed root's identity. The two artifacts project the same compiled
@@ -666,8 +683,10 @@ keys for ordinary data maps and keyed owned maps, scalar/enum values, supported 
 `@Builder.Method` operations with one payload. Inherited members and retained prose are preserved. A Map/List operation
 payload remains one value. Exclusion, compatible literal rename, type profile and identity fallback determine external names.
 For a [selected String operation](Structured-Input.md#select-a-string-operation), only that operation's `type: string`,
-prose and examples are projected. Superseded candidates supply no assertions. Multiple eligible marks and incomplete
-selection facts fail generation before output replacement; excluded/unsupported operations remain unavailable.
+prose and examples are projected. Superseded candidates supply no assertions. The bounded
+[Integer/String family](#integerstring-alternatives) below admits two explicitly marked operations; other multiple
+eligible marks and incomplete selection facts fail generation before output replacement. Excluded/unsupported
+operations remain unavailable.
 Concrete owned relationships in compatible binary API/Schema dependencies follow the same admission rules as local
 relationships, including inherited fields and keyed Map values. No alternate naming strategy is currently configurable.
 

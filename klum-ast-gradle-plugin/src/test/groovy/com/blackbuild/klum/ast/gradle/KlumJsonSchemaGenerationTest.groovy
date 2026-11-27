@@ -60,6 +60,41 @@ class KlumJsonSchemaGenerationTest extends Specification {
     File trap
     boolean packagedPlugin
 
+    @Issue('1129')
+    def 'emits one bounded integer and String alternative from the shared resolved family'() {
+        given:
+        scalarAlternativeFixture()
+        new File(consumer, 'build.gradle').append("""
+klumSchema.jsonSchema.rootTypes.set(['example.Destination', 'example.PrimitiveDestination',
+    'example.UnmarkedDestination', 'example.StringDestination'])
+""")
+
+        when:
+        run('generateKlumJsonSchema')
+        def boxed = document('example.Destination')
+        def primitive = document('example.PrimitiveDestination')
+        def boxedFields = boxed.'$defs'.'example.Destination_DSL$Builder'.properties
+        def primitiveFields = primitive.'$defs'.'example.PrimitiveDestination_DSL$Builder'.properties
+        def unmarked = document('example.UnmarkedDestination').'$defs'.'example.UnmarkedDestination_DSL$Builder'
+        def selected = document('example.StringDestination').'$defs'.'example.StringDestination_DSL$Builder'
+        File validation = new File(System.getProperty('schemaValidationDirectory'))
+        validation.mkdirs()
+        new File(validation, 'scalar-alternative-boxed.schema.json').bytes = output('example.Destination').bytes
+        new File(validation, 'scalar-alternative-primitive.schema.json').bytes = output('example.PrimitiveDestination').bytes
+
+        then:
+        boxedFields.keySet() == ['address'] as Set
+        boxedFields.address == [anyOf: [
+            [type: 'integer', minimum: -2147483648L, maximum: 2147483647L, description: 'Numeric address.'],
+            [type: 'string', description: 'Named address.']]]
+        primitiveFields.address == [anyOf: [
+            [type: 'integer', minimum: -2147483648L, maximum: 2147483647L], [type: 'string']]]
+        !unmarked.properties.containsKey('address')
+        document('example.UnmarkedDestination').'x-klum-unsupported'.size() == 2
+        selected.properties.address == [type: 'string']
+        !trap.exists()
+    }
+
     @Issue(['1055', '1063'])
     def 'project raw-input presence only in effective containing objects with #presenceForm markers and Groovy #generation'() {
         given:
@@ -2509,7 +2544,7 @@ import com.blackbuild.klum.ast.Key
         consumer.mkdirs()
     }
 
-    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false, String presence = null) {
+    private void fixture(String generation, boolean defaults = false, boolean constraints = false, boolean p2 = false, boolean decimals = false, boolean projection = false, boolean naming = false, boolean literals = false, boolean examples = false, boolean patterns = false, boolean compositions = false, String presence = null, boolean scalarAlternatives = false) {
         packagedPlugin = generation == '5'
         initializeFixtureDirectories()
         String groovy = notation(System.getProperty("gdslGroovy$generation"))
@@ -2893,6 +2928,9 @@ import java.lang.annotation.*
         if (!presence) {
             publishApi('Inherited region documentation.')
         }
+        if (scalarAlternatives) {
+            scalarAlternativeSources()
+        }
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency>' +
                 (naming || patterns || presence ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')
@@ -2905,6 +2943,36 @@ import java.lang.annotation.*
             new File(producer, 'owned/build/classes').deleteDir()
         }
         writeConsumer(generation, defaults, patterns)
+    }
+
+    private void scalarAlternativeFixture() {
+        fixture('3', false, false, false, false, false, false, false, false, false, false, null, true)
+    }
+
+    private void scalarAlternativeSources() {
+        writeSource('schema/src/main/groovy/example/Destination.groovy', '''
+package example
+import com.blackbuild.klum.ast.*
+@DSL class Destination {
+    @Struct.Ignore Object value
+    /** Numeric address. */
+    @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+    /** Named address. */
+    @Struct.Operation @Builder.Method void address(String input) { value = input }
+}
+@DSL class PrimitiveDestination {
+    @Struct.Operation @Builder.Method void address(String input) {}
+    @Struct.Operation @Builder.Method void address(int input) {}
+}
+@DSL class UnmarkedDestination {
+    @Builder.Method void address(Integer input) {}
+    @Builder.Method void address(String input) {}
+}
+@DSL class StringDestination {
+    @Builder.Method void address(Integer input) {}
+    @Struct.Operation @Builder.Method void address(String input) {}
+}
+''')
     }
 
     private void writeConsumer(String generation, boolean defaults, boolean patterns) {

@@ -192,12 +192,9 @@ final class InputContractResolver {
     }
 
     private Entry selectOperation(String name, List<Entry> group, List<Rejection> rejected, boolean strict) {
-        List<Entry> marked = group.stream().filter(this::authoritativeString).toList();
-        if (marked.size() > 1) {
-            throw invalid("Multiple @Struct.Operation candidates for '" + name + "': "
-                    + marked.stream().map(Entry::source).collect(Collectors.joining(", ")));
-        }
-        if (marked.size() == 1) return marked.get(0);
+        List<Entry> marked = group.stream().filter(this::authoritativeOperation).toList();
+        if (marked.size() > 1) return scalarAlternatives(name, group, marked);
+        if (marked.size() == 1 && stringSelectionCandidate(marked.get(0))) return marked.get(0);
         if (group.size() == 1) return group.get(0);
         rejectCollision(name, group, rejected, strict);
         return null;
@@ -209,8 +206,39 @@ final class InputContractResolver {
         group.forEach(entry -> rejected.add(new Rejection(entry.source(), "external-name collision for '" + name + "': " + all, name)));
     }
 
-    private boolean authoritativeString(Entry entry) {
-        if (!stringSelectionCandidate(entry)) return false;
+    private Entry scalarAlternatives(String name, List<Entry> group, List<Entry> marked) {
+        Entry integer = marked.stream().filter(InputContractResolver::integerOperation).findFirst().orElse(null);
+        Entry string = marked.stream().filter(entry -> stringSelectionCandidate(entry)
+                && entry.payload().type() == String.class).findFirst().orElse(null);
+        if (group.size() != 2 || marked.size() != 2 || integer == null || string == null)
+            throw invalid("Multiple @Struct.Operation candidates for '" + name
+                    + "': requires exactly one authored int/Integer and one String operation");
+        requireEmptyParameterFacts(integer);
+        requireEmptyParameterFacts(string);
+        return integer.withScalarAlternatives(string);
+    }
+
+    private static boolean integerOperation(Entry entry) {
+        return entry.role() == Role.OPERATION && entry.payload().kind() == Kind.SCALAR
+                && (entry.payload().type() == int.class || entry.payload().type() == Integer.class)
+                && entry.methods().size() == 1;
+    }
+
+    private void requireEmptyParameterFacts(Entry entry) {
+        try {
+            Literals facts = reader.metadata(entry.contract()).methods().get(signature(entry.dispatch()));
+            if (!Integer.valueOf(0).equals(facts.parameterConstraintCount())
+                    || facts.parameterConstraints() == null || !facts.parameterConstraints().isEmpty()
+                    || facts.parameterConstraintProjection() == null)
+                throw invalid("Incomplete or unsupported authored parameter facts on " + entry.source()
+                        + "; U1 requires explicit empty constraints and policy");
+        } catch (IOException | ClassNotFoundException failure) {
+            throw failure(entry.contract().getName(), failure);
+        }
+    }
+
+    private boolean authoritativeOperation(Entry entry) {
+        if (entry.role() != Role.OPERATION || entry.methods().size() != 1) return false;
         try {
             return Boolean.TRUE.equals(reader.metadata(entry.contract()).methods()
                     .get(signature(entry.methods().get(0))).authoritative());
@@ -267,7 +295,8 @@ final class InputContractResolver {
     /** An override owns its own names, exclusion and selection intent; parent annotations cannot select different code. */
     private static boolean overriddenOperation(BuilderContext context, Entry entry) {
         if (entry.role() != Role.COMMAND && entry.role() != Role.VIRTUAL_OBJECT && (entry.role() != Role.OPERATION || entry.payload().kind() != Kind.SCALAR
-                || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class)) return false;
+                || entry.payload().type() != String.class && entry.payload().type() != CharSequence.class
+                && !integerOperation(entry))) return false;
         return entry.methods().stream().anyMatch(inherited -> overridden(inherited, declaredMethods(context)));
     }
 

@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Entry;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.ScalarAlternatives;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Key;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Payload;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.Kind;
@@ -338,6 +339,10 @@ public final class StructuredInputSupport {
         }
 
         private void execute(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            if (entry.scalarAlternatives() != null) {
+                executeScalarAlternative(entry, input, path, builder);
+                return;
+            }
             switch (entry.role()) {
                 case OWNED_OBJECT -> {
                     if (!(input instanceof Map)) throw bad(entry, path, "domain Map for " + entry.payload().type().getName(), input, null);
@@ -367,6 +372,21 @@ public final class StructuredInputSupport {
                     }
                 }
             }
+        }
+
+        private void executeScalarAlternative(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
+            ScalarAlternatives family = entry.scalarAlternatives();
+            Entry arm;
+            if (input instanceof String) {
+                arm = family.stringArm();
+            } else if (input != null && NUMBERS.contains(input.getClass())) {
+                arm = family.integerArm();
+            } else {
+                throw bad(entry, path, "int32 Number or String", input, null);
+            }
+            // Conversion and invocation use one recorded signature; a failure never retries the other arm.
+            new Invocation(source, path, arm, arm.dispatch()).invoke(builder,
+                    new Object[]{value(arm, arm.payload(), input, path).materialize()}, path);
         }
 
         private void executeVirtualChild(Entry entry, Object input, String path, InternalKlumBuilder<?> builder) {
