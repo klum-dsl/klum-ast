@@ -20,8 +20,12 @@ identify reusable seams. Their historical qualification does not qualify this ex
 
 The primary need is one external member accepting integer or String without artificial arm names. ScHelm
 [#82](https://github.com/klum-dsl/schelm/issues/82) and [PR #85](https://github.com/klum-dsl/schelm/pull/85) are the concrete
-downstream evidence recorded on #1129, including the renamed-arm workaround. Their current delivery is not certified by
-this plan. Core tests use only neutral `Destination.address` fixtures; no Kubernetes, ScHelm or IntOrString dependency.
+downstream evidence recorded on #1129. A fresh 2026-11-27 tracker read found #82 closed and #85 merged as
+`446c9b2a7949b60d167c55181123e41f23b7f084` (accepted head `ba47e7fd54dcaf4bcdb7386257b8962df46ad0a8`). That
+accepted delivery removed the earlier renamed-arm aliases and explicitly deferred scalar-union Struct input while
+retaining ordinary overloaded Builders. This read verifies their reported delivery boundary, without rerunning downstream
+qualification or implying adoption of this future KlumAST feature. Core tests use only neutral `Destination.address`
+fixtures; no Kubernetes, ScHelm or IntOrString dependency.
 
 This assignment edits only this plan and ADR 0032. It adds no production/test source, annotation, generated artifact,
 build/dependency, issue/milestone, release or ScHelm change. Current user documentation describes current behavior and
@@ -50,10 +54,13 @@ Reuse complete arm entries so each retains exact declaration, implementation dis
 
 1. Validate each declaring contract and reachable contract graph without initializing Schema code. Resolve original
    field/operation roles, exclusions, effective names/profiles, exact signatures and descendant overrides first.
-2. Keep the existing single-route algorithm unless the effective candidate group is exactly two eligible authored
-   scalar operations, both marked, with one `int`/`Integer` parameter and one exact String parameter. The new pair path
-   must validate both arms' required facts before returning a family. A pair does not bypass ignored roles, missing
-   projections, signature-generation collisions or inconsistent facts.
+2. Before legacy single-route selection, classify an effective group containing multiple nonexcluded authored marks as
+   an attempted family. Admit it only when the entire eligible group is exactly two authored scalar operations, both
+   marked, with one `int`/`Integer` parameter and one exact String parameter. Validate both arms' required facts before
+   returning a family. Reject an invalid attempted family; never fall back to the legacy marked-String winner because
+   another marked arm was ineligible or an extra candidate remained. Groups with no marks or one mark retain the existing
+   single-route algorithm. A pair does not bypass ignored roles, missing projections, signature-generation collisions or
+   inconsistent facts.
 3. Unmarked Integer/String overloads retain collision rejection. One marked String or CharSequence operation plus
    unmarked competitors still selects only that operation and rejects numeric input. A lone mark on an integer operation
    does not acquire new priority over an unmarked String: retain its baseline behavior. Unique native integer operations
@@ -78,6 +85,8 @@ Reuse complete arm entries so each retains exact declaration, implementation dis
 Inherited/overridden Integer arms need the same source-identity discipline as String arms. An override owns its current
 marker, name, exclusions, prose and constraint facts. Never retain parent facts for different descendant code. Naming
 profiles may join or separate effective members; do not make provisional source-name pruning the final authority.
+Include compiler `StructuredInputAdmissionPlan.overriddenInputCandidate`, whose scalar override check is currently
+String/CharSequence-only, as well as runtime `overriddenOperation` when preserving integer-arm override identity.
 
 ## Metadata and compatibility proposal
 
