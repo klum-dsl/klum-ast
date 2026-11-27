@@ -24,9 +24,11 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import groovy.transform.AnnotationCollector;
+import com.blackbuild.klum.ast.Struct.ConstraintProjection;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.MethodNode;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -38,6 +40,7 @@ import java.util.Set;
 /** Transient compiler-only fact contributed through KlumCast before annotation collector rewriting. */
 final class StructuredInputSourceOrigins {
     private static final String ORIGINALS = StructuredInputSourceOrigins.class.getName();
+    private static final String EMPTY_PARAMETER = ORIGINALS + ".emptyParameter";
     private static final String NOT_BLANK = "jakarta.validation.constraints.NotBlank";
 
     private StructuredInputSourceOrigins() { }
@@ -46,6 +49,24 @@ final class StructuredInputSourceOrigins {
     @Retention(RetentionPolicy.SOURCE)
     @Target({ElementType.FIELD, ElementType.METHOD})
     @interface OriginalDeclarations { }
+
+    /** One authored payload's empty-fact eligibility, frozen before annotation collectors and Builder projection. */
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(ElementType.METHOD)
+    @interface OriginalParameter { }
+
+    static AnnotationNode captureParameter(MethodNode method) {
+        AnnotationNode marker = new AnnotationNode(ClassHelper.make(OriginalParameter.class));
+        boolean empty = method.getParameters()[0].getAnnotations().stream().allMatch(annotation ->
+                annotation.getClassNode().getName().equals(ConstraintProjection.class.getName()));
+        marker.putNodeMetaData(EMPTY_PARAMETER, empty);
+        return marker;
+    }
+
+    static boolean emptyParameter(MethodNode method) {
+        List<AnnotationNode> markers = method.getAnnotations(ClassHelper.make(OriginalParameter.class));
+        return markers.size() == 1 && Boolean.TRUE.equals(markers.get(0).getNodeMetaData(EMPTY_PARAMETER));
+    }
 
     static boolean needed(List<AnnotationNode> annotations) {
         return annotations.stream().anyMatch(annotation -> Set.of(NOT_BLANK, "jakarta.validation.constraints.Pattern")

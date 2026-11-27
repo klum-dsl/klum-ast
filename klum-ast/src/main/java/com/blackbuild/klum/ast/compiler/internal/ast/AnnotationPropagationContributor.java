@@ -105,6 +105,11 @@ public final class AnnotationPropagationContributor implements EffectiveDeclarat
             additions.add(new EffectiveAnnotation(StructuredInputSourceOrigins.capture(declaration.getAnnotations()),
                     "original structured-input field declarations", target));
         }
+        if (target instanceof MethodNode method && method.getParameters().length == 1) {
+            // Compiler-only source capture, not parameter annotation propagation. The method marker follows its move.
+            additions.add(new EffectiveAnnotation(StructuredInputSourceOrigins.captureParameter(method),
+                    "original structured-input payload parameter eligibility", target));
+        }
         return additions.isEmpty() ? EffectiveDeclarationContribution.none() : new EffectiveDeclarationContribution(additions);
     }
 

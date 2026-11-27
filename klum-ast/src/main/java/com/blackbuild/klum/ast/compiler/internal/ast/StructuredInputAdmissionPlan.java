@@ -1012,8 +1012,10 @@ final class StructuredInputAdmissionPlan {
                 && marked.stream().anyMatch(entry -> entry.payload().kind() == PayloadKind.SCALAR
                 && Set.of("int", Integer.class.getName()).contains(entry.payload().type()))) return;
         // A lone numeric mark gains no legacy priority. Only String/CharSequence selects a single route.
-        if (marked.size() <= 1) marked = marked.stream().filter(entry -> entry.payload().kind() == PayloadKind.SCALAR
-                && Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type())).toList();
+        if (marked.size() <= 1) {
+            marked = marked.stream().filter(entry -> entry.payload().kind() == PayloadKind.SCALAR
+                    && Set.of(String.class.getName(), CharSequence.class.getName()).contains(entry.payload().type())).toList();
+        }
         if (marked.size() > 1) {
             // Final hierarchy naming can separate a literal from an identity spelling under KEBAB_CASE.
             rejectGroup(candidates, rejected, rejections, "multiple provisional @Struct.Operation candidates for '" + name + "'");

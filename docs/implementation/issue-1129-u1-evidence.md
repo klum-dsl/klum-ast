@@ -15,10 +15,15 @@ Unmarked collisions, single selected String routes and ordinary Builder/Model be
 
 Protocol 1 gains ordinary authored-operation parameter count, constraint rows and policy with unknown defaults. U1
 emits explicit empty facts only for parameters with no unqualified annotations (a projection policy alone is allowed).
-Other parameter annotations remain unknown, never falsely empty. The shared reader reuses inert constraint-row decoding;
+A compiler-only method marker freezes original empty-parameter eligibility in the existing pre-collector handoff.
+Other parameter annotations remain unknown, never falsely empty, even when a collector erases them or expands to a
+policy. The shared reader reuses inert constraint-row decoding;
 family admission requires count zero, explicit empty rows and explicit policy on both arms. Nonempty/unknown facts
 reject even for absent input or OMIT. Existing single routes need no new completeness facts. Full source-origin capture
 and arm-constraint projection remain U2 work.
+
+Two collector rejection controls reproduced false empty-fact admission before source capture and pass afterwards.
+Full source rows and parameter-origin semantics remain U2 work.
 
 A targeted risk control extends existing override removal to int/Integer in compiler and runtime: an ignored descendant
 integer override must not execute through its parent's mark. Its regression reproduced wrong-code dispatch before the
@@ -67,6 +72,11 @@ Documentary entry: `StructuredScalarAlternativeTest#'one address accepts an inte
 [Structured Input](../user/Structured-Input.md#integerstring-alternatives). Capability documentation, JSON Schema,
 annotation Javadoc, migration guidance and the unreleased changelog describe only the delivered slice.
 
+The source-capture correction additionally passes focused Groovy 3 `AnnotationPropagationContributionTest`,
+`AnnotationPropagationContractTest` and `AnnotationPropagationLifecycleTest`, plus the scalar-family suite and its
+positive empty-OMIT control. These checks cover the touched compiler handoff; they do not claim general parameter
+projection or full multi-Groovy qualification.
+
 ## Deliberate deferrals and delivery
 
 U2 retains complete original parameter facts/constraints/policies, full effective naming/inheritance/override and malformed
@@ -75,6 +85,11 @@ module Groovy 3/4/5 qualification. U3 retains independent/historical artifact co
 qualification and consumer adoption. Focused local success is not complete-build, hosted CI or SonarCloud evidence.
 No general union/ADT, KlumAST IntOrString, generated-converter arm, alternate resolver, protocol bump, runtime parameter
 validation, parser or #1113 reconstruction claim is introduced. No ScHelm/Kubernetes source, dependency or fixture changes.
+
+Independent reviews: Standards reported two brace-style violations and one optional fixture-readability observation;
+all were addressed. Specification found the collector-origin gap above; it was reproduced with two failing controls
+and repaired conservatively. Review fixes preserve the initial two reviewed commits as an additive follow-up.
+The final review dispositions are recorded in the PR/worker handoff.
 
 Tracker impact: **Related: #1129; curation impact none**. The issue remains open. Draft PR delivery and hosted findings are
 reported in the worker/PR handoff; merge and final archive reconciliation remain Hive-owned.

@@ -93,7 +93,7 @@ final class StructuredInputConstraintMetadata {
         fact.setMember("parameterConstraintProjection", selected == null
                 ? new PropertyExpression(new ClassExpression(ClassHelper.make(Policy.class)), "PROJECT") : selected);
         // An unqualified annotation may carry constraints or source-origin information. Never call it empty.
-        boolean empty = annotations.stream().allMatch(annotation ->
+        boolean empty = StructuredInputSourceOrigins.emptyParameter(method) && annotations.stream().allMatch(annotation ->
                 annotation.getClassNode().getName().equals(ConstraintProjection.class.getName()));
         fact.setMember("parameterConstraintCount", new ConstantExpression(empty ? 0 : -1));
         if (empty) fact.setMember("parameterConstraints", new ListExpression());

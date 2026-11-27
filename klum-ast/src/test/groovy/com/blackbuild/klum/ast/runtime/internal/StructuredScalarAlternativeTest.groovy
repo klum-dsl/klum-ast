@@ -46,8 +46,12 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
             package scalaralternatives
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
+            import groovy.transform.AnnotationCollector
             @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.PARAMETER])
             @interface InputBound { long value() }
+            @AnnotationCollector @interface Unqualified {}
+            @Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)
+            @AnnotationCollector @interface HiddenPolicy {}
             @DSL class Destination {
                 @Struct.Ignore Object value
                 @Struct.Ignore int integerCalls
@@ -234,6 +238,23 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         result.stringCalls == 1
     }
 
+    def 'an explicit OMIT policy alone retains complete empty parameter facts'() {
+        given:
+        def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation',
+                '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT)')
+
+        when:
+        def result = destination.Create.FromStruct([address: 8080])
+        def family = new InputContractResolver().read(destination).entries().address.scalarAlternatives()
+        def facts = family.integerArm().dispatch().getAnnotation(GeneratedInput.Operation)
+
+        then:
+        result.value == 8080
+        facts.parameterConstraintCount() == 0
+        facts.parameterConstraints().length == 0
+        facts.parameterConstraintProjection().name() == 'OMIT'
+    }
+
     def 'nonempty or unqualified parameter facts reject even with no supplied member: #annotation'() {
         given:
         def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation', annotation)
@@ -247,7 +268,8 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         failure.message.contains('recompile')
 
         where:
-        annotation << ['@InputBound(1L)', '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @InputBound(1L)']
+        annotation << ['@InputBound(1L)', '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @InputBound(1L)',
+                       '@Unqualified', '@HiddenPolicy']
     }
 
     def 'missing or inconsistent empty facts reject before family use: #mutation'() {

@@ -63,7 +63,7 @@ class KlumJsonSchemaGenerationTest extends Specification {
     @Issue('1129')
     def 'emits one bounded integer and String alternative from the shared resolved family'() {
         given:
-        fixture('3', false, false, false, false, false, false, false, false, false, false, null, true)
+        scalarAlternativeFixture()
         new File(consumer, 'build.gradle').append("""
 klumSchema.jsonSchema.rootTypes.set(['example.Destination', 'example.PrimitiveDestination',
     'example.UnmarkedDestination', 'example.StringDestination'])
@@ -2941,6 +2941,10 @@ import java.lang.annotation.*
             new File(producer, 'owned/build/classes').deleteDir()
         }
         writeConsumer(generation, defaults, patterns)
+    }
+
+    private void scalarAlternativeFixture() {
+        fixture('3', false, false, false, false, false, false, false, false, false, false, null, true)
     }
 
     private void scalarAlternativeSources() {
