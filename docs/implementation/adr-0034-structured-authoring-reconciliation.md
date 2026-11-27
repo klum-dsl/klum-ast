@@ -9,7 +9,11 @@ Update, 2026-11-27: the maintainer selected public interface `KlumYaml`, a build
 captured client-overridable limits. [The interface extension](../adr/0034-bounded-structured-authoring.md#selected-public-yaml-interface--1114),
 [working implementation plan](issue-1114-yaml-integration.md) and
 [qualification record](evidence/issue-1114-yaml-qualification.md) supersede the original #1114 interface-open checkpoint
-below. No parser release, production implementation, artifact/dependency addition or release placement is selected.
+below. The optional module is also accepted. Refinement makes ScHelm the primary reference consumer and requires an
+explicit consumer verdict and replacement-scope adoption criterion before finalization. Schelm Hive has returned
+“compatible with specified adjustments” for the named codec scope; the same plan/evidence record incorporates its
+executed observations, required adjustments and remaining stream/scope decisions.
+No parser release, production implementation, artifact/dependency addition or release placement is selected.
 
 ## Authority and evidence
 
@@ -53,7 +57,7 @@ These gates require later bounded assignments; they neither reopen the accepted 
 
 | Owner | Required next evidence / decision |
 | --- | --- |
-| #1114 | Local Engine 2.10 proof recorded; public interface/factory and captured overridable limits selected. Finalize supporting proposals and qualified ranges, choose a library only under separate adoption authority, then qualify public API/dependencies, packaging/JPMS and Java/Groovy consumers. See the working plan; proof is not shipment. |
+| #1114 | Local Engine 2.10 proof recorded; public interface/factory and captured overridable limits selected. Reconcile ScHelm primary-consumer quoting/numeric/resource/stream evidence and explicit adoption verdict, then finalize supporting proposals/ranges. Choose a library only under separate adoption authority and qualify public API/dependencies, packaging/JPMS and Java/Groovy consumers. See the working plan; proof is not shipment. |
 | #1113 | Name projection/subset, mapper/codecs, inclusion and reference policy; qualify exact shared-tree values/numbers/acyclicity. For each reconstruction claim name compared effective values and external context, including key/default/lifecycle counterexamples. No YAML-library prerequisite. |
 | #959 | Prove literal eligibility without execution, compiler-owned inert transport/completeness and exact use-site placement, including the same child type with relationship defaults 2 and 8. Decide metadata compatibility and projection representation only with that evidence. |
 | #953 / #1085 | Independently decide source loading/resource ownership and active-child Factory ergonomics. Diagnostic source text is not a locator or key; preserve delivered positional-key APIs and explicit schema entry purposes. |

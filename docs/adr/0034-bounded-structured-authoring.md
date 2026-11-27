@@ -39,7 +39,10 @@ Four responsibilities answer different questions:
 | Completed-Model projection | Initially existing optional Jackson, with mapper/Schema-owned shape | Recovery of an authored program or automatic FromStruct compatibility |
 | Trusted source migration | Separate optional research in #955 | A prerequisite for the structured-authoring stack |
 
-Current parsing remains caller-owned. No Klum YAML integration is delivered by this decision.
+ScHelm is the primary reference consumer for #1114: its established YAML implementation, quoting correction and
+regressions inform the reusable contract. Consumer review and explicit adoption acceptance are required, not optional
+future examples. This does not move ScHelm-specific resource/rendering/deployment policies into KlumAST or create a
+KlumAST dependency on ScHelm. Current parsing remains caller-owned; no integration is delivered by this decision.
 
 ## Accepted decisions
 
@@ -119,7 +122,8 @@ These are selected design examples, not available client code. `limits` is an im
 is caller-supplied YAML. The smallest planned instance surface is `parse(String, String)`, `parse(byte[], String)` and
 `emit(Object, String)`. Public method descriptors, builder/limits member details, optional artifact/module placement and
 diagnostics are recorded as proposed details in the plan; the decision here settles interface, factory ownership and
-captured client-overridable limits, not every proposed descriptor or supporting type.
+captured client-overridable limits, not every proposed descriptor or supporting type. The optional-module decision is
+also accepted; only its exact identity/dependency details remain working recommendations.
 
 The same selected factory shape in Groovy:
 
@@ -131,7 +135,8 @@ def tree = yaml.parse(text, 'service.yaml')
 String output = yaml.emit(tree, 'service-output')
 ```
 
-The limits have finite measured defaults, can be raised or lowered by the client within qualified supported ranges, and
+The relevant consumer limits have finite defaults informed by realistic ScHelm configurations and bounded probes,
+can be raised or lowered by the client within qualified supported ranges, and
 are captured at build time. Builder reuse cannot mutate an existing codec. Counters, scanners, parsers, emitters and
 other operation state belong to each call, so independent calls can reuse the same immutable codec. Resource overrides
 do not select a dialect or relax the accepted scalar/key/tag/document/identity policy. There is no unlimited sentinel or
@@ -176,11 +181,16 @@ retain their contracts. A tree null remains data even though current Struct cons
 Emission preserves supplied scalar types/values, exact numbers, decoded Strings, Map traversal order and List order.
 Parsing preserves encountered mapping/sequence order. For the same ordered tree and fixed codec version/configuration,
 emitted bytes are deterministic. Do not sort containers to achieve determinism; projection owns deliberate property ordering.
-Quote/escape ambiguous Strings and keys to preserve value and type. Reject unsupported or value-changing emission.
+Quote String values. Emit ordinary String mapping keys plain and quote exceptional keys to preserve decoded String
+identity/type and valid syntax, reusing ScHelm's corrected ordinary/exceptional-key regression evidence. Do not impose
+blanket key quotation or configurable quoting/dialects. Protect known downstream-sensitive keys without changing Core
+input resolution. Reject unsupported or value-changing emission.
 
 Exact Unicode preservation concerns supplied decoded Strings, not recovery of source folding/line normalization.
 Unpreservable String forms may be rejected with documented diagnostics. This promises no source comments/style recovery,
-canonical YAML, byte stability across upgrades or universal downstream decoder compatibility. Consumer decoder compatibility
+canonical YAML, byte stability across upgrades or universal downstream decoder compatibility. Document markers,
+indentation, wrapping and exact escape spelling are presentation choices unless a concrete consumer requirement is proved;
+fixed-version determinism does not freeze these choices across upgrades. Consumer decoder compatibility
 requires separate fixtures. Source-comment loss does not preclude a separately justified generated-comment capability.
 Ordinary Jackson output gains no new order/byte guarantee from this decision.
 
@@ -215,14 +225,19 @@ the library or public API. Source inspection and library resolver labels alone a
 - Compare original and reparsed typed values and ordered entries for emission, including Unicode/ambiguous Strings,
   and check deterministic bytes for fixed inputs/version/configuration.
 - Enforce finite input byte/code-point, depth, node/entry, scalar/numeric-token magnitude/length and output-size budgets
-  at the relevant parse/emit boundaries. Choose measured budgets from consumer fixtures, not arbitrary strategy constants.
+  at the relevant parse/emit boundaries. Use realistic consumer fixtures and explicit anticipated workloads to justify practical defaults, not arbitrary
+  strategy constants or tiny-fixture maxima alone. Expose relevant construction-time limits and derive internal safety
+  guards where possible; the working five-setting proposal and numeric bounds require qualification in the plan.
 - Exclude parser-selected JVM/domain construction or reflection, schema execution and hidden I/O. Use ordinary library
   event/node seams with a small adapter; no custom YAML parser, dialect framework or generic serializer platform.
 
 A failed requirement remains a documented gap for a later decision, never a silently weakened guarantee. #1113 separately
 qualifies Jackson-to-tree fidelity and named reconstruction subsets; it need not wait for a YAML library. An input-only
 qualification slice need not depend on Model output, although the accepted integration responsibility includes both directions.
-The recorded local proof and selected interface above advance this gate; production qualification remains required.
+The recorded local proof and selected interface above advance this gate. Final contract acceptance requires ScHelm
+consumer review, and implementation acceptance must show that ScHelm can replace the agreed reusable YAML machinery
+without losing established correctness guarantees. Its legacy-decoder and multi-document semantics must be accounted for
+explicitly; a same-Core round trip cannot establish those claims. Production qualification remains required.
 No further research execution or implementation is assigned by this ADR.
 
 ### 16. Trusted source migration stays separate

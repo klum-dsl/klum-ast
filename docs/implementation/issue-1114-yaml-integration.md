@@ -3,7 +3,7 @@
 Date: 2026-11-27. Category B extension of [ADR 0034](../adr/0034-bounded-structured-authoring.md).
 Related: [#1114](https://github.com/klum-dsl/klum-ast/issues/1114).
 
-Status: **Public interface/factory and captured overridable limits selected; supporting contract proposed;
+Status: **Public interface/factory, optional module and captured overridable limits selected; supporting contract proposed;
 production adoption and implementation unassigned.** This document is a plan, not a delivered client guide.
 
 ## Authority and current behavior
@@ -12,6 +12,11 @@ The maintainer broadly agreed with the bounded proposal, requested client-overri
 instance that captures those limits, and then explicitly selected **public interface `KlumYaml`**. Its builder constructs
 the immutable configured implementation. Ordinary client test doubles and parser-free exported signatures are the reasons
 for this selection. Interface versus concrete class is settled; static parse/emit operations are superseded.
+
+The refinement treats ScHelm as the primary reference consumer: the goal is to replace recurring reusable YAML machinery
+with one qualified KlumAST codec. Reuse its implementation and regressions before devising alternatives. Its explicit
+consumer verdict and the replacement scope below gate final contract acceptance; they create no KlumAST dependency on
+ScHelm. Optional-module existence, the public interface and immutable factory-created implementation are settled.
 
 All remaining details below are concrete working recommendations unless identified as an existing ADR requirement.
 Broad agreement is not evidence of exact supporting descriptors or production qualification. The accepted interface can
@@ -24,7 +29,7 @@ gate. [Jackson](../user/Jackson-Integration.md) independently owns caller-mapper
 effective-Model projection. The [private proof record](evidence/issue-1114-yaml-qualification.md) covers YAML/shared trees,
 not those Models or a released adapter. Its results are evidence for the plan, not public-candidate acceptance.
 
-## Proposed placement and dependency contract
+## Selected optional module and proposed dependency details
 
 Recommend optional `com.blackbuild.klum.ast:klum-ast-yaml`, module `com.blackbuild.klum.ast.yaml`, exporting only
 `com.blackbuild.klum.ast.yaml`; put implementation in its unexported `.internal` package. Production uses Java 17 and
@@ -111,17 +116,43 @@ cycles reject. File/URL/Reader/Writer/stream loading and closing, domain constru
 Keep ADR 0034's Core resolution, String-only decoded keys, duplicate rejection before insertion, anchor/alias rejection,
 literal non-expanding `<<`, tag allowlist, complete single-document consumption, order and typed-value fidelity.
 
-Recommend integer-category parsing as BigInteger and decimal-category parsing as BigDecimal. Emission accepts the four
-integral wrappers, BigInteger and BigDecimal; reject every Float/Double (including finite values) and other Number types.
-Preserve mathematical value and integer/decimal category, not wrapper identity, decimal scale/spelling or signed zero.
-Jackson can successfully project unsupported Numbers; codec admission checks its actual tree without changing that mapper.
-Finite Float/Double Schema-target conversion in Struct remains unchanged. Exact-binary float emission would need a separate
-explicit contract and fixtures; there is no implicit decimal-intent recovery.
+Recommend integer-category parsing as BigInteger and decimal-category parsing as BigDecimal. Emission accepts integral
+wrappers, BigInteger/BigDecimal and **finite Float/Double**. Convert each binary value with
+`new BigDecimal(number.doubleValue())`: widening a Float to double is exact, so this preserves the stored mathematical
+binary value. It recovers no decimal intent. Do not use shortest-string/valueOf conversion as an exact-value substitute.
+Reject NaN, infinities and unsupported Number implementations. Signed-zero sign, JVM wrapper identity and original numeric
+spelling are not retained. The result is a decimal-category tree value, including when its mathematical value is integral.
+
+ScHelm's [TargetValues.freeze](https://github.com/klum-dsl/schelm/blob/8c1cf9d54b2d2054193bb5106688f0e1f9041476/schelm-skeleton/schelm-core/kubernetes-targets/support/src/main/java/com/blackbuild/schelm/targets/TargetValues.java)
+already admits finite Float/Double, so blanket rejection would require a consumer adapter.
+This removes that friction from its existing finite binary-number paths. Exact output can be long: private extrema
+checks observed precision 751, scale 1074 and 757 numeric characters for Double.MIN_VALUE. Numeric admission must allow such
+values within the scalar/input/output envelope rather than silently round them. Same-Core reparse preserves the exact
+BigDecimal. Schelm Hive's focused six-value test also passed through its actual sigs.k8s.io/yaml 1.4.0 decoder; that
+decoder can reduce decimals to binary numbers. This is evidence for those selected values, not universal downstream
+precision or schema-target reconstruction qualification. No selectable numeric mode.
 
 Recommend empty/whitespace/comment-only streams reject, while an explicit empty document is tree null. Reject every
-directive, including `%YAML 1.2`, `%TAG` and unknown directives, before scanner information disappears. Reject a second
-document even if empty. Emit null explicitly and quote/escape all Strings/keys, with LF and explicit single-document
-markers; no anchors or sorting. Deterministic bytes concern fixed codec/library/configuration and ordered input only.
+directive before scanner information disappears and a second document even if empty. These single-document rules do not
+replace ScHelm's multi-document framing or Kubernetes-specific input semantics.
+
+**Emission follows ScHelm's corrected policy:** quote String values, emit ordinary String mapping keys plain, and quote
+exceptional keys to preserve decoded String identity/type and YAML syntax. Ordinary fields such as apiVersion, metadata,
+app.kubernetes.io/name and schelm.io/deployment-id must remain readable. Reuse ScHelm PR #47's corrected key evidence;
+do not restore blanket key quotation or introduce a configurable quoting strategy.
+
+Keys that resolve as Core bool/null/int/float require quotes. Empty keys, leading/trailing whitespace, controls, multiline
+and YAML-syntax-sensitive cases need safe quotation/escaping. Keep ScHelm's legacy-decoder-sensitive String keys protected too:
+y/n/yes/no/on/off and date/numeric-looking keys, including the tested 0o10 versus 8 collision. This does not alter Core
+input resolution. The existing positive key subset `[A-Za-z_][A-Za-z0-9_./-]*`, checked with Core String resolution plus
+legacy-word protection, is a reusable conservative implementation starting point. It is not a claim that every other
+printable key is intrinsically invalid plain YAML or a permanent promise about its exact quoting style.
+
+Require exact decoded values, integer/decimal category, recursive Map/List order, no generated anchors/aliases, and
+fixed-version/configuration determinism. Document markers, indentation, line wrapping and quote/escape spelling are
+implementation presentation choices, not cross-version compatibility commitments. Preserve necessary single-document
+syntax and separation when ScHelm composes streams. Any actual dependency on an end marker or byte-idempotence must be
+proved by the consumer fixtures; there is no formatting selector or new canonical-YAML promise.
 
 Recommend final module-local `KlumYamlException extends IllegalArgumentException`, with non-public construction,
 operation/source getters, nested Reason (`SYNTAX`, `ENCODING`, `POLICY`, `LIMIT`, `VALUE`), Optional String pointer and
@@ -135,43 +166,75 @@ Wrapper messages omit source excerpts and escape controls in rendered labels/poi
 adapter bugs are not syntax failures. Null text/bytes/source arguments use NPE naming the parameter; empty source is
 IllegalArgumentException. Emitting tree null is valid. No runtime dependency is needed solely for KlumModelException.
 
-## Proposed default resource envelope and selected override ownership
+## Working defaults and a small public limits value
 
-The [measured corpus](evidence/issue-1114-yaml-qualification.md#consumer-sizing-corpus) covers small descriptors, service/
-environment inputs and Helm values, plus selected #1113 exact numbers. Sixteen fixtures passed the existing private adapter
-under this proposed default envelope. These are defaults, not universal client maxima or a workload guarantee.
+Recommend five independently configurable consumer limits captured at codec construction:
 
-| Resource | Measured maximum | Proposed inclusive default |
-| --- | ---: | ---: |
-| Input/output UTF-8 bytes | 1,933 / 1,996 | 16,384 each |
-| Input code points | 1,933; emitted text ≤1,996 | 16,384 |
-| Depth, root = 1 | 7 | 16 |
-| Nodes, including Map keys | 137 | 2,048 |
-| Total Map entries + List elements | 68 | 1,024 |
-| Scalar/key code points | 53 | 512 |
-| Numeric token characters | 40 | 256 |
-| Integer absolute-value bits | 83 | 256 |
-| Decimal precision | 39 | 128 |
-| Absolute decimal scale | 23 | 64 |
-| Decimal magnitude, precision − scale | 20 | ≤64 |
-| Absolute lexical exponent | 0 | 64 |
+| Public setting | Working default | Consumer reason |
+| --- | ---: | --- |
+| Input UTF-8 bytes | 4 MiB (4,194,304) | A practical single-document envelope for application/resource configuration |
+| Output UTF-8 bytes | 4 MiB | Explicit output allocation/publication allowance; independent of input because escaping can expand text |
+| Depth, root = 1 | 64 | Nested domain/configuration structures; actual ScHelm KafkaUser definition already reaches 19 |
+| Nodes, including Map keys | 100,000 | Bounds tree traversal/allocation work independent of text size |
+| Scalar/key code points | 256 Ki (262,144) | Embedded scripts, certificates and application configuration as opaque String data |
 
-Round up to powers of two after allowing 8× size/count/scalar maxima, 2× depth/numeric-value maxima and 4× token length.
-For both text directions use the larger measured text size. Exponent's default reuses the measured scale/magnitude
-envelope, not an observed exponent workload. These growth allowances are product proposals, not measurement results.
+These are recommendations under consumer review, not accepted production values. The original sixteen fixtures are
+minimum coverage, not a justification for caps that ordinary consumers immediately override. The earlier 16 KiB / depth 16 /
+scalar 512 envelope is superseded: ScHelm's existing KafkaUser definition is 13,897 bytes, depth 19 and scalar 761. New bounded
+anticipated fixtures cover roughly 500 KiB of script/simulated-PEM/application-text payloads, a 40,000-entry/~2 MiB configuration
+and depth 42. They demonstrate feasibility, not deployed maxima. The evidence record distinguishes actual and synthetic
+inputs. Confirm the envelope with ScHelm before finalizing; do not infer a 4 MiB memory ceiling from a 4 MiB input limit.
 
-Clients may independently raise or lower every finite positive setting within supported, qualified ranges. Exponent,
-decimal scale and decimal magnitude are separate limits despite equal defaults. Validate settings before use; reject
-unlimited/invalid/unsupported values without clamp, overflow or silent disregard. Supported upper ranges need mechanism
-qualification, especially recursive depth and Java decimal/conversion/counter ranges; do not invent arbitrary hard ceilings
-from the old probe. Overrides never weaken YAML semantic policy and need no per-call limits argument.
+Keep the remaining guards internal and derived, rather than expose implementation-specific numeric settings:
 
-Check supplied bytes before UTF-8 decode and String bytes/code points before scanning, scalar/numeric text before numeric
-construction and exact value bounds afterward. Bound lexical exponent work independently before BigDecimal construction,
-allowing leading zero spelling within the token cap. Count repeated placements on each traversal; bound output while
-emitting. No partial output returns. All limits apply jointly, not as an independently attainable Cartesian product.
-The scanner may allocate one token up to the whole-input cap before its token guard, and the emitter may allocate a chunk
-before the writer rejects it. No exact heap/RSS/CPU/deadline or already-materialized caller-memory bound is established.
+| Internal guard | Derivation / enforcement |
+| --- | --- |
+| Whole-input code points | At most the configured UTF-8 byte ceiling; strict decode and pre-scan checks remain |
+| Cumulative entries | At most nodes−1; count before insertion. With 100,000 nodes, a mapping-only root permits 49,999 entries and a sequence-only root 99,999. The suggested separate 50,000-entry public setting is unnecessary unless a consumer establishes an independent requirement. |
+| Numeric token / decimal precision | At most the scalar-code-point allowance; check lexical size before construction, never use unlimited expansion |
+| Absolute lexical exponent / decimal scale / magnitude | Each bounded by the scalar allowance with overflow-safe comparisons before conversion/expansion. They remain distinct checks, not independently configurable properties. |
+| Integer magnitude | At most 4×scalar allowance in bits (hex needs up to 4 bits per digit); use wide arithmetic and bounded conversion |
+
+Thus scripts can use a generous scalar allowance while numeric work remains finite; there is no new resource-budget
+framework. The default derived decimal envelope includes every tested finite Float/Double exact expansion. Very large
+numeric tokens can still be costly: qualify at-limit/adversarial conversion under the combined input/node/scalar caps
+before accepting these derived ranges. If that fails, return a concrete internal-guard decision supported by measurements,
+not a public precision/scale/exponent mode matrix or silent rounding. No unbounded pow/toPlainString allocation is allowed.
+
+Clients can lower or raise the five relevant limits within supported, qualified ranges. Validate positive finite values
+and reject unsupported settings without clamp, overflow or silent disregard. The node-derived entry allowance follows
+node overrides; numeric guards follow scalar overrides. Whole-input checks precede scanning, token checks precede numeric
+construction, and exact value checks precede admission/emission. Count repeated structural placements each time. Limits
+are joint, per-operation allowances, not a promise that every combination fits every other cap. Escaping can exhaust the
+output cap even when input fits; return no partial result.
+
+The scanner may allocate a token up to the whole-input cap before scalar inspection; the emitter may allocate a chunk
+before writer rejection. Many small nodes, large scalar copies and simultaneously active calls also consume memory.
+No precise heap/RSS/CPU/deadline or already-materialized caller-memory bound is established. Bound and measure supported
+ranges, especially recursive depth and large numeric tokens, in the eventual implementation; no unlimited sentinel.
+
+## ScHelm replacement scope and consumer acceptance
+
+The target is reusable text/tree machinery, not ScHelm's resource/rendering/deployment policy. ScHelm's current source at
+main 8c1cf9d is the reference; the earlier detached-checkout sizing revision is historical only. Schelm Hive's written assessment is **compatible with specified adjustments for the named codec replacement scope**.
+Its focused local/actual-decoder results are recorded in the existing evidence document; no real KlumYaml artifact has
+been qualified. The adjustments below are required for that conditional design verdict.
+
+| Existing ScHelm seam | Intended replacement | ScHelm retains / condition |
+| --- | --- | --- |
+| ProductDescriptor.read/data and yaml | Strict UTF-8/text-to-tree, duplicate/policy checking and tree emission; remove direct low-level YAML traversal/Representer machinery once qualified | Trusted PackageSchema selection, FromStruct, String-only descriptor grammar, 64 KiB / 12-container product profile, intrinsic checks and sanitized source errors; codec node depth includes scalar/key nodes and is not the same counter |
+| ModelFileLoader.readYaml | Replace duplicate-detection pass plus YamlSlurper decoding with one checked tree parse | File selection/I/O, root Map check, contextual labels and Factory/active-Builder/copy workflows; all existing inputs must prove intended Core meanings |
+| ProductDescriptor.yaml / PackageDescriptorWriter | Reuse codec emission/parsing instead of local emitter settings/key hooks | Caller-configured Jackson projection, descriptor-specific reconstruction comparison and failure-before-file-replacement/publication ordering |
+| TargetYamlBackend.render and KubernetesYamlRenderer.render | Replace YAMLMapper/YamlBuilder serialization with emission of TargetWire.document(target) / resource.asDocument() | Target presence/wire validation, DTO projection and contribution creation; renderAll stream assembly stays caller-owned and must not rely on incidental codec markers |
+| KubernetesOwnership single-document YAML emission | Replace reusable String/key escaping, exact-number emission and typed-value reparse mechanics for Core-compatible trees | Ownership mutations, reserved annotations, resource checks, media types and actual Kubernetes decoder guarantees; no assumption that every legacy tree is admissible |
+| YamlDocuments, YamlBundle and KubernetesDuplicateCheck | No whole-sale replacement by a single-document Core codec | Multi-document offsets/explicit-start provenance, comment-preserving bundling/boundary checks, Kubernetes identity validation and legacy decoder interpretation remain; set/omap/merge/legacy booleans differ materially. Stream framing/offset extraction includes residual reusable YAML mechanics, not just domain policy |
+
+**Adoption criterion:** the qualified implementation must let ScHelm replace the intended reusable machinery above without
+losing established correctness guarantees, demonstrated through its existing positive/negative regressions and real target/
+Package paths on ScHelm's Java 21 / Groovy 5.1.3 stack and independent consumer artifacts. A generic same-parser round
+trip is insufficient. Preserve descriptor writer reconstruction/failure-before-replacement and ownership idempotence. If ScHelm must retain duplicate generic machinery inside
+that agreed scope, the feature has not met this criterion. A decision on a required stream seam or intentional narrower
+replacement scope must be explicit; do not quietly broaden Core to a Kubernetes dialect or claim full replacement.
 
 ## Implementation slices and acceptance map
 
@@ -180,9 +243,9 @@ dependency declarations. Final supporting contracts and ranges must be reconcile
 
 | Slice / reasoned commit boundary | Modules and public/generated seams | Required acceptance |
 | --- | --- | --- |
-| A — usable strict parse with factory-owned limits | Proposed optional artifact, public interface/builder/limits/exception, internal scanner/event adapter; no generated code changes | Pin separately authorized candidate; parse corpus/red controls; all root kinds; strict UTF-8; exact numbers/keys/tags/directives; whole input; duplicate rejection; each parse budget N/N+1; lower/higher/invalid independent overrides; builder snapshots; client fake compiled against exported signatures without parser; Java 17 classpath/JPMS and actual Maven/Gradle metadata |
-| B — usable exact ordered emission | Same artifact and limits/diagnostics; internal tree/event writer | Original versus reparsed typed values and recursive Map/List order; Unicode/ambiguous Strings; category/exact numbers; unsupported values/cycles; repeated placement counts; every emit budget N/N+1; output bounds; deterministic bytes; fresh/concurrent-call state |
-| C — composed consumer contract and documentation | Existing generated Factory/active Builder and optional Jackson seams, consumer fixtures, user guidance | Matched Java and static/dynamic Groovy 3/4/5 artifact consumers; Groovy 4/5 named Schema consumers; parser-free core dependency check; root Map/null/positional-key boundaries; Struct.Required without schema gate; ordered earlier effects; original Struct/lifecycle attribution; qualified actual projection subsets only |
+| A — usable strict parse with factory-owned limits | Proposed optional artifact, public interface/builder/limits/exception, internal scanner/event adapter; no generated code changes | Pin separately authorized candidate; parse corpus/red controls; all root kinds; strict UTF-8; exact numbers/keys/tags/directives; whole input; duplicate rejection; each public and derived guard N/N+1; lower/higher/invalid public overrides and derived relationships; builder snapshots; client fake compiled against exported signatures without parser; Java 17 classpath/JPMS and actual Maven/Gradle metadata |
+| B — usable exact ordered emission | Same artifact and limits/diagnostics; internal tree/event writer | Original versus reparsed typed values and recursive Map/List order; ScHelm ordinary/exceptional keys and actual Kubernetes decoder negatives; Unicode/ambiguous Strings; exact binary-float conversion and category/exact numbers; unsupported values/cycles; repeated placement counts; each public/derived emit guard N/N+1; output bounds; deterministic bytes; fresh/concurrent-call state |
+| C — composed consumer contract and documentation | Existing generated Factory/active Builder and optional Jackson seams, consumer fixtures, user guidance | Matched Java and static/dynamic Groovy 3/4/5 artifact consumers; Groovy 4/5 named Schema consumers; parser-free core dependency check; root Map/null/positional-key boundaries; Struct.Required without schema gate; ordered earlier effects; original Struct/lifecycle attribution; qualified actual projection subsets; explicit ScHelm replacement/adoption criterion above, with consumer verdict and named regression corpus |
 
 Keep production changes and their tests together per slice. A separate final documentation commit may follow the tested
 consumer work. Input-only slice A does not satisfy the accepted bidirectional product responsibility. Reuse repository
@@ -211,9 +274,11 @@ protocol changes. Existing caller parsers and managed Jackson remain compatible.
 #953 resource loading, #1085 active-child ergonomics, #955 trusted migration and #971 enforcement retain independent owners.
 Generated input JSON Schema is neither output/reconstruction schema nor an automatic codec/Struct validation gate.
 
-The selected public-interface choice is no longer open. Remaining supporting decisions are the exact optional artifact/
-module identity, builder/limits/diagnostic descriptors, supported limit ranges and final default/value/document details
-proposed above. They need final contract reconciliation, not a new parser/framework or a repeated interface interview.
+The public interface, builder-created immutable implementation and optional-module decision remain accepted. Remaining
+supporting decisions are exact artifact/module naming and supporting descriptors, the practical default/supported ranges
+and derived numeric guards, finite binary-value emission and the precise ScHelm replacement/stream boundary. Finalization
+uses the received conditional ScHelm verdict. Remaining scope decisions must be accepted explicitly; no new interface
+interview, framework or blanket replacement claim is warranted.
 No parser release, release placement or production implementation is authorized by agreeing or merging this plan.
 
 Tracker relationship: Related: #1114. Keep issue state, labels, milestone and native dependencies unchanged. This is a
