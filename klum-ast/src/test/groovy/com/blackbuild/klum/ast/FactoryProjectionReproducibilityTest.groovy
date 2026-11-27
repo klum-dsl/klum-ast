@@ -89,7 +89,9 @@ class FactoryProjectionReproducibilityTest extends Specification {
         new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9) {
             @Override
             MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                if (name == '$klum$asBuilder$ForEnvironment') descriptors.add(descriptor)
+                if (name == '$klum$asBuilder$ForEnvironment') {
+                    descriptors.add(descriptor)
+                }
                 return null
             }
         }, 0)
