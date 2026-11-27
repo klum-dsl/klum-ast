@@ -91,5 +91,15 @@ all were addressed. Specification found the collector-origin gap above; it was r
 and repaired conservatively. Review fixes preserve the initial two reviewed commits as an additive follow-up.
 The final review dispositions are recorded in the PR/worker handoff.
 
+Hosted CI on `9ef4f29187774a656c1ab410acdfb40a4c945a98`
+([run 46060891755](https://github.com/klum-dsl/klum-ast/actions/runs/46060891755)) passed the existing full pipeline,
+including root checks, current compatibility lanes and annotation-propagation artifact checks. Sonar's quality gate
+passed with 85.1% new-code coverage, 0% duplication and no security hotspots, but reported eight maintainability findings.
+The additive follow-up extracts family execution, original-source capture and parameter-array decoding into cohesive
+private helpers, and adds five missing Groovy braces. All 326 focused Groovy 3 compiler/runtime/handoff tests, the plugin
+test, independent emitted-schema assertions and affected license/diff checks pass after that cleanup; both independent
+reviewers found no remaining issue in the correction. Final-head hosted reanalysis is reported in the PR/worker handoff.
+These existing-pipeline results do not complete the unimplemented U2/U3 acceptance matrices.
+
 Tracker impact: **Related: #1129; curation impact none**. The issue remains open. Draft PR delivery and hosted findings are
 reported in the worker/PR handoff; merge and final archive reconciliation remain Hive-owned.

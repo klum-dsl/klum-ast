@@ -288,6 +288,7 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         where:
         mutation << ['absent count', 'wrong count', 'absent rows', 'absent policy']
     }
+
     private void mutateParameterFacts(String mutation) {
         File file = new File(compilerConfiguration.targetDirectory, 'scalaralternatives/Destination_DSL$Builder.class')
         def writer = new ClassWriter(0)
@@ -297,18 +298,26 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (!annotation.endsWith('GeneratedInput$Operation;')) return downstream
+                        if (!annotation.endsWith('GeneratedInput$Operation;')) {
+                            return downstream
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
                             @Override void visit(String member, Object value) {
-                                if (member == 'parameterConstraintCount' && mutation == 'absent count') return
+                                if (member == 'parameterConstraintCount' && mutation == 'absent count') {
+                                    return
+                                }
                                 super.visit(member, member == 'parameterConstraintCount' && mutation == 'wrong count' ? 1 : value)
                             }
                             @Override AnnotationVisitor visitArray(String member) {
-                                if (member == 'parameterConstraints' && mutation == 'absent rows') return null
+                                if (member == 'parameterConstraints' && mutation == 'absent rows') {
+                                    return null
+                                }
                                 super.visitArray(member)
                             }
                             @Override void visitEnum(String member, String enumDescriptor, String value) {
-                                if (member == 'parameterConstraintProjection' && mutation == 'absent policy') return
+                                if (member == 'parameterConstraintProjection' && mutation == 'absent policy') {
+                                    return
+                                }
                                 super.visitEnum(member, enumDescriptor, value)
                             }
                         }
@@ -317,7 +326,6 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
             }
         }, 0)
         file.bytes = writer.toByteArray()
-
     }
 
 }

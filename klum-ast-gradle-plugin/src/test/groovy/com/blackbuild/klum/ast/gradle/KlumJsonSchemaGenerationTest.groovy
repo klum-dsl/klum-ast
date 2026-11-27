@@ -2928,7 +2928,9 @@ import java.lang.annotation.*
         if (!presence) {
             publishApi('Inherited region documentation.')
         }
-        if (scalarAlternatives) scalarAlternativeSources()
+        if (scalarAlternatives) {
+            scalarAlternativeSources()
+        }
         runner(producer, ':schema:jar').build()
         publish('schema', 'schema/build/libs/schema.jar', '<dependencies><dependency><groupId>fixture</groupId><artifactId>api</artifactId><version>1.0</version></dependency>' +
                 (naming || patterns || presence ? '<dependency><groupId>fixture</groupId><artifactId>owned</artifactId><version>1.0</version></dependency>' : '') + '</dependencies>')

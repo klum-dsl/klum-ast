@@ -1043,22 +1043,26 @@ final class BuilderContractReader {
             };
         }
 
+        private AnnotationVisitor parameterConstraintsArray() {
+            if (literal.parameterConstraints != null) throw invalid("Duplicate authored parameter constraint facts");
+            literal.parameterConstraints = new ArrayList<>();
+            return new AnnotationVisitor(Opcodes.ASM9) {
+                private IllegalArgumentException invalidItem() { return invalid("Invalid authored parameter constraint row"); }
+                @Override public void visit(String ignored, Object value) { throw invalidItem(); }
+                @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidItem(); }
+                @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
+                    if (!descriptor.equals(CONSTRAINT)) throw invalidItem();
+                    return new ConstraintAnnotationVisitor(literal, literal.parameterConstraints);
+                }
+                @Override public AnnotationVisitor visitArray(String ignored) { throw invalidItem(); }
+            };
+        }
+
         @Override public AnnotationVisitor visitArray(String member) {
             if (member.equals(EXAMPLES) && Set.of(FIELD, KEY_ANNOTATION, OPERATION_FACT).contains(annotation))
                 return examplesArray();
             if (annotation.equals(OPERATION_FACT) && member.equals("parameterConstraints")) {
-                if (literal.parameterConstraints != null) throw invalid("Duplicate authored parameter constraint facts");
-                literal.parameterConstraints = new ArrayList<>();
-                return new AnnotationVisitor(Opcodes.ASM9) {
-                    private IllegalArgumentException invalidItem() { return invalid("Invalid authored parameter constraint row"); }
-                    @Override public void visit(String ignored, Object value) { throw invalidItem(); }
-                    @Override public void visitEnum(String ignored, String descriptor, String value) { throw invalidItem(); }
-                    @Override public AnnotationVisitor visitAnnotation(String ignored, String descriptor) {
-                        if (!descriptor.equals(CONSTRAINT)) throw invalidItem();
-                        return new ConstraintAnnotationVisitor(literal, literal.parameterConstraints);
-                    }
-                    @Override public AnnotationVisitor visitArray(String ignored) { throw invalidItem(); }
-                };
+                return parameterConstraintsArray();
             }
             if (annotation.equals(FIELD) && member.equals("constraints")) {
                 if (literal.constraints != null) throw invalid("Duplicate constraint facts");
