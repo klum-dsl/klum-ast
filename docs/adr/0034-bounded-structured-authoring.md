@@ -2,11 +2,12 @@
 
 Date: 2026-11-26
 
-Status: **Accepted strategy; new projection, codec and default-metadata guarantees require separate qualification.**
+Status: **Accepted strategy and public YAML interface direction; codec shipment and other new guarantees require separate qualification.**
 
 Authority: the maintainer's accepted decisions 1–16 in the structured-authoring strategy interview of 2026-11-26.
 The [reconciliation record](../implementation/adr-0034-structured-authoring-reconciliation.md) identifies the evidence,
-tracker ownership and remaining decisions. This documentation assignment authorizes no implementation or release change.
+tracker ownership and remaining decisions. The 2026-11-27 maintainer decision below selects the YAML interface form.
+This documentation assignment authorizes no implementation or release change.
 
 Parent decisions retain their responsibilities:
 
@@ -90,7 +91,69 @@ output choices remain intact. This selects neither a new convenience facade nor 
 The optional integration should own both YAML-to-tree parsing and tree-to-YAML emission. Callers compose construction
 with FromStruct/applyStruct and output with separately configured Jackson projection. The YAML boundary owns no Model
 introspection, construction engine or required `klum-ast-jackson` dependency. Library transitive dependencies require later
-assessment. No library, public API, module/artifact name or dependency is selected here.
+assessment. The original strategy selected no library, interface, module/artifact name or dependency; the dated
+extension below now selects the public interface form without adopting a parser or shipping an artifact.
+
+### Selected public YAML interface — #1114
+
+Date: 2026-11-27. Status: **Accepted interface direction; not implemented.**
+Authority: the maintainer selected the public-interface option following the bounded local YAML/tree qualification and
+interface discussion. [The plan](../implementation/issue-1114-yaml-integration.md) records the supporting proposals,
+acceptance slices and remaining qualification; [the evidence record](../implementation/evidence/issue-1114-yaml-qualification.md)
+distinguishes private proof from production readiness.
+
+`KlumYaml` is a public interface for YAML/shared-tree parsing and emission. Its builder constructs the module-owned,
+immutable configured implementation. Ordinary clients can inject the interface and supply test doubles without static
+method interception, parser-specific client types or actual parsing calls. This is deliberately implementable by clients, unlike generated
+`Foo_DSL` contracts. The factory supports this shape:
+
+```java
+import com.blackbuild.klum.ast.yaml.KlumYaml;
+
+KlumYaml yaml = KlumYaml.builder().withLimits(limits).build();
+Object tree = yaml.parse(text, "service.yaml");
+String output = yaml.emit(tree, "service-output");
+```
+
+These are selected design examples, not available client code. `limits` is an immutable resource-limits value and `text`
+is caller-supplied YAML. The smallest planned instance surface is `parse(String, String)`, `parse(byte[], String)` and
+`emit(Object, String)`. Public method descriptors, builder/limits member details, optional artifact/module placement and
+diagnostics are recorded as proposed details in the plan; the decision here settles interface, factory ownership and
+captured client-overridable limits, not every proposed descriptor or supporting type.
+
+The same selected factory shape in Groovy:
+
+```groovy
+import com.blackbuild.klum.ast.yaml.KlumYaml
+
+def yaml = KlumYaml.builder().withLimits(limits).build()
+def tree = yaml.parse(text, 'service.yaml')
+String output = yaml.emit(tree, 'service-output')
+```
+
+The limits have finite measured defaults, can be raised or lowered by the client within qualified supported ranges, and
+are captured at build time. Builder reuse cannot mutate an existing codec. Counters, scanners, parsers, emitters and
+other operation state belong to each call, so independent calls can reuse the same immutable codec. Resource overrides
+do not select a dialect or relax the accepted scalar/key/tag/document/identity policy. There is no unlimited sentinel or
+per-call configuration argument. Unsupported ranges must reject rather than overflow, clamp or silently ignore a limit.
+
+No YAML-library class, event, node, settings or exception type may occur in exported signatures, including the builder,
+limits and diagnostic surface. The public seam uses JDK values; no parser-specific configuration is accepted. The
+built-in builder selects the module-owned implementation, without parser registration, a provider registry or a generic
+serialization framework. Consumer test doubles do not make alternate parsers qualified Klum implementations.
+Hiding parser types does not remove the optional artifact's runtime dependency: a normal JPMS `requires` edge still
+requires parser-module resolution even when a consumer injects a fake.
+
+Core/runtime remain parser-free. This interface owns no Model introspection, projection or construction. FromStruct,
+applyStruct, managed Jackson, effective-Model trees and explicit JSON Schema validation retain the responsibilities above.
+No generated contract, lifecycle, ownership, Model/Template serialization or metadata protocol changes. Java/Groovy
+artifact consumers, Groovy 4/5 JPMS and actual dependency/publication metadata still require qualification before shipment.
+
+The local Engine 2.10 result justifies proceeding with this interface discussion; it does not select/adopt that library
+release. A separate adoption/implementation assignment is still required. This extension supersedes static parse/emit
+facades, a concrete-only codec contract and fixed unchangeable limits as the proposed public form. It leaves optional
+artifact naming, exact supporting members and the working defaults in the plan explicitly provisional. No release,
+milestone, issue closure, new source module, dependency or automatic runtime validation follows.
 
 ### 8–12. Fixed YAML input policy
 
@@ -159,7 +222,8 @@ the library or public API. Source inspection and library resolver labels alone a
 A failed requirement remains a documented gap for a later decision, never a silently weakened guarantee. #1113 separately
 qualifies Jackson-to-tree fidelity and named reconstruction subsets; it need not wait for a YAML library. An input-only
 qualification slice need not depend on Model output, although the accepted integration responsibility includes both directions.
-No research execution or implementation is assigned by this ADR.
+The recorded local proof and selected interface above advance this gate; production qualification remains required.
+No further research execution or implementation is assigned by this ADR.
 
 ### 16. Trusted source migration stays separate
 

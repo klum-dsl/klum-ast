@@ -5,6 +5,12 @@ Date: 2026-11-26. Scope: documentation and directly affected tracker guidance on
 [ADR 0034](../adr/0034-bounded-structured-authoring.md) records the accepted strategy. This is a reconciliation and
 qualification handoff, not an implementation plan or research assignment.
 
+Update, 2026-11-27: the maintainer selected public interface `KlumYaml`, a builder-owned immutable implementation and
+captured client-overridable limits. [The interface extension](../adr/0034-bounded-structured-authoring.md#selected-public-yaml-interface--1114),
+[working implementation plan](issue-1114-yaml-integration.md) and
+[qualification record](evidence/issue-1114-yaml-qualification.md) supersede the original #1114 interface-open checkpoint
+below. No parser release, production implementation, artifact/dependency addition or release placement is selected.
+
 ## Authority and evidence
 
 The maintainer accepted decisions 1–16 in `structured-authoring-strategy-brief.md` on 2026-11-26 and subsequently
@@ -30,7 +36,7 @@ These are related tracks, not a new dependency chain. No native dependency edges
 | [#953](https://github.com/klum-dsl/klum-ast/issues/953) | Root/keyed Factory, Builder application, Template input, overlays and root/body schema artifacts are delivered; file/URL/network/source convenience remains undecided | Refine body to remove delivered API/key prerequisites from future scope |
 | [#952](https://github.com/klum-dsl/klum-ast/issues/952) | Coordination of separately justified grammar increments; ordered execution, commands, selected converters, concrete sequences and finite aliases are delivered | Refine current scope; preserve dated slice history |
 | [#1113](https://github.com/klum-dsl/klum-ast/issues/1113) | Qualified completed-Model → typed-tree fidelity through existing Jackson and explicitly named reconstruction subsets | Refine body with accepted effective-value boundary and outstanding proof |
-| [#1114](https://github.com/klum-dsl/klum-ast/issues/1114) | Bidirectional YAML/tree parser/emitter qualification under ADR 0034 before library/API selection | Refine body with accepted policy versus deferred codec/packaging decisions |
+| [#1114](https://github.com/klum-dsl/klum-ast/issues/1114) | Bidirectional YAML/tree qualification; public interface/factory and configurable captured limits now selected; exact supporting contract and adoption remain future work | Reconcile selected interface in body; retain library/implementation/release gates |
 | [#959](https://github.com/klum-dsl/klum-ast/issues/959) | Static literal-default eligibility, compiled transport and field/relationship-use placement proof; computed defaults remain runtime/prose | Add dated current guidance above retained history |
 | [#971](https://github.com/klum-dsl/klum-ast/issues/971) | Future executable parameter enforcement, separately commissioned after its proof gates; historical preflight wording is not current execution policy | Add dated boundary clarification; do not claim its old failures reproduced |
 | [#981](https://github.com/klum-dsl/klum-ast/issues/981) | Delivered C1 raw selected-parameter assertions; C2/broader projection remains separate from enforcement | Read/link only; existing separation is accurate |
@@ -47,7 +53,7 @@ These gates require later bounded assignments; they neither reopen the accepted 
 
 | Owner | Required next evidence / decision |
 | --- | --- |
-| #1114 | Candidate library plus thin adapter corpus for every accepted scalar/key/tag/document/emission rule; exact Float/Double handling, empty-input/document/directive behavior and diagnostics; measured finite budgets at parse/emit boundaries. Only after proof choose library/API/dependencies, optional packaging/JPMS and consumer matrix. |
+| #1114 | Local Engine 2.10 proof recorded; public interface/factory and captured overridable limits selected. Finalize supporting proposals and qualified ranges, choose a library only under separate adoption authority, then qualify public API/dependencies, packaging/JPMS and Java/Groovy consumers. See the working plan; proof is not shipment. |
 | #1113 | Name projection/subset, mapper/codecs, inclusion and reference policy; qualify exact shared-tree values/numbers/acyclicity. For each reconstruction claim name compared effective values and external context, including key/default/lifecycle counterexamples. No YAML-library prerequisite. |
 | #959 | Prove literal eligibility without execution, compiler-owned inert transport/completeness and exact use-site placement, including the same child type with relationship defaults 2 and 8. Decide metadata compatibility and projection representation only with that evidence. |
 | #953 / #1085 | Independently decide source loading/resource ownership and active-child Factory ergonomics. Diagnostic source text is not a locator or key; preserve delivered positional-key APIs and explicit schema entry purposes. |
