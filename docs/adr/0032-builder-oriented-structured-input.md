@@ -1,6 +1,7 @@
 # Builder-oriented structured input for 4.2
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
+Category-B finite scalar-alternative extension: 2026-11-27 (accepted direction; implementation pending).
 
 Status: **Accepted; repository delivery reconciled on 2026-11-06 at `7cd6043c7089fcc592e130eba6d0eaf5a6fbfcb5`.**
 V0, S1–S7, Factory/Builder A0–A3, L1-A/B, F2-B, owned unkeyed/keyed sequences, native derived-key Maps,
@@ -9,6 +10,8 @@ source. See the [final #1015 inventory](../implementation/issue-1015-struct-fina
 boundaries. Earlier local-only and pending-merge wording below records slice-time qualification and is superseded for
 repository delivery status; it does not establish a release or current adopter qualification. Scalar owned-child
 String producers remain deferred post-4.2 under #1033. Other grammar requires its own accepted slice.
+The separately accepted [#1129 Integer/String extension](#finite-integerstring-operation-alternatives--1129)
+below is planning only; the earlier delivery status does not include it or assign it a release.
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -311,7 +314,8 @@ from enum class declarations without initialization. The selected operation stil
 Ordinary Groovy dispatch continues to follow its existing typed and converter routes. Alias support and enum converter
 precedence are deferred. [#1065](https://github.com/klum-dsl/klum-ast/issues/1065)
 
-Selection is fixed from the compiled contract, never from runtime value guessing, method enumeration order, method-name
+Except for the separately accepted, unimplemented #1129 family below, selection is fixed from the compiled contract,
+never from runtime value guessing, method enumeration order, method-name
 preferences or “try each converter.” String and CharSequence candidates competing for one external input do not acquire
 an implicit specificity preference. One authoritative mark wins among otherwise eligible operations; more than one mark
 fails; without a mark, admission requires exactly one candidate. A mark cannot override exclusion, an unsupported role,
@@ -352,6 +356,72 @@ The first authoring target is a Schema method with a public Builder projection. 
 equivalent compiler selection fact; users never edit generated source. Any additional source placement must identify
 exactly one generated operation. A field annotation must not silently choose among several converter overloads.
 An authored marked wrapper is a viable escape from an otherwise ambiguous generated family.
+
+### Finite Integer/String operation alternatives — #1129
+
+Date: 2026-11-27. Status: **Accepted v1 direction; not implemented or release-targeted.**
+Authority: the [maintainer's bounded-v1 decision](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225119384)
+and [separate Builder/Struct annotation clarification](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225170536).
+The [implementation plan](../implementation/issue-1129-struct-scalar-alternatives.md) records source evidence,
+metadata completeness, dependency-ordered slices and executable acceptance gates. This extension changes only the
+single-operation rule for the exact opt-in family described here; all other admission and failure rules remain.
+
+After existing exclusion, naming/profile, inheritance and override resolution, one effective external member may admit
+exactly two Schema-authored scalar operations: one exact `int` or `Integer` parameter and one exact `String` parameter.
+Each must already have its own public Builder projection and its own `@Struct.Operation`. `@Builder.Method` and
+`@Struct.Operation` remain separate decisions; no combined annotation or alias facility is introduced. Unmarked
+same-name overloads retain collision rejection; one marked String/CharSequence operation retains existing single-route
+selection. Unsupported roles, missing projections and compiler signature collisions cannot be overridden by a mark.
+Generated converter arms do not participate in v1.
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class Destination {
+    @Struct.Ignore Object value
+    @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+    @Struct.Operation @Builder.Method void address(String input) { value = input }
+}
+
+// Future accepted behavior; not an assertion of current implementation:
+assert Destination.Create.FromStruct([address: 8080]).value == 8080
+assert Destination.Create.FromStruct([address: '8080']).value.getClass() == String
+assert Destination.Create.FromStruct([address: 'http']).value == 'http'
+```
+
+The finite candidate set is established without inspecting input or executing Schema code. At execution, an actual String
+always selects its exact String arm, including numeric-looking Strings. Supported standard numeric inputs select the
+integer arm and use current exact int32 conversion, including integral BigDecimal values; fractions, overflow, nonfinite
+numbers and unsupported Number implementations reject. Numeric failure never retries the String arm. Dispatch uses the
+selected recorded signature, never the runtime argument's overload preference. Null rejects. Boolean, Map and List are
+outside this family. Integer/Long, integer/decimal, String/CharSequence, duplicate String routes/converters and other
+overlapping or larger families retain rejection; this introduces no general union/ADT or KlumAST `IntOrString` Model.
+
+The resolver supplies one immutable validated family to both FromStruct/applyStruct and JSON Schema. Projection emits
+one property with two `anyOf` branches: int32-bounded integer and String. Each branch owns its arm's authored Javadoc,
+supported inert parameter constraints, documentary String examples and source deprecation. Do not merge them into a
+synthetic group-level description, constraint, examples or deprecation flag, or borrow destination-field/converter facts.
+Reuse the closed constraint vocabulary and its conservative unsupported/policy behavior; executable parameter validation
+under #971 is separate. A schema-valid payload still may fail the operation body or lifecycle.
+
+Exact public descriptors, authored `GeneratedInput.Operation` facts, explicit authority and naming facts, plus declaring
+`Schema.operationCount`, already identify the finite family. Do not add a group carrier, signature registry or protocol
+bump merely for selection. Existing operation facts lack parameter constraints: the plan proposes additive, compiler-frozen
+arm facts with explicit completeness, required for a family even when empty. Missing/old/stripped or inconsistent required
+facts reject the family before use, with recompilation/package guidance; they never reduce it to one arm. Keep the unified
+metadata version authoritative and preserve existing single-route contracts. Matched compiler/runtime/plugin artifacts and
+recompiled participating Schema hierarchies are required; no legacy decoder, version negotiation or mixed-toolchain promise
+is added. The plan distinguishes this proposed transport from the maintainer-accepted language decision.
+
+Ordinary Groovy dispatch, Factory signatures, active-session/sealing checks, positional keys, ownership, supplied ordering,
+first-failure partial effects, Template recipes and completed-Model serialization retain their contracts. No Builder or
+resolved family is persisted. ScHelm [#82](https://github.com/klum-dsl/schelm/issues/82) and
+[PR #85](https://github.com/klum-dsl/schelm/pull/85) establish the concrete downstream need, not a core dependency or an
+adoption claim. #1113 output/reconstruction qualification and #1114 parsing remain separate. This planning change adds
+no production behavior, dependency, user-guide promise, release entry or tracker mutation; implementation needs a later
+explicit assignment.
 
 ### Scalar converters, scopes and commands
 
