@@ -485,11 +485,14 @@ public final class BuilderMethodProjection {
         });
 
         Set<Candidate> adaptable = resolveAdaptableCandidates(state.candidates.values());
-        adaptable.forEach(candidate -> {
-            if (candidate.concreteModels.size() == 1)
-                candidate.twin.setNodeMetaData(CONCRETE_MODEL_METADATA_KEY, candidate.concreteModels.iterator().next());
-            candidate.original.getDeclaringClass().addMethod(candidate.twin);
-        });
+        // Identity membership resolves dependencies; declaration order controls bytecode emission.
+        state.candidates.values().stream()
+                .filter(adaptable::contains)
+                .forEach(candidate -> {
+                    if (candidate.concreteModels.size() == 1)
+                        candidate.twin.setNodeMetaData(CONCRETE_MODEL_METADATA_KEY, candidate.concreteModels.iterator().next());
+                    candidate.original.getDeclaringClass().addMethod(candidate.twin);
+                });
         state.candidates.values().stream()
                 .filter(candidate -> !adaptable.contains(candidate))
                 .forEach(candidate -> {
