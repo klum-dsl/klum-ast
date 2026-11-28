@@ -71,7 +71,8 @@ recorded in the PR and task handoff, without changing unrelated build configurat
 The full compiler results were 3,446 cases on G3 (16 existing skips), 3,450 on G4 (15 existing skips), and 3,450 on G5
 (15 existing skips), with zero failures/errors. Plugin qualification ran 704 tests with zero failures/errors/skips.
 No ignored or pending tests were introduced. The production/test tree remained at reviewed `0779e7e5a` during full
-qualification; subsequent changes only clarify documentation and record evidence. Independent Standards and
+qualification. The initial documentation follow-up clarified scope and recorded evidence; the later Sonar follow-up
+below changes only private test-helper structure. Independent Standards and
 Specification reviews each returned zero findings, including the final scope wording. History review retains the two
 self-contained green TDD slices, qualification/docs, and this documentation follow-up without rewriting commits.
 
@@ -82,3 +83,18 @@ authority is inferred from those results.
 only when all accepted #1137 criteria are met. Hosted CI and SonarCloud must be checked on the final PR revision;
 local execution alone is not a hosted quality-gate result. Hive owns merge, release/upmerge decisions and final archive
 reconciliation.
+
+## Post-publication Sonar follow-up
+
+The first hosted run on `c92f57ee2` passed CI and its Sonar quality gate, with 100% new-code coverage and no new
+code duplication. The separate issue API reported three `groovydre:S134` nesting findings and one `groovydre:S8306`
+brace finding in the new bytecode-test visitor. These findings require disposition even when the gate is green.
+
+Commit `3bba4d62b52fb46223c7384d99a1aac38caddc8a` extracts visitor construction from file traversal and braces the
+conditional. It retains the scanned Builder classes, expected hooks, direct-owner check and dynamic-call rejection.
+No suppression, runtime change or additional scenario is introduced. Both independent reviewers returned zero
+findings for this follow-up. All published history is retained.
+
+After that commit, the full `:klum-ast:test` suite, focused `JpmsPackageBoundaryTest` on `groovy4Tests`/`groovy5Tests`,
+and `:klum-ast:licenseTest` passed under Java 17. The final documentation-only evidence update does not change those
+production/test inputs. The PR and handoff record the final hosted CI, Sonar issue disposition and exact head.
