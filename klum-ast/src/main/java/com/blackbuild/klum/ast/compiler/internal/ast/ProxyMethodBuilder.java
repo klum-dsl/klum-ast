@@ -83,6 +83,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     private static String generatedBuilderHook(String methodName) {
         return switch (methodName) {
             case "copyFromRecipe" -> "$copyFromRecipe";
+            case "setInstanceAttribute" -> "$setInstanceAttribute";
             case "setSingleField" -> "$setSingleField";
             case "setSingleFieldViaStringConverter" -> "$setSingleFieldViaStringConverter";
             case "addElementToCollectionViaStringConverter" -> "$addElementToCollectionViaStringConverter";
@@ -129,7 +130,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private boolean isGeneratedBuilderHook() {
         return targetType.equals(KLUM_BUILDER_TYPE) && switch (proxyMethodName) {
-            case "$copyFromRecipe", "$setSingleField", "$setSingleFieldViaStringConverter", "$setSingleFieldViaCharSequenceConverter", "$createSingleChild",
+            case "$copyFromRecipe", "$setInstanceAttribute", "$setSingleField", "$setSingleFieldViaStringConverter", "$setSingleFieldViaCharSequenceConverter", "$createSingleChild",
                     "$addElementToCollectionViaStringConverter", "$addElementToMapViaStringConverter",
                     "$addElementToCollectionViaCharSequenceConverter", "$addElementToMapViaCharSequenceConverter",
                     "$addNewDslElementToCollection", "$addNewDslElementToMap", "$scheduleApplyLater" -> true;

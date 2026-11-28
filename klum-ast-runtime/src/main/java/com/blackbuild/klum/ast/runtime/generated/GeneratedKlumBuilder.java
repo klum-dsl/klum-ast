@@ -71,6 +71,11 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
         return super.getCompletedModel();
     }
 
+    /** Direct property assignment retains ordinary normalization and mutation guards. */
+    protected final void $setInstanceAttribute(String name, Object value) {
+        super.setInstanceAttribute(name, value);
+    }
+
     protected final <T> T $setSingleField(String fieldOrMethodName, T value) {
         return super.setSingleField(fieldOrMethodName, value);
     }

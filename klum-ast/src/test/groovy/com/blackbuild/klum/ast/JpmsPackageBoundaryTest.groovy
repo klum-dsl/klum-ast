@@ -411,6 +411,93 @@ class JpmsPackageBoundaryTest extends Specification {
             assertFixtureOutput(namedModuleResult)
     }
 
+    @Issue("1137")
+    def "generated property assignment works on the classpath and module path"() {
+        when:
+        Map<String, ProcessResult> results = executeGeneratedHelperFixture(propertyAssignmentSource(),
+                ['assignment', 'inherited', 'fluent'])
+
+        then:
+        results.each { scenario, result ->
+            assert result.exitCode == 0 : "$scenario: $result.output"
+            assert result.output.readLines().contains('helper=true') : "$scenario: $result.output"
+        }
+    }
+
+    private static Map<String, ProcessResult> executeGeneratedHelperFixture(String source, List<String> scenarios) {
+        boolean namedGroovy = !GroovySystem.version.startsWith('3.')
+        Path fixture = Files.createTempDirectory('klum-generated-helper')
+        Path sources = fixture.resolve('sources')
+        Path classes = fixture.resolve('classes')
+        Files.createDirectories(sources.resolve('fixture/schema'))
+        Files.createDirectories(classes)
+        Files.writeString(sources.resolve('fixture/schema/Station.groovy'), source)
+        ProcessResult compilation = compileGroovySchema(sources, classes, namedGroovy)
+        assert compilation.exitCode == 0 : compilation.output
+        Path archive
+        if (namedGroovy) {
+            archive = compileAndPackageNamedSchema(sources, classes)
+        } else {
+            archive = fixture.resolve('fixture.schema.jar')
+            ProcessResult packaging = execute([
+                    jarExecutable(), '--create', '--file', archive.toString(), '-C', classes.toString(), '.'
+            ], fixture)
+            assert packaging.exitCode == 0 : packaging.output
+        }
+        assert sources.toFile().deleteDir()
+        assert classes.toFile().deleteDir()
+
+        // Compare identical Schema bytes with only the application JVM's module/classpath placement changed.
+        List<String> runtimeEntries = modulePathEntries().findAll { entry ->
+            entry != jarPath('klumCompilerJar').toString()
+        }
+        Map<String, ProcessResult> results = [:]
+        [false, true].findAll { !it || namedGroovy }.each { named ->
+            scenarios.each { scenario ->
+                List<String> command = named ? [
+                        javaExecutable(), '--module-path', [archive, *runtimeEntries].join(File.pathSeparator),
+                        '-m', 'fixture.schema/fixture.schema.HelperMain', scenario
+                ] : [
+                        javaExecutable(), '--class-path', [archive, *runtimeEntries].join(File.pathSeparator),
+                        'fixture.schema.HelperMain', scenario
+                ]
+                assertNoPortabilityWorkarounds(command)
+                results["${named ? 'module' : 'classpath'}/$scenario".toString()] = execute(command, fixture)
+            }
+        }
+        results
+    }
+
+    private static String propertyAssignmentSource() {
+        '''
+            package fixture.schema
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Parent { int count }
+            @DSL class Child extends Parent {
+                @Builder.Method void assign(Integer input) { count = input }
+            }
+            class HelperMain {
+                static void main(String[] args) {
+                    switch (args[0]) {
+                        case 'assignment':
+                            assert Parent.Create.With { count = 7 }.count == 7
+                            break
+                        case 'inherited':
+                            assert Child.Create.With { assign 7 }.count == 7
+                            break
+                        case 'fluent':
+                            assert Parent.Create.With { count 7 }.count == 7
+                            break
+                        default: throw new AssertionError(args[0])
+                    }
+                    println 'helper=true'
+                }
+            }
+        '''.stripIndent()
+    }
+
     private static Map<String, Set<String>> packageOwners(Map<String, Set<String>> packagesByArtifact) {
         Map<String, Set<String>> owners = new LinkedHashMap<>()
         packagesByArtifact.each { artifact, packageNames ->
