@@ -27,7 +27,7 @@ from 3.x, also use the [Builder-first migration checklist](Builder-First-Migrati
 ### Named-module helper repair
 
 The 4.2.x maintenance repair for [#1137](https://github.com/klum-dsl/klum-ast/issues/1137) corrects generated Builder
-property assignment and ordinary scalar, List and Map converter calls in Groovy 4/5 named modules. This includes
+property assignment and direct generated Builder scalar, List and Map converter calls in Groovy 4/5 named modules. This includes
 inherited field writes from `@Builder.Method`. Recompile the affected Schema artifacts with matching patched compiler
 and runtime versions. Replacing only the runtime leaves the older generated dynamic calls in place; newly generated
 calls require the corresponding patched runtime hooks.
