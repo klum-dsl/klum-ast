@@ -452,7 +452,7 @@ final class BuilderContractReader {
 
     private static void validateConstraints(List<ConstraintRule> rules, Integer count, String policy, String source) {
         try { Policy.valueOf(policy); }
-        catch (IllegalArgumentException failure) { throw invalid("Unknown constraint projection policy on " + source); }
+        catch (IllegalArgumentException failure) { throw invalid("Unknown constraint projection policy " + policy + " on " + source); }
         validateDecimalFacts(rules, source);
         validateComposingFacts(rules, source);
         List<ConstraintRule> patterns = rules.stream()

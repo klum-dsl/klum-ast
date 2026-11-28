@@ -2,7 +2,8 @@
 
 Date: 2026-11-28. Scope: the [accepted U2 slice](issue-1129-struct-scalar-alternatives.md#u2--arm-facts-effective-hierarchy-and-rejection-boundaries).
 Base: merged U1 PR #1131, `63b06e9076dcadcd511af61e3a5876bce9a20e20`.
-Status: implementation complete; affected-module qualification and independent review in progress.
+Status: implemented and locally verified for bounded U2 using complete-suite coverage plus scoped final-correction checks.
+Independent reviews are complete; U3 and hosted final-head results remain separate.
 Related: [#1129](https://github.com/klum-dsl/klum-ast/issues/1129); the issue remains open for U3 and final acceptance.
 
 ## Implementation
@@ -61,7 +62,51 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew 
   --console=plain --max-workers=2
 ```
 
-Result: pending. The plugin has one test lane with explicit Groovy 3/4/5 fixture producers; it does not define separate
+The complete run produced these results (counts include existing skipped cases):
+
+| Module / lane | Cases | Failures | Existing skips |
+| --- | ---: | ---: | ---: |
+| Compiler / Groovy 3 | 3538 | 0 | 16 |
+| Compiler / Groovy 4 | 3542 | 0 | 15 |
+| Compiler / Groovy 5 | 3542 | 0 | 15 |
+| Runtime / each of Groovy 3, 4, 5 | 116 | 0 | 1 |
+| Plugin / full suite | 714 | 1 before final correction | 0 |
+
+The sole final broad-run failure expected the rejected policy name `FUTURE` in an existing field-policy diagnostic.
+The additive correction restores that exact baseline text; it changes no admission or projection behavior. Both reviewers
+rechecked it without findings. The four existing field-policy regressions and all focused checks below pass afterwards.
+The complete plugin suite was not rerun locally after that one-string correction; the other 713 cases' inputs and
+behavior are unchanged. This is recorded explicitly rather than reporting the broad command as wholly successful.
+
+Final correction qualification used the same Java 17 environment and a single Gradle invocation:
+
+```shell
+typeset -a u2_validation_args
+for u2_lane in test groovy4Tests groovy5Tests; do
+  u2_validation_args+=(":klum-ast:$u2_lane" \
+    --tests '*StructuredScalarAlternativeTest' --tests '*StructuredOperationSelectionTest' \
+    --tests '*InputNamingProfileTest' --tests '*CompiledBuilderSchema*Test' \
+    --tests '*ConstraintProjectionTest' --tests '*InputConstraintDescriptionTest')
+done
+./gradlew "${u2_validation_args[@]}" \
+  :klum-ast-runtime:test :klum-ast-runtime:groovy4Tests :klum-ast-runtime:groovy5Tests \
+  :klum-ast-gradle-plugin:test \
+  --tests '*KlumJsonSchemaGenerationTest.emits one bounded integer and String*' \
+  --tests '*KlumJsonSchemaGenerationTest.incomplete family parameter*' \
+  --tests '*KlumJsonSchemaGenerationTest.corrupt Pattern facts*' \
+  --tests '*KlumJsonSchemaGenerationTest.field policy metadata*' \
+  :klum-ast:verifyTestLaneIsolation :klum-ast-runtime:verifyTestLaneIsolation \
+  :klum-ast:licenseMain :klum-ast:licenseTest :klum-ast-runtime:licenseMain \
+  :klum-ast-gradle-plugin:licenseMain :klum-ast-gradle-plugin:licenseTest \
+  --console=plain --max-workers=2
+```
+
+Result: **passed**. Compiler/contract tests: **261 cases per generation**, all passing with no skips. Full runtime lanes:
+**116 cases each**, zero failures and one existing skip each. Plugin: **29 cases**, all passing, including all four field
+policy cases, the three generated-schema producer generations, seven family parameter corruptions and existing Pattern
+corruption cases. Both lane-isolation checks and affected license tasks pass. No new tests are suppressed.
+
+The plugin has one test lane with explicit Groovy 3/4/5 fixture producers; it does not define separate
 `groovy4Tests`/`groovy5Tests` tasks. Independent artifact, historical-binary, JPMS and root full-build gates belong to U3.
 
 Independent Draft 2020-12 validation uses the retained generated artifacts and the existing `jsonschema==4.23.0` oracle:
@@ -72,7 +117,8 @@ python klum-ast-gradle-plugin/src/test/resources/validate_scalar_alternative_sch
 ```
 
 Result: **39 emitted schemas, 279 accepted / 477 rejected documents**, including all Groovy 3/4/5 variants. No handwritten substitute schema or runtime validator dependency is added.
-License/diff and documentation link/anchor checks are recorded at final handoff. This evidence distinguishes local affected
+Affected license tasks, `git diff --check`, touched documentation file/heading links and reciprocal documentary
+references pass. This evidence distinguishes local affected
 modules from final-head hosted CI/Sonar and later artifact/adopter acceptance.
 
 ## Review and delivery boundaries
@@ -81,15 +127,20 @@ Independent Standards review found one import-style violation and two optional n
 three were corrected and independently rechecked. Specification review found no actionable gaps and rechecked the
 follow-up with no remaining findings. Broad plugin regression exposed changed diagnostic precedence for corrupt field
 Pattern facts; restoring baseline rule-before-count validation fixes it. The unchanged duplicate-Pattern regressions,
-new family checks and focused runtime suite pass after correction. History is one cohesive feature/test step plus a bounded
-user/status/evidence update; final history review and hosted CI/Sonar are reported in the PR/worker handoff.
+new family checks and focused runtime suite pass after correction. History preserves the feature/test commit, bounded user/status/evidence update and independently rechecked corrections.
+Final history review confirms the commits contain only U2; hosted CI/Sonar are reported in the PR/worker handoff.
 The existing documentary entry remains
 `StructuredScalarAlternativeTest#'one address accepts an integer or a String without changing its meaning'`, with its
 `@Issue('1129')`, `@Tag('documentary')`, `@See` and reciprocal user link; it now uses the four-overload fixture.
 User pages and the existing unreleased entry reflect U2 behavior. Consolidated migration/delivery-doc qualification
-remains U3; no release placement or consumer adoption is established.
+remains U3; specifically, `Struct.Operation` Javadoc and the opening `docs/user/Migration.md` paragraph still describe
+U1's empty-only boundary and must be synchronized in that consolidated pass. No release placement or consumer adoption
+is established.
 
 No general union/ADT, carrier/registry, generated converter-family arms, alternate resolver, metadata protocol bump,
 general parameter projection/enforcement, parser or #1113 reconstruction behavior is introduced. No ScHelm/Kubernetes
 source, fixture or dependency changes. U3 remains a separately assigned native stacked successor; this worker neither
 merges the PR nor closes #1129. Hive owns delivery and archive reconciliation.
+
+Delivery-channel preflight: GitHub CLI repository-write capability **authorized**; dedicated Git branch publication
+channel **authorized**, verified by dry run. Actual publication and hosted results are recorded in the PR/worker handoff.
