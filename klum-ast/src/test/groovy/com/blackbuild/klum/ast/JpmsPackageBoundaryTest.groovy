@@ -489,31 +489,37 @@ class JpmsPackageBoundaryTest extends Specification {
         Files.walk(classes).withCloseable { paths ->
             paths.filter { it.fileName.toString().endsWith('$Builder.class') }.forEach { builder ->
                 Files.newInputStream(builder).withCloseable { input ->
-                    new ClassReader(input).accept(new ClassVisitor(Opcodes.ASM7) {
-                        @Override
-                        MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                            new MethodVisitor(Opcodes.ASM7) {
-                                @Override
-                                void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrap,
-                                                            Object... bootstrapArguments) {
-                                    bootstrapArguments.findAll { it in expectedHooks || ('$' + it) in expectedHooks }
-                                            .each { dynamicHooks.add(it.toString()) }
-                                }
-
-                                @Override
-                                void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
-                                                     boolean isInterface) {
-                                    if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
-                                            methodName in expectedHooks) directHooks.add(methodName)
-                                }
-                            }
-                        }
-                    }, 0)
+                    new ClassReader(input).accept(helperLinkageVisitor(expectedHooks, directHooks, dynamicHooks), 0)
                 }
             }
         }
         assert dynamicHooks.empty : "Generated helpers must not dispatch dynamically: $dynamicHooks"
         assert directHooks == expectedHooks
+    }
+
+    private static ClassVisitor helperLinkageVisitor(Set<String> expectedHooks, Set<String> directHooks, Set<String> dynamicHooks) {
+        new ClassVisitor(Opcodes.ASM7) {
+            @Override
+            MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM7) {
+                    @Override
+                    void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrap,
+                                                Object... bootstrapArguments) {
+                        bootstrapArguments.findAll { it in expectedHooks || ('$' + it) in expectedHooks }
+                                .each { dynamicHooks.add(it.toString()) }
+                    }
+
+                    @Override
+                    void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
+                                         boolean isInterface) {
+                        if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
+                                methodName in expectedHooks) {
+                            directHooks.add(methodName)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static String propertyAssignmentSource() {
