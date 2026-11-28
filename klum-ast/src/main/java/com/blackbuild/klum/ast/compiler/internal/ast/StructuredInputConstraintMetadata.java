@@ -118,7 +118,7 @@ final class StructuredInputConstraintMetadata {
         fact.setMember(countMember, new ConstantExpression(constraints.getExpressions().size()));
     }
 
-    private static AnnotationNode rule(AnnotatedNode field, AnnotationNode annotation, List<AnnotationNode> declarations) {
+    private static AnnotationNode rule(AnnotatedNode source, AnnotationNode annotation, List<AnnotationNode> declarations) {
         String name = annotation.getClassNode().getName();
         // Use Groovy's inert ConstantValue/AST folding, never reflective field reads or evaluation.
         if (name.equals(PATTERN)) {
@@ -128,7 +128,7 @@ final class StructuredInputConstraintMetadata {
         rule.setSourcePosition(annotation);
         rule.setMember("annotation", new ConstantExpression(name));
         rule.setMember("declaration", new ConstantExpression(declaration(name.equals(PATTERN)
-                ? StructuredInputSourceOrigins.original(field, annotation) : annotation)));
+                ? StructuredInputSourceOrigins.original(source, annotation) : annotation)));
         rule.setMember("origin", new ConstantExpression(documentaryOnly(annotation) ? "DOCUMENTARY" : "DIRECT"));
         rule.setMember("owner", new ConstantExpression(""));
         rule.setMember("description", description(annotation));
@@ -136,16 +136,16 @@ final class StructuredInputConstraintMetadata {
         boolean decimal = name.equals("jakarta.validation.constraints.DecimalMin") || name.equals("jakarta.validation.constraints.DecimalMax");
         if (name.equals(MIN) || name.equals(MAX) || decimal) captureBound(annotation, declarations, rule, decimal);
         if (name.equals(NOT_BLANK)) {
-            rule.setMember(PLAIN, new ConstantExpression(StructuredInputSourceOrigins.direct(field, annotation)
+            rule.setMember(PLAIN, new ConstantExpression(StructuredInputSourceOrigins.direct(source, annotation)
                     && plain(annotation, declarations)));
         }
         if (name.equals(PATTERN)) {
             rule.setMember("regexp", annotation.getMember("regexp"));
             rule.setMember("patternFlagsEmpty", new ConstantExpression(empty(annotation.getMember("flags"))));
-            rule.setMember(PLAIN, new ConstantExpression(StructuredInputSourceOrigins.direct(field, annotation) && plain(annotation, declarations)
+            rule.setMember(PLAIN, new ConstantExpression(StructuredInputSourceOrigins.direct(source, annotation) && plain(annotation, declarations)
                     && declarations.stream().noneMatch(other -> other.getClassNode().getName().equals("jakarta.validation.constraints.Pattern$List"))));
         }
-        if (field instanceof MethodNode && !StructuredInputSourceOrigins.direct(field, annotation)) {
+        if (source instanceof MethodNode && !StructuredInputSourceOrigins.direct(source, annotation)) {
             rule.setMember(PLAIN, ConstantExpression.FALSE);
         }
         return rule;
@@ -162,18 +162,18 @@ final class StructuredInputConstraintMetadata {
                 .findFirst().orElse(new ConstantExpression(""));
     }
 
-    private static void composingRules(AnnotatedNode field, AnnotationNode outer, List<AnnotationNode> declarations,
+    private static void composingRules(AnnotatedNode source, AnnotationNode outer, List<AnnotationNode> declarations,
                                        ListExpression facts) {
         ClassNode type = outer.getClassNode();
         if (!jakartaConstraint(type)) return;
         List<AnnotationNode> children = type.getAnnotations().stream()
                 .filter(meta -> beanConstraint(meta.getClassNode())).toList();
-        boolean and = StructuredInputSourceOrigins.direct(field, outer) && plainComposition(outer, declarations)
+        boolean and = StructuredInputSourceOrigins.direct(source, outer) && plainComposition(outer, declarations)
                 && standardAnd(type) && !overrides(type)
                 && children.stream().noneMatch(child -> !child.getClassNode().getName().startsWith(JAKARTA_CONSTRAINTS)
                         && jakartaConstraint(child.getClassNode()));
         children.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right))).forEach(child -> {
-            AnnotationNode fact = rule(field, child, children);
+            AnnotationNode fact = rule(source, child, children);
             boolean eligible = and && plainComposition(child, children);
             fact.setMember("origin", new ConstantExpression(eligible ? "COMPOSING_AND" : "COMPOSING_UNSUPPORTED"));
             fact.setMember("owner", new ConstantExpression(declaration(outer)));

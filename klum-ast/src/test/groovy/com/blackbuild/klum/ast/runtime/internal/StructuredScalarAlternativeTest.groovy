@@ -43,11 +43,13 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
 
     private Class schema(String numeric = 'Integer', String numericMark = '@Struct.Operation',
                          String stringMark = '@Struct.Operation', String parameterAnnotation = '', String extra = '') {
+        declareMinimumConstraint()
         createSecondaryClass("""
             package scalaralternatives
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
             import groovy.transform.AnnotationCollector
+            import jakarta.validation.constraints.Min
             @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.PARAMETER])
             @interface InputBound { long value() }
             @AnnotationCollector @interface Unqualified {}
@@ -73,17 +75,20 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         Class.forName('scalaralternatives.Destination', false, artifacts)
     }
 
-    def cleanup() { artifacts?.close() }
-
-    def 'transports authored parameter constraints independently of family membership'() {
-        given:
+    private void declareMinimumConstraint() {
         createSecondaryClass('''
             package jakarta.validation.constraints
             import java.lang.annotation.*
             @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.PARAMETER)
             @interface Min { long value(); Class[] groups() default []; Class[] payload() default [] }
         ''')
-        def destination = schema('Integer', numericMark, stringMark, '@jakarta.validation.constraints.Min(7L)')
+    }
+
+    def cleanup() { artifacts?.close() }
+
+    def 'transports authored parameter constraints independently of family membership'() {
+        given:
+        def destination = schema('Integer', numericMark, stringMark, '@Min(7L)')
 
         when:
         def builder = Class.forName('scalaralternatives.Destination_DSL$Builder', false, artifacts)
@@ -422,14 +427,8 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
 
     def 'malformed nonempty parameter rows reject before absent input even under OMIT: #mutation'() {
         given:
-        createSecondaryClass('''
-            package jakarta.validation.constraints
-            import java.lang.annotation.*
-            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.PARAMETER)
-            @interface Min { long value(); Class[] groups() default []; Class[] payload() default [] }
-        ''')
         def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation',
-                '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @jakarta.validation.constraints.Min(7L)')
+                '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Min(7L)')
         mutateParameterFacts(mutation)
 
         when:

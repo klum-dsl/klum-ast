@@ -71,13 +71,17 @@ python klum-ast-gradle-plugin/src/test/resources/validate_scalar_alternative_sch
   klum-ast-gradle-plugin/build/schema-validation
 ```
 
-Result: final expanded-corpus run pending. No handwritten substitute schema or runtime validator dependency is added.
+Result: **39 emitted schemas, 279 accepted / 477 rejected documents**, including all Groovy 3/4/5 variants. No handwritten substitute schema or runtime validator dependency is added.
 License/diff and documentation link/anchor checks are recorded at final handoff. This evidence distinguishes local affected
 modules from final-head hosted CI/Sonar and later artifact/adopter acceptance.
 
 ## Review and delivery boundaries
 
-Independent Standards and Specification reviews: pending. History is one cohesive feature/test step plus a bounded
+Independent Standards review found one import-style violation and two optional naming/duplication observations; all
+three were corrected and independently rechecked. Specification review found no actionable gaps and rechecked the
+follow-up with no remaining findings. Broad plugin regression exposed changed diagnostic precedence for corrupt field
+Pattern facts; restoring baseline rule-before-count validation fixes it. The unchanged duplicate-Pattern regressions,
+new family checks and focused runtime suite pass after correction. History is one cohesive feature/test step plus a bounded
 user/status/evidence update; final history review and hosted CI/Sonar are reported in the PR/worker handoff.
 The existing documentary entry remains
 `StructuredScalarAlternativeTest#'one address accepts an integer or a String without changing its meaning'`, with its

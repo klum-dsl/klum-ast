@@ -83,18 +83,18 @@ final class StructuredInputSourceOrigins {
         return marker;
     }
 
-    static boolean direct(AnnotatedNode field, AnnotationNode annotation) {
-        return originals(field).stream().anyMatch(original -> original == annotation);
+    static boolean direct(AnnotatedNode source, AnnotationNode annotation) {
+        return originals(source).stream().anyMatch(original -> original == annotation);
     }
 
-    static AnnotationNode original(AnnotatedNode field, AnnotationNode annotation) {
-        if (direct(field, annotation)) return annotation;
-        return originals(field).stream().filter(original -> original.getLineNumber() == annotation.getLineNumber()
+    static AnnotationNode original(AnnotatedNode source, AnnotationNode annotation) {
+        if (direct(source, annotation)) return annotation;
+        return originals(source).stream().filter(original -> original.getLineNumber() == annotation.getLineNumber()
                 && original.getColumnNumber() == annotation.getColumnNumber()).findFirst().orElse(annotation);
     }
 
-    private static List<AnnotationNode> originals(AnnotatedNode field) {
-        List<AnnotationNode> markers = field.getAnnotations(ClassHelper.make(field instanceof FieldNode ? OriginalDeclarations.class : OriginalParameter.class));
+    private static List<AnnotationNode> originals(AnnotatedNode source) {
+        List<AnnotationNode> markers = source.getAnnotations(ClassHelper.make(source instanceof FieldNode ? OriginalDeclarations.class : OriginalParameter.class));
         if (markers.size() != 1) return List.of();
         List<AnnotationNode> originals = markers.get(0).getNodeMetaData(ORIGINALS);
         return originals == null ? List.of() : originals;

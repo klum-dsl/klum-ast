@@ -451,11 +451,8 @@ final class BuilderContractReader {
     }
 
     private static void validateConstraints(List<ConstraintRule> rules, Integer count, String policy, String source) {
-        if (count == null) throw invalid("Missing constraint count on " + source);
-        if (count < 0) throw invalid("Unknown constraint count on " + source);
         try { Policy.valueOf(policy); }
         catch (IllegalArgumentException failure) { throw invalid("Unknown constraint projection policy on " + source); }
-        if (count != rules.size()) throw invalid("Constraint count mismatch on " + source);
         validateDecimalFacts(rules, source);
         validateComposingFacts(rules, source);
         List<ConstraintRule> patterns = rules.stream()
@@ -465,6 +462,9 @@ final class BuilderContractReader {
         if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
             throw invalid("Inconsistent singleton Pattern eligibility on " + source);
         }
+        if (count == null) throw invalid("Missing constraint count on " + source);
+        if (count < 0) throw invalid("Unknown constraint count on " + source);
+        if (count != rules.size()) throw invalid("Constraint count mismatch on " + source);
     }
 
     /** Completeness is required by newly qualified uses, not by generic operation transport. */
