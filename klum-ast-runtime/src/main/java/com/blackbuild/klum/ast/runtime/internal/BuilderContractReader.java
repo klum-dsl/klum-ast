@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.Struct;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.ParameterConstraints;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import groovyjarjarasm.asm.AnnotationVisitor;
 import groovyjarjarasm.asm.ClassReader;
@@ -163,16 +164,16 @@ final class BuilderContractReader {
         return new NameFacts(value.rename, value.origin, value.ignored);
     }
 
-    private static void validateDecimalFacts(MutableLiterals literal, String source) {
-        for (ConstraintRule rule : literal.constraints) {
+    private static void validateDecimalFacts(List<ConstraintRule> rules, String source) {
+        for (ConstraintRule rule : rules) {
             if (!decimalRule(rule.annotation())) continue;
             if (rule.decimalValue() == null || rule.inclusive() == null) {
-                throw invalidConstraint(literal, "missing direct decimal facts");
+                throw invalid("missing direct decimal facts on " + source);
             }
             try {
                 new BigDecimal(rule.decimalValue());
             } catch (NumberFormatException failure) {
-                throw invalidConstraint(literal, "Invalid decimal bound '" + rule.decimalValue() + "' on " + source);
+                throw invalid("Invalid decimal bound '" + rule.decimalValue() + "' on " + source);
             }
         }
     }
@@ -445,37 +446,53 @@ final class BuilderContractReader {
             throw invalid("rawInputRequired conflicts with excluded field " + source + " on " + literal.location);
         if (literal.constraints == null) throw invalidConstraint(literal, "Missing constraint facts on " + source);
         if (literal.constraintProjection == null) throw invalid("Missing constraint projection policy on " + source);
-        try {
-            Policy.valueOf(literal.constraintProjection);
-        } catch (IllegalArgumentException failure) {
-            throw invalidConstraint(literal, "Unknown constraint projection policy " + literal.constraintProjection + " on " + source);
-        }
-        validateDecimalFacts(literal, source);
-        validateComposingFacts(literal, source);
-        List<ConstraintRule> patterns = literal.constraints.stream()
-                .filter(rule -> rule.origin().equals(DIRECT_CONSTRAINT) && rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
-        boolean repeatedPattern = patterns.size() > 1 || literal.constraints.stream()
-                .anyMatch(rule -> rule.origin().equals(DIRECT_CONSTRAINT) && rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
-        if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
-            throw invalidConstraint(literal, "Inconsistent singleton Pattern eligibility on " + source);
-        }
-        if (literal.constraintCount == null) throw invalidConstraint(literal, "Missing constraint count on " + source);
-        if (literal.constraintCount != literal.constraints.size()) {
-            throw invalidConstraint(literal, "Constraint count mismatch on " + source);
-        }
+        try { validateConstraints(literal.constraints, literal.constraintCount, literal.constraintProjection, source); }
+        catch (IllegalArgumentException failure) { throw invalidConstraint(literal, failure.getMessage()); }
     }
 
-    private static void validateComposingFacts(MutableLiterals literal, String source) {
-        for (ConstraintRule rule : literal.constraints) {
+    private static void validateConstraints(List<ConstraintRule> rules, Integer count, String policy, String source) {
+        try { Policy.valueOf(policy); }
+        catch (IllegalArgumentException failure) { throw invalid("Unknown constraint projection policy " + policy + " on " + source); }
+        validateDecimalFacts(rules, source);
+        validateComposingFacts(rules, source);
+        List<ConstraintRule> patterns = rules.stream()
+                .filter(rule -> rule.origin().equals(DIRECT_CONSTRAINT) && rule.annotation().equals("jakarta.validation.constraints.Pattern")).toList();
+        boolean repeatedPattern = patterns.size() > 1 || rules.stream()
+                .anyMatch(rule -> rule.origin().equals(DIRECT_CONSTRAINT) && rule.annotation().equals("jakarta.validation.constraints.Pattern$List"));
+        if (repeatedPattern && patterns.stream().anyMatch(ConstraintRule::plain)) {
+            throw invalid("Inconsistent singleton Pattern eligibility on " + source);
+        }
+        if (count == null) throw invalid("Missing constraint count on " + source);
+        if (count < 0) throw invalid("Unknown constraint count on " + source);
+        if (count != rules.size()) throw invalid("Constraint count mismatch on " + source);
+    }
+
+    /** Completeness is required by newly qualified uses, not by generic operation transport. */
+    static ParameterConstraints completeParameterConstraints(Literals facts, String source) {
+        String parameter = "authored parameter facts on " + source + " parameter[0]";
+        if (facts.parameterConstraints() == null || facts.parameterConstraintCount() == null
+                || facts.parameterConstraintCount() < 0 || facts.parameterConstraintProjection() == null) {
+            throw invalid("Incomplete constraint facts on " + parameter);
+        }
+        validateConstraints(facts.parameterConstraints(), facts.parameterConstraintCount(), facts.parameterConstraintProjection(), parameter);
+        List<ConstraintRule> rules = facts.parameterConstraints();
+        if (rules.stream().map(rule -> List.of(rule.origin(), rule.owner(), rule.declaration())).distinct().count() != rules.size()) {
+            throw invalid("Duplicate " + parameter);
+        }
+        return new ParameterConstraints(Policy.valueOf(facts.parameterConstraintProjection()), rules);
+    }
+
+    private static void validateComposingFacts(List<ConstraintRule> rules, String source) {
+        for (ConstraintRule rule : rules) {
             if (DECLARATION_ORIGINS.contains(rule.origin())) continue;
-            if (literal.constraints.stream().noneMatch(outer -> outer.origin().equals(DIRECT_CONSTRAINT)
+            if (rules.stream().noneMatch(outer -> outer.origin().equals(DIRECT_CONSTRAINT)
                     && outer.declaration().equals(rule.owner()) && !outer.plain())) {
-                throw invalidConstraint(literal, "Missing composing constraint owner on " + source);
+                throw invalid("Missing composing constraint owner on " + source);
             }
-            long occurrences = literal.constraints.stream().filter(other -> other.owner().equals(rule.owner())
+            long occurrences = rules.stream().filter(other -> other.owner().equals(rule.owner())
                     && other.annotation().equals(rule.annotation())).count();
             if (rule.origin().equals("COMPOSING_AND") && occurrences != 1) {
-                throw invalidConstraint(literal, "Inconsistent singleton composing eligibility on " + source);
+                throw invalid("Inconsistent singleton composing eligibility on " + source);
             }
         }
     }
@@ -768,6 +785,7 @@ final class BuilderContractReader {
     }
 
     private static IllegalArgumentException invalidConstraint(MutableLiterals field, String reason) {
+        if (field.field == null) return invalid(reason + " for authored parameter at " + field.location);
         return invalid(reason + " for source field #" + field.field + ", external input '"
                 + (field.names.rename.isEmpty() ? field.field : field.names.rename) + "'");
     }

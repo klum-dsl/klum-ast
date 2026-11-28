@@ -1,0 +1,65 @@
+/**
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+// Opt-in fixture regeneration only, executed in the pinned PRE-CHANGE checkout, never by check.
+gradle.projectsEvaluated {
+    def compiler = rootProject.findProject(':klum-ast')
+    if (compiler == null) return // Init scripts also apply to buildSrc.
+    def validation = rootProject.configurations.detachedConfiguration(
+            rootProject.dependencies.create('jakarta.validation:jakarta.validation-api:3.0.2'))
+    rootProject.tasks.register('rebuildScalarHistoricalFixtures') {
+        dependsOn ':klum-ast:jar', ':klum-ast-runtime:jar', ':klum-ast-annotations:jar'
+        doLast {
+            def revision = new ProcessBuilder('git', 'rev-parse', 'HEAD').directory(rootProject.projectDir).start()
+            assert revision.inputStream.text.trim() == 'd91110749618a6fdb4fa605e128236a57758d3db'
+            assert revision.waitFor() == 0
+            File fixtures = rootProject.file(rootProject.property('scalarFixtureDirectory'))
+            File configuration = new File(temporaryDir, 'config.groovy')
+            configuration.parentFile.mkdirs()
+            configuration.text = 'configuration.parameters = true; configuration.optimizationOptions.groovydoc = true'
+            def java = new File(System.getProperty('java.home'), 'bin/java').absolutePath
+            def jar = new File(System.getProperty('java.home'), 'bin/jar').absolutePath
+            def libraries = rootProject.files(compiler.tasks.named('jar'), compiler.configurations.runtimeClasspath, validation)
+                    .filter { !it.name.startsWith('groovy-') }
+            ['3': 'compileClasspath', '4': 'groovy4TestsCompileClasspath', '5': 'groovy5TestsCompileClasspath'].each { generation, lane ->
+                def groovy = compiler.configurations[lane].files.find { it.name ==~ /groovy-[345]\..*\.jar/ }
+                def inputs = rootProject.files(libraries, groovy).asPath
+                ['historical': 'Historical.groovy', 'historical-parent': 'Parent.groovy'].each { name, source ->
+                    File classes = new File(temporaryDir, name + '-g' + generation)
+                    classes.deleteDir()
+                    classes.mkdirs()
+                    rootProject.exec {
+                        commandLine java, '-cp', inputs, 'org.codehaus.groovy.tools.FileSystemCompiler',
+                                '--configscript', configuration.absolutePath, '-d', classes.absolutePath,
+                                new File(fixtures, source).absolutePath
+                    }
+                    rootProject.exec {
+                        commandLine jar, '--create', '--date=2026-11-27T00:00:00Z', '--file',
+                                new File(fixtures, name + '-g' + generation + '.jar').absolutePath,
+                                '-C', classes.absolutePath, '.'
+                    }
+                }
+            }
+        }
+    }
+}

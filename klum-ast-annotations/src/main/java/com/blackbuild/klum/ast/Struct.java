@@ -70,7 +70,10 @@ public final class Struct {
      * Selects a Schema-authored Builder operation for its effective external input name.
      * One eligible marked String/CharSequence operation wins. Exactly two marked Schema-authored operations may
      * instead admit one int/Integer and one exact String arm under the same effective name. This bounded family
-     * currently requires compiler-confirmed empty parameter constraint facts; other multiple marks reject.
+     * requires complete compiler-frozen facts for both authored parameters, including an explicit zero count when
+     * unconstrained. Supported parameter assertions and prose stay on their own JSON Schema branch; they do not
+     * become runtime parameter validation. Other multiple marks reject. Use matched compiler/runtime/plugin artifacts
+     * and recompile the participating Schema hierarchy; historical single-route contracts retain their interpretation.
      * Without a mark the candidate must be unique. Requires an existing public Builder projection (for example,
      * {@link Builder.Method}) and cannot override exclusion or unsupported operation roles.
      */

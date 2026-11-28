@@ -78,10 +78,10 @@ final class CompiledBuilderSchema {
             this(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey, fixedChildKey,
                     nameOrigin, documentation, schemaKey, sourceDeprecated, examples, alternatives, rawInputRequired, fieldDocumentation, null);
         }
-        Entry withScalarAlternatives(Entry stringArm) {
+        Entry withScalarAlternatives(Entry stringArm, ParameterConstraints integerFacts, ParameterConstraints stringFacts) {
             return new Entry(externalName, role, source, contract, operation, methods, dispatch, payload, keyType, excludedKey,
                     fixedChildKey, nameOrigin, documentation, schemaKey, sourceDeprecated, examples, alternatives,
-                    rawInputRequired, fieldDocumentation, new ScalarAlternatives(this, stringArm));
+                    rawInputRequired, fieldDocumentation, new ScalarAlternatives(this, stringArm, integerFacts, stringFacts));
         }
         Entry(String externalName, Role role, String source, Class<?> contract, String operation,
               List<Method> methods, Method dispatch, Payload payload, String keyType, String excludedKey, String fixedChildKey,
@@ -97,7 +97,13 @@ final class CompiledBuilderSchema {
     }
 
     /** Closed Integer/int + String family. Arms retain their complete, exact declaration and dispatch identity. */
-    record ScalarAlternatives(Entry integerArm, Entry stringArm) { }
+    record ScalarAlternatives(Entry integerArm, Entry stringArm,
+                              ParameterConstraints integerConstraints, ParameterConstraints stringConstraints) { }
+
+    /** Inert authored parameter facts; only separately qualified sites may project assertions. */
+    record ParameterConstraints(Policy policy, List<ConstraintRule> rules) {
+        ParameterConstraints { rules = List.copyOf(rules); }
+    }
 
     /**
      * Compiler-frozen constraint facts, not executable annotations. {@code plain} states direct-origin/context

@@ -26,10 +26,22 @@ The explicitly marked [Integer/String pair](Structured-Input.md#integerstring-al
 ```
 
 Branches always appear integer then String, independent of declaration order. Each owns its method prose, examples
-and deprecation; the wrapper combines no documentation or constraints. This initial slice requires explicit empty
-parameter facts on both arms. Nonempty/unknown parameter facts reject before output replacement, including under OMIT.
-Arm constraint projection and the full hierarchy/artifact qualification remain follow-up work under
-[#1129](https://github.com/klum-dsl/klum-ast/issues/1129). A schema-valid value may still fail the operation body or lifecycle.
+and deprecation; the wrapper combines no documentation or constraints. Supported parameter constraints belong to their
+own branch: for example, integer Min/Max bounds conjoin with the int32 fence, while a bounded String Pattern stays on the
+String branch. PROJECT, TEXT_ONLY and OMIT retain the policies described below; none removes structural type/range fences.
+Unsupported or grouped rules remain documentary. Generic authored-parameter metadata does not enable projection on other
+operation sites and never adds runtime parameter enforcement.
+
+Both arms require complete parameter facts. Missing, unknown or inconsistent facts reject before output replacement,
+including under OMIT or when no member was supplied. The [artifact qualification](../implementation/issue-1129-u3-evidence.md)
+uses the same parent/child JARs for independent application clients and actual generated-schema validation, plus
+pre-change single-route binaries and fail-closed incomplete hierarchy controls. Protocol remains 1; use matched
+compiler/runtime/plugin artifacts and rebuild participating Schemas. Old consumers are not qualified for new families.
+A schema-valid value may still fail the operation body or lifecycle. See the
+[documentary example](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredScalarAlternativeDocumentaryTest.groovy),
+feature `one address accepts an integer or a String without changing its meaning`
+([#1129](https://github.com/klum-dsl/klum-ast/issues/1129)). ScHelm adoption and wire/presence qualification remain
+consumer-owned; no Model reconstruction or YAML scalar-fidelity claim follows.
 
 ## Choose the root shape
 

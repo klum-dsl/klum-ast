@@ -199,7 +199,7 @@ async function verifyReleaseCi(identity, api) {
   return result;
 }
 
-module.exports = {verifyReleaseCi, githubApi};
+module.exports = {verifyReleaseCi, githubApi, list};
 
 if (require.main === module) {
   (async () => {

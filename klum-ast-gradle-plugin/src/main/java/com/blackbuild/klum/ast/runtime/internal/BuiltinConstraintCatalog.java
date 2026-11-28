@@ -58,19 +58,30 @@ final class BuiltinConstraintCatalog {
 
     static Result project(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
                           boolean groupRedefined) {
+        return project(entry, rule, groupRedefined, false);
+    }
+
+    /** Called only for the two parameter sites of an already validated authored family. */
+    static Result projectFamilyParameter(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
+                                         boolean groupRedefined) {
+        return project(entry, rule, groupRedefined, true);
+    }
+
+    private static Result project(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
+                                  boolean groupRedefined, boolean familyParameter) {
         return switch (rule.annotation()) {
             case "jakarta.validation.constraints.Min", "jakarta.validation.constraints.Max",
                  "jakarta.validation.constraints.DecimalMin", "jakarta.validation.constraints.DecimalMax" ->
-                    projectBound(entry, rule, groupRedefined);
-            case "jakarta.validation.constraints.Pattern" -> projectPattern(entry, rule, groupRedefined);
-            case "jakarta.validation.constraints.NotBlank" -> projectNotBlank(entry, rule, groupRedefined);
+                    projectBound(entry, rule, groupRedefined, familyParameter);
+            case "jakarta.validation.constraints.Pattern" -> projectPattern(entry, rule, groupRedefined, familyParameter);
+            case "jakarta.validation.constraints.NotBlank" -> projectNotBlank(entry, rule, groupRedefined, familyParameter);
             default -> unsupported(groupRedefined ? "group redefinition/sequence" : null);
         };
     }
 
     private static Result projectNotBlank(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
-                                          boolean groupRedefined) {
-        if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
+                                          boolean groupRedefined, boolean familyParameter) {
+        if (!qualifiedSite(entry, familyParameter) || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
                 || entry.payload().type() != String.class || entry.schemaKey()) {
             return unsupported("unsupported NotBlank site/type");
         }
@@ -81,9 +92,9 @@ final class BuiltinConstraintCatalog {
     }
 
     private static Result projectBound(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
-                                       boolean groupRedefined) {
+                                       boolean groupRedefined, boolean familyParameter) {
         if (!rule.eligible() || groupRedefined) return unsupported(numericReason(groupRedefined));
-        boolean ordinaryScalar = entry.role() == CompiledBuilderSchema.Role.PROPERTY
+        boolean ordinaryScalar = qualifiedSite(entry, familyParameter)
                 && entry.payload().kind() == CompiledBuilderSchema.Kind.SCALAR;
         boolean integral = ordinaryScalar && INTEGRAL_TYPES.contains(entry.payload().type());
         boolean decimal = ordinaryScalar && entry.payload().type() == BigDecimal.class;
@@ -107,8 +118,8 @@ final class BuiltinConstraintCatalog {
     }
 
     private static Result projectPattern(CompiledBuilderSchema.Entry entry, CompiledBuilderSchema.ConstraintRule rule,
-                                         boolean groupRedefined) {
-        if (entry.role() != CompiledBuilderSchema.Role.PROPERTY || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
+                                         boolean groupRedefined, boolean familyParameter) {
+        if (!qualifiedSite(entry, familyParameter) || entry.payload().kind() != CompiledBuilderSchema.Kind.SCALAR
                 || entry.payload().type() != String.class || entry.schemaKey()) return unsupported("unsupported Pattern site/type");
         if (!rule.eligible() || groupRedefined) return unsupported("Pattern not a direct singleton, nonempty groups/payload or group redefinition/sequence");
         if (!Boolean.TRUE.equals(rule.patternFlagsEmpty())) return unsupported("nonempty Pattern flags");
@@ -116,6 +127,11 @@ final class BuiltinConstraintCatalog {
         if (result.reason() != null) return unsupported(result.reason());
         return new Result(List.of(), List.of(Map.of(PATTERN, result.assertion()),
                 Map.of("not", Map.of("type", "string", PATTERN, "[^ -~]"))), null);
+    }
+
+    private static boolean qualifiedSite(CompiledBuilderSchema.Entry entry, boolean familyParameter) {
+        return familyParameter ? entry.role() == CompiledBuilderSchema.Role.OPERATION
+                : entry.role() == CompiledBuilderSchema.Role.PROPERTY;
     }
 
     private static Result bound(String keyword, BigDecimal value) {

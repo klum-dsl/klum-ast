@@ -501,6 +501,134 @@ class StructuredOperationSelectionTest extends AbstractDSLSpec {
         binaryCompiler?.close()
     }
 
+    @Issue('1129')
+    def 'generated Integer converters retain the ordinary single String field route'() {
+        given:
+        def type = schema('''
+            @DSL class Service {
+                @Field(converters=[{ Integer input -> input.toString() }]) String address
+            }
+        ''')
+
+        when:
+        def direct = type.Create.With { address 8080 }
+        def structured = type.Create.FromStruct([address: '8080'])
+        def entry = new InputContractResolver().read(type).entries().address
+
+        then:
+        direct.address == '8080'
+        structured.address == '8080'
+        entry.scalarAlternatives() == null
+        entry.dispatch().parameterTypes == [String] as Class[]
+
+        when:
+        type.Create.FromStruct([address: 8080])
+
+        then:
+        thrown(KlumModelException)
+    }
+
+    @Issue('1129')
+    def 'multiple marks admit no other scalar or container family: #left and #right'() {
+        given:
+        def type = schema("""
+            @DSL class Service {
+                @Struct.Operation @Builder.Method @Struct.Name('address') void numeric($left input) {}
+                @Struct.Operation @Builder.Method @Struct.Name('address') void textual($right input) {}
+            }
+        """)
+
+        when:
+        type.Create.FromStruct([:])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('Multiple @Struct.Operation')
+
+        where:
+        left      | right
+        'Integer' | 'Long'
+        'int'     | 'Integer'
+        'Integer' | 'BigDecimal'
+        'String'  | 'CharSequence'
+        'String'  | 'String'
+        'Integer' | 'Boolean'
+        'Integer' | 'Map<String, String>'
+        'Integer' | 'List<String>'
+    }
+
+    @Issue('1129')
+    def 'integer and String overrides own current markers names and source identity: #payload #annotation'() {
+        given:
+        def type = schema("""
+            @DSL class Base {
+                @Struct.Ignore Object value
+                @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+                @Struct.Operation @Builder.Method void address(String input) { value = input }
+            }
+            @DSL class Service extends Base {
+                $annotation @Builder.Method void address($payload input) { value = 'child:' + input }
+            }
+        """)
+
+        when:
+        def entry = new InputContractResolver().read(type).entries().address
+
+        then:
+        (entry?.scalarAlternatives() != null) == family
+        if (family) {
+            def arm = payload == 'Integer' ? entry.scalarAlternatives().integerArm() : entry.scalarAlternatives().stringArm()
+            assert arm.source().startsWith('operationselection.Service#')
+            assert arm.contract().name == 'operationselection.Service_DSL$Builder'
+            assert type.Create.FromStruct([address: input]).value == 'child:' + input
+        }
+        if (renamed) {
+            assert type.Create.FromStruct(['other-address': input]).value == 'child:' + input
+        }
+
+        where:
+        payload   | annotation                                          | input  | family | renamed
+        'Integer' | '@Struct.Operation'                                 | 7      | true   | false
+        'String'  | '@Struct.Operation'                                 | 'http' | true   | false
+        'Integer' | '@Struct.Operation @Struct.Name("other-address")'   | 7      | false  | true
+        'String'  | '@Struct.Operation @Struct.Name("other-address")'    | 'http' | false  | true
+        'Integer' | ''                                                  | 7      | false  | false
+        'String'  | ''                                                  | 'http' | false  | false
+        'Integer' | '@Struct.Ignore @Struct.Operation'                  | 7      | false  | false
+        'String'  | '@Struct.Ignore @Struct.Operation'                   | 'http' | false  | false
+    }
+
+    @Issue('1129')
+    def 'a child completes or separates inherited arms with exact declaration identity: #rename'() {
+        given:
+        def type = schema("""
+            @DSL class Base {
+                @Struct.Ignore Object value
+                @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+            }
+            @DSL class Service extends Base {
+                $rename @Struct.Operation @Builder.Method void address(String input) { value = input }
+            }
+        """)
+
+        when:
+        def entries = new InputContractResolver().read(type).entries()
+        def numbered = type.Create.FromStruct([address: 8080])
+        def named = type.Create.FromStruct([(rename ? 'named' : 'address'): '8080'])
+
+        then:
+        numbered.value.class == Integer
+        named.value.class == String
+        (entries.address.scalarAlternatives() != null) == !rename
+        if (!rename) {
+            assert entries.address.scalarAlternatives().integerArm().source().startsWith('operationselection.Base#')
+            assert entries.address.scalarAlternatives().stringArm().source().startsWith('operationselection.Service#')
+        }
+
+        where:
+        rename << ['', '@Struct.Name("named")']
+    }
+
     def 'selection annotation is a method-only runtime author marker'() {
         when:
         def target = Struct.Operation.getAnnotation(Target).value()

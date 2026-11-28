@@ -3,8 +3,10 @@
 ## Features
 
 - Admit an explicitly marked, Schema-authored `int`/`Integer` and `String` operation pair under one Struct name, with
-  exact numeric conversion and matching int32/String JSON Schema alternatives. This initial slice requires empty
-  parameter constraint facts; arm constraints and broader qualification remain follow-ups. See
+  exact numeric conversion and matching int32/String JSON Schema alternatives. Supported parameter constraints, prose,
+  examples and policies stay arm-local; ignored helpers stay outside the family. Independent Java/static/dynamic Groovy
+  3/4/5 JAR consumers, pre-change single-route binaries and bounded Groovy 4/5 JPMS checks qualify the contract. Rebuild
+  the participating hierarchy with matched artifacts; ScHelm adoption remains consumer-owned. See
   [Integer/String alternatives](docs/user/Structured-Input.md#integerstring-alternatives)
   ([#1129](https://github.com/klum-dsl/klum-ast/issues/1129)).
 

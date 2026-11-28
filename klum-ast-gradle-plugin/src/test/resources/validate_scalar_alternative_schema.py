@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 
-"""Issue #1129 U1: validate actual emitted int32/String schemas, independently of runtime."""
+"""Issue #1129: validate actual generated schemas and arm assertions with Draft 2020-12."""
 import importlib.metadata
 import json
 import sys
@@ -32,19 +32,84 @@ from jsonschema import Draft202012Validator
 
 assert importlib.metadata.version("jsonschema") == "4.23.0"
 root = Path(sys.argv[1])
-accepted = [{}, *[{"address": value} for value in [
-    -2147483648, 2147483647, 0, 8080, 8080.0, "8080", "http", "", 13,
-]]]
-rejected = [{"address": value} for value in [
-    -2147483649, 2147483648, 1.5, None, True, False, {}, [], [8080],
-]] + [{"unknown": "http"}, {"value": "http"}]
-for kind in ("boxed", "primitive"):
-    path = root / f"scalar-alternative-{kind}.schema.json"
+structural = [-2147483648, 2147483647, 0, 8080, 8080.0, "8080", "http", "", 13]
+invalid = [-2147483649, 2147483648, 1.5, None, True, False, {}, [], [8080]]
+cases = {
+    "boxed": ([1, 9000, 8080.0, "8080", "http", 13], [-2147483648, 0, 9001, 2147483647, "", "HTTP", "a" * 13, "http\n", "é"]),
+    "primitive": (structural, []),
+    "stringchild": ([1, 9000, "HTTP"], [0, 9001, "http", "8080", ""]),
+    "mixed": ([-2147483648, 0, 2147483647, "http"], ["", "HTTP", "a" * 9]),
+    "child": ([-2147483648, 0, 99, "8080", "http"], [100, 2147483647, "", "HTTP"]),
+    "profile": ([7, 2147483647, "8080", ""], [6, -2147483648]),
+    "text": (structural, []),
+    "omit": (structural, []),
+    "domain": ([1, 99, "", "HTTP"], [0, 100, 2147483647]),
+    "grouped": (structural, []),
+    "collected": (structural, []),
+    "sequence": (structural, []),
+}
+accepted = rejected = schemas = 0
+for generation in (() if "--artifacts-only" in sys.argv else (3, 4, 5)):
+    for kind, (valid_values, invalid_values) in cases.items():
+        path = root / f"scalar-alternative-{kind}-g{generation}.schema.json"
+        document = json.loads(path.read_text())
+        Draft202012Validator.check_schema(document)
+        validator = Draft202012Validator(document)
+        name = "address-value" if kind == "profile" else "address"
+        properties = next(iter(document["$defs"].values()))["properties"]
+        arms = properties[name]["anyOf"]
+        assert [arm["type"] for arm in arms] == ["integer", "string"], path
+        assert arms[0]["minimum"] == -2147483648 and arms[0]["maximum"] == 2147483647
+        for instance in [{}, *[{name: value} for value in valid_values]]:
+            assert validator.is_valid(instance), (path, instance)
+            accepted += 1
+        for instance in [*[{name: value} for value in invalid + invalid_values], {"unknown": "http"}, {"value": "http"}]:
+            assert not validator.is_valid(instance), (path, instance)
+            rejected += 1
+        schemas += 1
+    # Separated effective names are ordinary single routes: transported Min must not project here.
+    path = root / f"scalar-alternative-separated-g{generation}.schema.json"
     document = json.loads(path.read_text())
     Draft202012Validator.check_schema(document)
     validator = Draft202012Validator(document)
-    for instance in accepted:
-        assert validator.is_valid(instance), (path, instance)
-    for instance in rejected:
-        assert not validator.is_valid(instance), (path, instance)
-print(f"2 emitted schemas: {2 * len(accepted)} accepted and {2 * len(rejected)} rejected instances")
+    assert validator.is_valid({"address-value": 0, "addressValue": "http"}), path
+    assert not validator.is_valid({"address-value": "0"}), path
+    accepted += 1
+    rejected += 1
+    schemas += 1
+# U3 uses the same numeric/type corpus against independent parent/child and historical JAR consumers.
+for generation in (3, 4, 5):
+    directory = root / f"scalar-artifacts-g{generation}"
+    for name, valid_values, invalid_values in [
+        ("fixture.parent.Destination", [1, 8080, "8080", "http"], [0, -2147483648, "", "HTTP", "a" * 13]),
+        ("fixture.child.Child", [-2147483648, 0, 99, "8080", "http"], [100, 2147483647, "", "HTTP"]),
+        ("fixture.historical.Selected", ["8080", "http", ""], [8080, None, True, {}, []]),
+        ("fixture.historical.IntegerOnly", [-2147483648, 2147483647, 8080.0], invalid + ["8080"]),
+        ("fixture.historical.Converted", ["8080", "http"], [8080, None, True, {}, []]),
+    ]:
+        path = directory / f"{name}.schema.json"
+        document = json.loads(path.read_text())
+        Draft202012Validator.check_schema(document)
+        validator = Draft202012Validator(document)
+        if name.startswith(("fixture.parent", "fixture.child")):
+            arms = next(iter(document["$defs"].values()))["properties"]["address"]["anyOf"]
+            assert [arm["type"] for arm in arms] == ["integer", "string"], path
+            assert arms[0]["minimum"] == -2147483648 and arms[0]["maximum"] == 2147483647
+            invalid_values += invalid
+        for instance in [{}, *[{"address": value} for value in valid_values]]:
+            assert validator.is_valid(instance), (path, instance)
+            accepted += 1
+        for instance in [*[{"address": value} for value in invalid_values], {"unknown": "http"}]:
+            assert not validator.is_valid(instance), (path, instance)
+            rejected += 1
+        schemas += 1
+    path = directory / "fixture.historical.Unmarked.schema.json"
+    document = json.loads(path.read_text())
+    Draft202012Validator.check_schema(document)
+    validator = Draft202012Validator(document)
+    assert validator.is_valid({})
+    assert not validator.is_valid({"address": "http"})
+    schemas += 1
+    accepted += 1
+    rejected += 1
+print(f"{schemas} emitted schemas: {accepted} accepted and {rejected} rejected instances")
