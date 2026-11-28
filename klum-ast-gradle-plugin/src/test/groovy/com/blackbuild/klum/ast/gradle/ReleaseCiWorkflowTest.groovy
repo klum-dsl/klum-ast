@@ -120,6 +120,30 @@ class ReleaseCiWorkflowTest extends Specification {
         !release.toString().contains('./gradlew check')
     }
 
+    @Issue('1127')
+    def 'PR full qualification preserves the push producers and reporting contracts'() {
+        given:
+        List push = readWorkflow('ci.yml').jobs.build.steps
+        List pullRequest = readWorkflow('pr-qualification.yml').jobs.qualification.steps
+        List names = ['Build with Gradle', 'Qualify annotation propagation artifacts', 'Publish Test Report',
+                      'Archive compatibility-lane evidence', 'Verify published documentation landing routes']
+
+        expect:
+        names.every { name ->
+            Map producer = push.find { it.name == name }
+            List matches = pullRequest.findAll { it.name == name }
+            matches.size() == 1 && matches[0].run == producer.run && matches[0].uses == producer.uses &&
+                    matches[0].with == producer.with && matches[0].env == producer.env &&
+                    matches[0].if.contains("steps.route.outputs.lane != 'docs'") &&
+                    !matches[0].get('continue-on-error')
+        }
+        pullRequest.find { it.name == 'Build with Gradle' }.run.contains('check --scan sonar')
+        pullRequest.find { it.name == 'Qualify annotation propagation artifacts' }.run.contains('--no-parallel --max-workers=2')
+        pullRequest.find { it.name == 'Publish Test Report' }.if.contains('success() || failure()')
+        pullRequest.find { it.name == 'Archive compatibility-lane evidence' }.if.contains('success() || failure()')
+        pullRequest.find { it.name == 'Confirm selected validation' }.if == 'always()'
+    }
+
     Map readWorkflow(String name) {
         new Yaml().load(new File(root, '.github/workflows/' + name).text) as Map
     }

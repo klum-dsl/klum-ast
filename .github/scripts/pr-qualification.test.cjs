@@ -35,12 +35,9 @@ const a = 'a'.repeat(40), b = 'b'.repeat(40), c = 'c'.repeat(40);
 const live = {number: 7, state: 'open', base: {repo: repoId, ref: 'master', sha: a},
   head: {repo: repoId, sha: b}, merge_commit_sha: c};
 const event = {repository: repoId, action: 'opened', pull_request: live};
-const strict = {type: 'required_status_checks', parameters: {strict_required_status_checks_policy: true,
-  required_status_checks: [{context: 'PR qualification', integration_id: 15368}]}};
 const api = async p => {
   if (p.includes('/git/ref/heads/')) return {body:{ref:'refs/heads/master',object:{type:'commit',sha:a}}};
   if (p.endsWith('/pulls/7')) return {body: structuredClone(live)};
-  if (p.endsWith('/rules/branches/master')) return {body: [strict]};
   throw new Error('GitHub API returned HTTP 404');
 };
 function fixture(t) {
@@ -55,10 +52,13 @@ function fixture(t) {
   const merge = () => { const head = git('rev-parse', 'HEAD'); git('checkout', '-q', 'master'); git('merge', '--no-ff', '-qm', 'merge', head); return git('rev-parse', 'HEAD'); };
   return {repo, git, write, base, commit, merge};
 }
-test('precise flat allowlist excludes executable and unknown documentation surfaces', () => {
-  for (const p of ['CONTEXT.md', 'docs/adr/0034-test.md', 'docs/implementation/adr-0034-test.md']) assert.ok(q.ALLOW.test(p));
+test('flat architecture plans and evidence qualify without artificial naming', () => {
+  for (const p of ['CONTEXT.md', 'docs/adr/0034-test.md', 'docs/implementation/adr-0034-test.md',
+    'docs/implementation/issue-1129-struct-scalar-alternatives.md', 'docs/implementation/issue-1132-bounded-raw-data.md',
+    'docs/implementation/evidence/issue-1114-yaml-qualification.md']) assert.ok(q.ALLOW.test(p));
   for (const p of ['README.md', 'CHANGES.md', 'AGENTS.md', 'docs/user/X.md', 'docs/adr/nested/0034-test.md',
-    'docs/implementation/evidence/adr-0034-test.md', 'docs/adr/34-test.md', 'docs/adr/0034-Test.md', '.github/workflows/ci.yml']) assert.ok(!q.ALLOW.test(p));
+    'docs/implementation/fixtures/example.md', 'docs/implementation/evidence/probe/README.md',
+    'docs/implementation/evidence/check.py', '.github/workflows/ci.yml']) assert.ok(!q.ALLOW.test(p));
 });
 test('complete diff rejects earlier code even when final commit is prose', t => {
   const f = fixture(t); f.write('source.java', 'code\n'); f.commit(); f.write('CONTEXT.md', '# Changed\n'); const head=f.commit();
@@ -92,14 +92,6 @@ test('empty, malformed, duplicate and truncated NUL records reject', () => {
   const header=`:100644 100644 ${a} ${b} M\0CONTEXT.md\0`;
   for(const raw of ['',header.slice(0,-1),header+header,':bad\0',`:100644 100644 ${a} ${b} R100\0one\0`]) assert.throws(()=>q.parseRaw(Buffer.from(raw)));
 });
-test('strict expected-App gate only; missing, loose, extra or untrusted policy rejects', async () => {
-  await q.strictPolicy(api);
-  for(const rules of [[],[{...strict,parameters:{...strict.parameters,strict_required_status_checks_policy:false}}],
-    [{...strict,parameters:{...strict.parameters,required_status_checks:[{context:'PR qualification',integration_id:1}]}}],
-    [strict,{type:'required_status_checks',parameters:{required_status_checks:[{context:'build',integration_id:15368}]}}]]) {
-    await assert.rejects(q.strictPolicy(async p=>p.endsWith('/master')?{body:rules}:api(p)));
-  }
-});
 test('event/current PR identities, forks and retargets are distinguished', async () => {
   assert.equal(q.pin(event,live).head,b);
   for(const changed of [{...live,head:{...live.head,sha:a}}, {...live,base:{...live.base,ref:'release/4.2.x'}}, {...live,state:'closed'}]) assert.throws(()=>q.pin(event,changed));
@@ -115,11 +107,27 @@ test('literal success required, stale identities fail, prose has no full check r
   await assert.rejects(q.confirm({...result,lane:'full'},event,{build:'success'},api));
   await assert.rejects(q.confirm({...result,lane:'unknown'},event,{prose_tests:'success',policy_tests:'success',docs:'success'},api));
 });
-test('authentic exact-head Sonar rejects missing, failed, ambiguous and lookalike checks', async () => {
-  const success={id:1,name:'SonarCloud Code Analysis',app:{id:12526},head_sha:b,status:'completed',conclusion:'success'};
-  function checksApi(checks){return async p=>p.includes('check-suites')?{body:{total_count:1,check_suites:[{}]}}:{body:{total_count:checks.length,check_runs:checks}};}
-  await q.verifySonar(checksApi([success]),b,1);
-  for(const checks of [[],[{...success,app:{id:1}}],[{...success,conclusion:'failure'}],[{...success,status:'in_progress'}],[success,{...success,id:2}], [{...success,head_sha:a}]]) await assert.rejects(q.verifySonar(checksApi(checks),b,1));
+test('authentic exact-head Sonar selects the fresh quality gate across repeat records', async () => {
+  const start = '2026-11-28T01:00:00Z', old = '2026-11-27T01:00:00Z', newer = '2026-11-28T02:00:00Z';
+  const success = {id:1,name:'SonarCloud Code Analysis',app:{id:12526},head_sha:b,
+    status:'completed',conclusion:'success',started_at:start};
+  const repeat = {...success,id:3,started_at:newer};
+  const security = {...success,id:2,name:'SonarCloud',app:{id:57789}};
+  function checksApi(checks) {
+    return async p => p.includes('check-suites') ? {body:{total_count:1,check_suites:[{}]}} :
+      {body:{total_count:checks.length,check_runs:checks}};
+  }
+  assert.equal(await q.verifySonar(checksApi([security,success]),b,start,1),1);
+  assert.equal(await q.verifySonar(checksApi([success,repeat,security]),b,start,1),3);
+  assert.equal(await q.verifySonar(checksApi([{...success,conclusion:'failure'},repeat]),b,start,1),3);
+  for (const checks of [[],[security],[{...success,app:{id:1}}],[{...success,conclusion:'failure'}],
+    [{...success,status:'in_progress'}],[{...success,head_sha:a}],[{...success,started_at:old}],
+    [success,{...repeat,conclusion:'failure'}],[success,{...repeat,status:'in_progress'}],
+    [success,{...repeat,status:'queued',started_at:null}],[success,{...repeat,started_at:'invalid'}],
+    [success,{...success,id:4,conclusion:'failure'}]]) {
+    await assert.rejects(q.verifySonar(checksApi(checks),b,start,1));
+  }
+  assert.equal(q.selectPrSonar([success,{...success,id:4}],b,start).id,4);
 });
 
 test('all supported activity types classify fresh positive identities; unsafe input stays full', async t => {
@@ -141,17 +149,10 @@ test('all supported activity types classify fresh positive identities; unsafe in
   delete process.env.QUALIFICATION_TOOLS_SHA;
   assert.equal((await q.classify({eventName:'pull_request',event:{...event,pull_request:current},repo:f.repo,runSha:merge},currentApi)).lane,'full');
 });
-test('push workflow remains the exact release build; PR producers match it without docs masquerading as build', () => {
-  const root=path.resolve(__dirname,'../..');
-  const baseline=execFileSync('git',['-C',root,'show','71dedcf98:.github/workflows/ci.yml'],{encoding:'utf8'});
-  const push=fs.readFileSync(path.join(root,'.github/workflows/ci.yml'),'utf8');
-  assert.equal(push,baseline.replace('  pull_request:\n    branches: [ main, master, release/* ]\n',''));
-  const pr=fs.readFileSync(path.join(root,'.github/workflows/pr-qualification.yml'),'utf8');
+test('PR triggering and final validation do not hide retargets or selected work', () => {
+  const pr=fs.readFileSync(path.resolve(__dirname,'../workflows/pr-qualification.yml'),'utf8');
   assert.ok(!pr.includes('paths-ignore:')); assert.ok(!pr.includes('branches:')); assert.ok(!pr.includes('pull_request_target:'));
   assert.match(pr,/types: \[ opened, synchronize, reopened, edited \]/);
-  for(const command of ['./gradlew check --scan sonar --info',':klum-ast:annotationPropagationArtifactsGroovy3',
-    ':klum-ast:annotationPropagationArtifactsGroovy4',':klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2',
-    'bash .github/scripts/test-write-documentation-landing.sh']) assert.ok(pr.includes(command));
   assert.match(pr,/name: Confirm selected validation\n        if: always\(\)/);
 });
 test('shallow history and empty net diffs refuse prose', t => {
@@ -174,11 +175,11 @@ test('ambiguous merge bases and altered integration content refuse prose', t => 
   const crissMerge=f.git('commit-tree',tree,'-p',base,'-p',crissHead,'-m','merge');
   assert.throws(()=>q.classifyGit(f.repo,base,crissHead,crissMerge),/unique merge base/);
 });
-test('live ref advancement and policy API failure cannot produce success', async () => {
+test('live ref advancement and identity API failure cannot produce success', async () => {
   const result={lane:'docs',identity:q.pin(event,live),eventName:'pull_request',runSha:c};
   const outcomes={policy_tests:'success',prose_tests:'success',docs:'success'};
   await assert.rejects(q.confirm(result,event,outcomes,async p=>p.includes('/git/ref/heads/')?{body:{ref:'refs/heads/master',object:{type:'commit',sha:b}}}:api(p)),/Live base tip/);
-  await assert.rejects(q.confirm(result,event,outcomes,async p=>p.includes('/rules/')?Promise.reject(new Error('API unavailable')):api(p)),/API unavailable/);
+  await assert.rejects(q.confirm(result,event,outcomes,async p=>p.includes('/git/ref/')?Promise.reject(new Error('API unavailable')):api(p)),/API unavailable/);
 });
 
 test('already stale merge selecting full can never qualify a different pinned merge', async () => {

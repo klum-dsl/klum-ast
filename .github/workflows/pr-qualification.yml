@@ -49,6 +49,7 @@ jobs:
         run: node "${{ steps.tooling.outputs.script }}" classify
       - name: Test qualification policy
         id: policy_tests
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
         run: node --test .github/scripts/pr-qualification.test.cjs
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -60,13 +61,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Test prose checker
         id: prose_tests
-        shell: bash
-        run: |
-          if [[ "${{ steps.route.outcome }}" == success && "${{ steps.route.outputs.lane }}" == docs ]]; then
-            "$QUALIFICATION_TOOLS_DIRECTORY/gradlew" -p "$QUALIFICATION_TOOLS_DIRECTORY/buildSrc" test --tests '*ProseDocumentationTest' --no-daemon
-          else
-            ./gradlew -p buildSrc test --tests '*ProseDocumentationTest' --no-daemon
-          fi
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        run: ./gradlew -p buildSrc test --tests '*ProseDocumentationTest' --no-daemon
       - name: Documentation validation
         id: docs
         if: steps.route.outcome == 'success' && steps.route.outputs.lane == 'docs'

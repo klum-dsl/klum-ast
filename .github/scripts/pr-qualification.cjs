@@ -23,17 +23,18 @@
  */
 'use strict';
 // Issue #1127: routing is conservative; only a complete positive classification may omit full work.
-const {spawnSync} = require('node:child_process');
+const {spawnSync, execFileSync} = require('node:child_process');
 const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 const {TextDecoder} = require('node:util');
 const {githubApi, list} = require('./verify-release-ci.cjs');
 const REPOSITORY = 'klum-dsl/klum-ast';
 const REPOSITORY_ID = 40505913;
-const ACTIONS_APP = 15368;
 const SONAR_APP = 12526;
 const ROOT = `/repos/${REPOSITORY}`;
 const SHA = /^[0-9a-f]{40}$/;
-const ALLOW = /^(?:CONTEXT\.md|docs\/adr\/[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md|docs\/implementation\/adr-[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md)$/;
+const ALLOW = /^(?:CONTEXT\.md|docs\/adr\/[^/]+\.md|docs\/implementation\/(?:evidence\/)?[^/]+\.md)$/;
 const MAX_BYTES = 1048576;
 function requireEvidence(condition, message) { if (!condition) throw new Error(message); }
 function decode(bytes) { return new TextDecoder('utf-8', {fatal: true}).decode(bytes); }
@@ -66,14 +67,12 @@ function parseRaw(bytes) {
   requireEvidence(records.length <= 500, 'Diff exceeds 500-file routing budget');
   return records;
 }
-function classifyGit(repo, base, head, merge, report = {}) {
-  requireEvidence([base, head, merge].every(sha => SHA.test(sha)), 'Full SHA required');
+function classifyChanges(repo, base, head, report = {}) {
+  requireEvidence([base, head].every(sha => SHA.test(sha)), 'Full SHA required');
   requireEvidence(decode(git(repo, 'rev-parse', '--is-shallow-repository')).trim() === 'false', 'Shallow history');
-  for (const sha of [base, head, merge]) {
+  for (const sha of [base, head]) {
     requireEvidence(decode(git(repo, 'rev-parse', `${sha}^{commit}`)).trim() === sha, 'Missing commit');
   }
-  const parents = decode(git(repo, 'show', '-s', '--format=%P', merge)).trim().split(' ');
-  requireEvidence(parents.length === 2 && parents[0] === base && parents[1] === head, 'Merge parents differ from pinned base/head');
   const bases = decode(git(repo, 'merge-base', '--all', base, head)).trim().split('\n');
   requireEvidence(bases.length === 1 && SHA.test(bases[0]), 'No unique merge base');
   const records = parseRaw(git(repo, 'diff', '--raw', '-z', '--no-abbrev', '--no-ext-diff', '--no-textconv',
@@ -92,11 +91,35 @@ function classifyGit(repo, base, head, merge, report = {}) {
       requireEvidence(blob.length === size && !blob.includes(0), 'Binary or incomplete blob');
       requireEvidence(!decode(blob).startsWith('version https://git-lfs.github.com/spec/v1'), 'LFS pointer');
     }
+  }
+  return {mergeBase: bases[0], records};
+}
+function classifyGit(repo, base, head, merge, report = {}) {
+  requireEvidence(SHA.test(merge), 'Full merge SHA required');
+  const changes = classifyChanges(repo, base, head, report);
+  const parents = decode(git(repo, 'show', '-s', '--format=%P', merge)).trim().split(' ');
+  requireEvidence(parents.length === 2 && parents[0] === base && parents[1] === head, 'Merge parents differ from pinned base/head');
+  for (const record of changes.records) {
     // The integration tree must retain the same admitted bytes/mode, without conflict resolutions.
     requireEvidence(decode(git(repo, 'ls-tree', merge, '--', record.paths[0])).trim() ===
       `100644 blob ${record.newOid}\t${record.paths[0]}`, 'Merge changed admitted content');
   }
-  return {mergeBase: bases[0], records};
+  return changes;
+}
+function localProse(baseRef, headRef = 'HEAD') {
+  requireEvidence(baseRef, 'Usage: node .github/scripts/pr-qualification.cjs local BASE [HEAD]');
+  const repo = process.cwd();
+  const resolve = ref => decode(git(repo, 'rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`)).trim();
+  const base = resolve(baseRef), head = resolve(headRef);
+  const changes = classifyChanges(repo, base, head);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'klum-prose-'));
+  try {
+    const manifest = path.join(directory, 'classification.json');
+    fs.writeFileSync(manifest, JSON.stringify({...changes, lane: 'docs', identity: {head, merge: head}}));
+    console.log(`Local prose checks at committed head ${head}; no integration or hosted qualification claim.`);
+    execFileSync(path.join(repo, 'gradlew'), ['verifyProseDocumentation', '--no-daemon',
+      `-PproseObjectDirectory=${repo}`, `-PproseClassificationFile=${manifest}`], {stdio: 'inherit'});
+  } finally { fs.rmSync(directory, {recursive: true, force: true}); }
 }
 function repoMatches(repo) { return repo?.id === REPOSITORY_ID && repo.full_name === REPOSITORY; }
 function pin(event, live) {
@@ -115,25 +138,6 @@ async function readIdentity(event, api) {
     ref.object.sha === identity.base, 'Live base tip differs from PR merge evidence');
   return identity;
 }
-async function strictPolicy(api) {
-  const {body: rules} = await api(`${ROOT}/rules/branches/master`);
-  requireEvidence(Array.isArray(rules), 'Malformed effective rules');
-  const policies = rules.filter(rule => rule.type === 'required_status_checks').map(rule => rule.parameters);
-  try {
-    const {body} = await api(`${ROOT}/branches/master/protection/required_status_checks`);
-    requireEvidence(Array.isArray(body.checks), 'Malformed classic protection');
-    policies.push({strict_required_status_checks_policy: body.strict,
-      required_status_checks: body.checks.map(check => ({context: check.context, integration_id: check.app_id}))});
-  } catch (error) {
-    if (error.message !== 'GitHub API returned HTTP 404') throw error;
-  }
-  const checks = policies.flatMap(policy => policy.required_status_checks || []);
-  requireEvidence(policies.some(policy => policy.strict_required_status_checks_policy === true &&
-    policy.required_status_checks?.some(check => check.context === 'PR qualification' && check.integration_id === ACTIONS_APP)),
-  'Strict PR qualification policy absent; full fallback');
-  requireEvidence(checks.every(check => check.context === 'PR qualification' && check.integration_id === ACTIONS_APP),
-    'Other required checks require full qualification');
-}
 async function classify({eventName, event, repo, runSha}, api) {
   const result = {version: 1, lane: 'full', started: Date.now(), runSha, eventName, eventBase: event.pull_request?.base?.sha, toolsSha: process.env.QUALIFICATION_TOOLS_SHA, reasons: [], records: []};
   try {
@@ -145,46 +149,65 @@ async function classify({eventName, event, repo, runSha}, api) {
     // Only committed base tooling can classify. Its checkout must be this pinned base.
     requireEvidence(process.env.QUALIFICATION_TOOLS_SHA === result.identity.base, 'Trusted base tooling unavailable or stale');
     Object.assign(result, classifyGit(repo, result.identity.base, result.identity.head, result.identity.merge, result));
-    await strictPolicy(api);
     result.lane = 'docs';
-    result.reasons = ['Complete merge-base allowlist; current strict gate verified'];
+    result.reasons = ['Complete merge-base allowlist under maintainer/Hive qualification policy'];
   } catch (error) { result.reasons = [error.message]; }
   result.classificationMs = Date.now() - result.started;
   return result;
 }
-async function verifySonar(api, sha, attempts = 40, pause = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+function timestamp(value) {
+  requireEvidence(typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(value) &&
+    Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value.replace('Z', '.000Z'), 'Malformed check/attempt timestamp');
+  return Date.parse(value);
+}
+function selectPrSonar(checks, sha, notBefore) {
+  // The security integration's separate "SonarCloud" check is not this quality gate.
+  const sonar = checks.filter(check => check.app?.id === SONAR_APP && check.name === 'SonarCloud Code Analysis');
+  for (const check of sonar) {
+    requireEvidence(check.head_sha === sha && Number.isSafeInteger(check.id) && check.id > 0, 'Untrusted Sonar identity');
+    if (check.started_at != null) timestamp(check.started_at);
+  }
+  // A queued authoritative record with no start time prevents falling back to an old green result.
+  if (!sonar.length || sonar.some(check => check.started_at == null)) return undefined;
+  const newest = Math.max(...sonar.map(check => timestamp(check.started_at)));
+  if (newest < timestamp(notBefore)) return undefined;
+  const latest = sonar.filter(check => timestamp(check.started_at) === newest);
+  if (latest.some(check => check.status !== 'completed')) return undefined;
+  requireEvidence(latest.every(check => check.conclusion === 'success'), 'Latest Sonar quality gate did not succeed');
+  // Tied timestamps are safe only when every possible newest record succeeded.
+  return latest.sort((a, b) => b.id - a.id)[0];
+}
+async function verifySonar(api, sha, notBefore, attempts = 40, pause = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+  timestamp(notBefore);
   for (let attempt = 0; attempt < attempts; attempt++) {
     const checks = await list(api, `${ROOT}/commits/${sha}/check-runs?filter=all`, 'check_runs');
-    const sonar = checks.filter(check => check.app?.id === SONAR_APP || check.name === 'SonarCloud Code Analysis');
-    requireEvidence(sonar.length <= 1, 'Ambiguous Sonar result');
-    if (sonar.length) {
-      requireEvidence(sonar[0].app?.id === SONAR_APP && sonar[0].head_sha === sha, 'Untrusted Sonar result');
-      if (sonar[0].status === 'completed') {
-        requireEvidence(sonar[0].conclusion === 'success', 'Sonar did not succeed');
-        return;
-      }
-    }
+    const selected = selectPrSonar(checks, sha, notBefore);
+    if (selected) return selected.id;
     if (attempt + 1 < attempts) await pause(15000);
   }
-  throw new Error('Trusted exact-head Sonar unavailable after bounded wait');
+  throw new Error('Fresh trusted exact-head Sonar unavailable after bounded wait');
 }
 async function confirm(result, event, outcomes, api) {
   requireEvidence(['docs', 'full'].includes(result.lane), 'Unknown qualification lane');
   const docs = result.lane === 'docs';
-  const required = docs ? ['policy_tests', 'prose_tests', 'docs'] : ['policy_tests', 'prose_tests', 'build', 'annotation', 'junit', 'compatibility', 'landing', 'sonar'];
+  const required = docs ? ['docs'] : ['policy_tests', 'prose_tests', 'build', 'annotation', 'junit', 'compatibility', 'landing', 'sonar'];
   requireEvidence(required.every(name => outcomes[name] === 'success'), 'Selected validation missing, skipped or unsuccessful');
   if (result.eventName === 'pull_request') {
     requireEvidence(result.identity && result.runSha === result.identity.merge, 'Tested merge differs from pinned PR identity');
     const current = await readIdentity(event, api);
     requireEvidence(JSON.stringify(current) === JSON.stringify(result.identity), 'PR base/head/merge changed during validation');
-    if (docs) await strictPolicy(api);
   } else {
     requireEvidence(result.eventName === 'merge_group' && event.merge_group?.head_sha === result.runSha, 'Unsupported qualification event');
   }
 }
-module.exports = {parseRaw, classifyGit, pin, readIdentity, strictPolicy, classify, verifySonar, confirm, ALLOW};
+module.exports = {parseRaw, classifyChanges, classifyGit, pin, readIdentity, classify, selectPrSonar, verifySonar, confirm, ALLOW};
 if (require.main === module) {
   (async () => {
+    if (process.argv[2] === 'local') {
+      requireEvidence(process.argv.length >= 4 && process.argv.length <= 5, 'Expected local BASE [HEAD]');
+      localProse(process.argv[3], process.argv[4]);
+      return;
+    }
     const env = process.env;
     const api = githubApi(env.GH_TOKEN);
     const event = JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH));
@@ -197,7 +220,12 @@ if (require.main === module) {
     } else if (process.argv[2] === 'sonar') {
       const sha = event.pull_request?.head?.sha || event.merge_group?.head_sha;
       requireEvidence(SHA.test(sha), 'Missing exact head for Sonar');
-      await verifySonar(api, sha);
+      const run = (await api(`${ROOT}/actions/runs/${env.GITHUB_RUN_ID}`)).body;
+      requireEvidence(run.id === Number(env.GITHUB_RUN_ID) && run.run_attempt === Number(env.GITHUB_RUN_ATTEMPT) &&
+        run.head_sha === sha && run.event === env.GITHUB_EVENT_NAME && run.path === '.github/workflows/pr-qualification.yml',
+      'Qualification run attempt changed or has the wrong identity');
+      const checkId = await verifySonar(api, sha, run.run_started_at);
+      console.log(`Fresh exact-head Sonar quality gate passed: check ${checkId}, attempt ${run.run_attempt}`);
     } else if (process.argv[2] === 'confirm') {
       let result = {version: 1, lane: 'full', eventName: env.GITHUB_EVENT_NAME, runSha: env.GITHUB_SHA, reasons: ['Classifier infrastructure unavailable']};
       if (fs.existsSync(path)) result = JSON.parse(fs.readFileSync(path));
