@@ -424,6 +424,19 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
+    @Issue("1137")
+    def "ordinary numeric converters preserve arguments on the classpath and module path"() {
+        when:
+        Map<String, ProcessResult> results = executeGeneratedHelperFixture(numericConverterSource(),
+                ['scalar', 'list', 'map', 'overloads', 'arguments'])
+
+        then:
+        results.each { scenario, result ->
+            assert result.exitCode == 0 : "$scenario: $result.output"
+            assert result.output.readLines().contains('helper=true') : "$scenario: $result.output"
+        }
+    }
+
     private static Map<String, ProcessResult> executeGeneratedHelperFixture(String source, List<String> scenarios) {
         boolean namedGroovy = !GroovySystem.version.startsWith('3.')
         Path fixture = Files.createTempDirectory('klum-generated-helper')
@@ -489,6 +502,60 @@ class JpmsPackageBoundaryTest extends Specification {
                             break
                         case 'fluent':
                             assert Parent.Create.With { count 7 }.count == 7
+                            break
+                        default: throw new AssertionError(args[0])
+                    }
+                    println 'helper=true'
+                }
+            }
+        '''.stripIndent()
+    }
+
+    private static String numericConverterSource() {
+        '''
+            package fixture.schema
+            import com.blackbuild.klum.ast.DSL
+            import groovy.transform.CompileStatic
+            import com.blackbuild.klum.ast.Converters
+            import com.blackbuild.klum.ast.Field
+
+            @DSL class Converted {
+                @Converters(AddressConverters) String address
+                @Field(converters = [{ Integer input -> input.toString() }]) List<String> numbers
+                @Field(converters = [{ Integer input -> input.toString() }]) Map<String, String> entries
+            }
+            class AddressConverters {
+                static String fromInteger(Integer input) { input == null ? 'null' : "integer:$input" }
+                static String fromLong(Long input) { "long:$input" }
+                static String fromPair(int first, int second) { "$first:$second" }
+                static String fromArray(Integer[] input) { input.join(',') }
+            }
+            class HelperMain {
+                @CompileStatic
+                static Converted withNull() {
+                    Converted.Create.With { address((Integer) null) }
+                }
+
+                static void main(String[] args) {
+                    switch (args[0]) {
+                        case 'scalar':
+                            assert Converted.Create.With { address 8080 }.address == 'integer:8080'
+                            break
+                        case 'list':
+                            assert Converted.Create.With { number 7; number 8 }.numbers == ['7', '8']
+                            break
+                        case 'map':
+                            assert Converted.Create.With { entry 'primary', 9 }.entries == [primary: '9']
+                            break
+                        case 'overloads':
+                            assert Converted.Create.With { address 9L }.address == 'long:9'
+                            assert Converted.Create.With { address 9 }.address == 'integer:9'
+                            break
+                        case 'arguments':
+                            assert Converted.Create.With { address 2, 3 }.address == '2:3'
+                            Integer[] values = [2, 3]
+                            assert Converted.Create.With { address values }.address == '2,3'
+                            assert withNull().address == 'null'
                             break
                         default: throw new AssertionError(args[0])
                     }
