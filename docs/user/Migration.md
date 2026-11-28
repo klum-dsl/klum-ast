@@ -5,8 +5,17 @@
 To opt into [Integer/String alternatives](Structured-Input.md#integerstring-alternatives), use matched
 compiler/runtime/plugin artifacts and recompile participating Schemas. Both authored operations require their own
 `@Builder.Method` projection and `@Struct.Operation`; existing unmarked collisions and single-String selection retain
-their behavior. This initial slice accepts only compiler-confirmed empty parameter facts. Historical two-mark
-contracts require recompilation; full hierarchy/artifact qualification and arm constraints remain #1129 follow-ups.
+their behavior, including retained pre-change single-route binaries. Both arms need complete compiler-frozen parameter
+facts, including explicit empty facts when unconstrained; supported arm assertions remain optional authoring guidance.
+Rebuild separately packaged participating parents and children, then regenerate JSON Schema. Historical two-mark
+contracts lacking these facts reject even with no supplied member or under OMIT. New families on old runtime/plugin
+artifacts are unsupported; equal provenance strings alone do not establish compatibility.
+
+Actual Strings, including `'8080'`, remain Strings. Exactly integral standard numeric wrappers such as `1.0d` are admitted
+through Struct, even if an ordinary Number helper rejects them; fractions, overflow and nonfinite values reject without
+String fallback. ScHelm adoption remains consumer-owned, including its holder, presence/copy and wire semantics.
+[Qualification evidence](../implementation/issue-1129-u3-evidence.md) records the bounded binary and JPMS results; it
+establishes no #1113 reconstruction or #1114 YAML scalar-fidelity guarantee.
 
 ## To 4.2
 

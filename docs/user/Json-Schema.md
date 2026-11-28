@@ -33,9 +33,15 @@ Unsupported or grouped rules remain documentary. Generic authored-parameter meta
 operation sites and never adds runtime parameter enforcement.
 
 Both arms require complete parameter facts. Missing, unknown or inconsistent facts reject before output replacement,
-including under OMIT or when no member was supplied. Independent artifact/historical-binary/JPMS and final delivery
-qualification remain later work under [#1129](https://github.com/klum-dsl/klum-ast/issues/1129).
-A schema-valid value may still fail the operation body or lifecycle.
+including under OMIT or when no member was supplied. The [artifact qualification](../implementation/issue-1129-u3-evidence.md)
+uses the same parent/child JARs for independent application clients and actual generated-schema validation, plus
+pre-change single-route binaries and fail-closed incomplete hierarchy controls. Protocol remains 1; use matched
+compiler/runtime/plugin artifacts and rebuild participating Schemas. Old consumers are not qualified for new families.
+A schema-valid value may still fail the operation body or lifecycle. See the
+[documentary example](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredScalarAlternativeDocumentaryTest.groovy),
+feature `one address accepts an integer or a String without changing its meaning`
+([#1129](https://github.com/klum-dsl/klum-ast/issues/1129)). ScHelm adoption and wire/presence qualification remain
+consumer-owned; no Model reconstruction or YAML scalar-fidelity claim follows.
 
 ## Choose the root shape
 

@@ -1,6 +1,8 @@
 # #1129: finite Integer/String Struct alternatives
 
-Date: 2026-11-27. Status: **Accepted plan (PR #1130); U1 merged in PR #1131; U2 arm facts and resolution implemented on its dedicated branch. U3 pending.**
+Date: 2026-11-27; reconciled 2026-11-28. Status: **U1 merged in PR #1131; U2 merged in PR #1134
+(`71dedcf980486a1de08a258b9baa827ef4b9b941`); U3 artifact qualification and delivery documentation implemented.
+Local full-build/review and remote delivery results are recorded in the [U3 evidence](issue-1129-u3-evidence.md).**
 
 Related: [#1129](https://github.com/klum-dsl/klum-ast/issues/1129).
 Decision: [ADR 0032 extension](../adr/0032-builder-oriented-structured-input.md#finite-integerstring-operation-alternatives--1129).
@@ -29,7 +31,8 @@ sharpens excluded-helper handling and consumer acceptance; it changes no accepte
 The planning assignment (PR #1130) edited only this plan and ADR 0032; it added no production/test/build, issue/milestone, release, user-guide
 or ScHelm change. Its documentation checks established no runtime/schema qualification.
 The later, explicitly assigned implementations are recorded in [U1 evidence](issue-1129-u1-evidence.md) and
-[U2 evidence](issue-1129-u2-evidence.md).
+[U2 evidence](issue-1129-u2-evidence.md). Final artifact/compatibility qualification is consolidated in
+[U3 evidence](issue-1129-u3-evidence.md); earlier records remain slice-dated evidence.
 
 ## Consumer acceptance and neutral fixture
 
@@ -265,10 +268,12 @@ returns for a concrete design revision. No speculative metadata bump or future f
 Planning validation: `git diff --check`, Markdown structure and relative file/heading links, issue-decision/source-seam
 consistency and independent two-axis review. These architecture-only Markdown files are outside current user-site
 rendering inputs; Groovy lanes and runtime/schema validation are deliberately not run for this documentation delivery.
-All executable checks above are future implementation acceptance, not claimed results of this plan.
+That planning-only validation established no executable result. U1/U2/U3 implementation evidence above now owns the
+actual results; this section retains the original planning delivery boundary.
 
-Tracker impact: **related issue #1129; curation impact none**. Use `Related: #1129` only. The issue remains open for later
-implementation and acceptance; this plan changes no release gate, dependency, owner, issue state/label/milestone or
-published release fact. A documentation-only draft PR is authorized after completed local review/checks; merge is separate.
+Tracker impact: **related issue #1129; curation impact none**. Use `Related: #1129` only. The U3 assignment requests no
+issue-state change. GitHub reports #1129 **closed** on 2026-11-28, contrary to the assignment's open-issue expectation; this worker leaves that state unchanged and requests Hive reconciliation. No release
+gate, dependency, owner, issue state/label/milestone or published release fact is changed by U3. The separately assigned
+U3 draft PR follows completed local review/checks; merge is separate.
 Report exact branch/base/head, validation, review and hosted-check state in the handoff. Request Hive reconciliation;
 do not self-archive while the PR or its reconciliation remains open.
