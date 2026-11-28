@@ -336,8 +336,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     private static String runtimeConstraintDescription(Policy policy, CompiledBuilderSchema.ConstraintRule rule,
                                                        BuiltinConstraintCatalog.Result contribution, boolean familyParameter) {
         if (closureBackedValidation(rule)) return "custom validation";
-        String reason = policy == Policy.TEXT_ONLY
-                ? (familyParameter ? "parameter" : "field") + " projection policy TEXT_ONLY" : contribution.reason();
+        String site = familyParameter ? "parameter" : "field";
+        String reason = policy == Policy.TEXT_ONLY ? site + " projection policy TEXT_ONLY" : contribution.reason();
         String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.declaration() + " via " + rule.owner();
         return withReason(shortenAnnotations(declaration), reason);
     }

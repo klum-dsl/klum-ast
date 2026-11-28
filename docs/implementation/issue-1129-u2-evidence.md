@@ -144,3 +144,37 @@ merges the PR nor closes #1129. Hive owns delivery and archive reconciliation.
 
 Delivery-channel preflight: GitHub CLI repository-write capability **authorized**; dedicated Git branch publication
 channel **authorized**, verified by dry run. Actual publication and hosted results are recorded in the PR/worker handoff.
+
+## First hosted analysis and Sonar follow-up
+
+Hosted [CI run 46089537660](https://github.com/klum-dsl/klum-ast/actions/runs/46089537660) passed on
+`fc16fb439ef2f62bc1215747d33c21870e82b1bd`, including the complete existing pipeline and the corrected field-policy
+regression. Sonar's gate passed with **93.0% new-code coverage, 0% duplication and zero security hotspots**.
+Detailed PR analysis reported two maintainability findings, addressed in an additive follow-up:
+
+- **java:S3358:** extract the field/parameter site into its own local String before composing the TEXT_ONLY reason.
+  Generated policy text and behavior remain the same.
+- **java:S6539 (INFO):** keep the accepted shared resolver. Its dependency count rose from 20 to 21 through the immutable
+  parameter-facts result. A class-local, rule-specific suppression documents ADR 0032's single admission authority and
+  this concrete metadata dependency. Splitting that authority is outside the accepted slice. All other checks remain active.
+
+Independent Standards and Specification reviewers rechecked both dispositions with no findings. The existing focused
+checks pass after this nonfunctional cleanup:
+
+```shell
+./gradlew :klum-ast:test \
+  --tests '*StructuredScalarAlternativeTest' --tests '*StructuredOperationSelectionTest' \
+  --tests '*InputNamingProfileTest' \
+  :klum-ast-gradle-plugin:test \
+  --tests '*KlumJsonSchemaGenerationTest.emits one bounded integer and String*' \
+  --tests '*KlumJsonSchemaGenerationTest.incomplete family parameter*' \
+  --tests '*KlumJsonSchemaGenerationTest.field policy metadata*' \
+  --tests '*KlumJsonSchemaGenerationTest.choose field constraint projection*' \
+  :klum-ast-runtime:licenseMain :klum-ast-gradle-plugin:licenseMain \
+  --console=plain --max-workers=2
+```
+
+Result: **161 contract cases and 17 plugin cases pass**; real field/family policy producers cover Groovy 3/4/5.
+The independent validator again passes **39 schemas, 279 accepted / 477 rejected documents**. License/diff checks pass.
+Final follow-up head, hosted reanalysis and delivery state are reported in the PR/worker handoff; this section records
+only the named first-head result and the follow-up's local evidence.

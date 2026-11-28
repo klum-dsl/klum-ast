@@ -61,6 +61,8 @@ import static com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.*;
  * only for that session; no classloader/global cache, Model inspection or user-code execution is involved.
  * Consumers still visit the admitted owned closure, including omitted children, before execution/publication.
  */
+// ADR 0032 keeps one admission authority; the added dependency is an immutable parameter-facts result.
+@SuppressWarnings("java:S6539")
 final class InputContractResolver {
     private static final Set<String> NUMBERS = Set.of("byte", "short", "int", "long", "float", "double",
             "java.lang.Byte", "java.lang.Short", "java.lang.Integer", "java.lang.Long", "java.lang.Float",
