@@ -115,6 +115,29 @@ class ProseDocumentationTest extends Specification {
         'query'          | '# Context\n[bad](target.md?query)'        | '# Incoming'
     }
 
+    def 'source fragments preserve GitHub spacing while rendered site IDs retain their existing normalization'() {
+        given:
+        String revision = commit(['CONTEXT.md': '# Context\n[decision](target.md#selected-yaml-interface--1114)\n',
+                                  'target.md': '# Target\n## Selected YAML interface — #1114\n'])
+        def checker = new ProseDocumentationChecker(repository.absolutePath, revision)
+        def document = checker.document('target.md')
+
+        when:
+        ProseDocumentationChecker.verify(repository.absolutePath, revision, ['CONTEXT.md'])
+
+        then:
+        notThrown(Exception)
+        StaticDocumentationPageRenderer.assignHeadingIds(document).values().toSet().contains('selected-yaml-interface-1114')
+        StaticDocumentationPageRenderer.assignHeadingIds(document, true).values().toSet().contains('selected-yaml-interface--1114')
+
+        when:
+        checker.verifyDestination('CONTEXT.md', 'target.md#selected-yaml-interface-1114')
+
+        then:
+        IllegalArgumentException failure = thrown()
+        failure.message.contains('Missing or unsupported fragment')
+    }
+
     def 'task checks integration-tree incoming links after a valid head'() {
         given:
         String head = commit(['CONTEXT.md': '# Context\n', 'incoming.md': '# Incoming\n'])

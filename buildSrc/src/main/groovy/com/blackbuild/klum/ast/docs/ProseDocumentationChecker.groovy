@@ -99,7 +99,7 @@ class ProseDocumentationChecker {
     }
 
     static Set<String> headingIds(Node node) {
-        new HashSet<>(StaticDocumentationPageRenderer.assignHeadingIds(node).values())
+        new HashSet<>(StaticDocumentationPageRenderer.assignHeadingIds(node, true).values())
     }
 
     void verifyDestination(String source, String destination) throws Exception {

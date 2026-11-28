@@ -1,123 +1,213 @@
-# Narrow prose PR qualification
+# Architecture prose PR qualification
 
-Related: [#1127](https://github.com/klum-dsl/klum-ast/issues/1127). D1 implementation, 2026-11-28.
-This is a scoped PR exception. It supplies no product, generated-site, Javadoc, JUnit, Sonar or release proof.
-The research identified PR #1116 as one eligible example; its existing hosted full job took 50m28s.
-One historical control establishes neither typical savings nor the frequency of eligible work.
+Related: [#1127](https://github.com/klum-dsl/klum-ast/issues/1127), partial delivery in
+[PR #1135](https://github.com/klum-dsl/klum-ast/pull/1135). Refined 2026-11-28.
+Prose qualification supplies no product, generated-site, Javadoc, JUnit, Sonar or release proof.
 
-## Admission and activation
+## Accepted trust and qualification policy
 
-Only additions/modifications of regular mode `100644`, UTF-8, non-LFS prose are admitted, in these exact families:
+The maintainer selected **B: explicit maintainer/Hive qualification policy** on 2026-11-28. This replaces the initial
+D1 proposal's strict-protection activation prerequisite. No settings change or new credential is required.
+
+| Alternative | Practical guarantee | Burden and activation | Expected benefit |
+| --- | --- | --- | --- |
+| A: strict required check | GitHub enforces the configured context and up-to-date rule; this does not authenticate the invoking workflow definition | Requires a maintainer ruleset change; live rules/classic-protection interpretation adds API calls and failure modes. Current settings make the shortcut inactive | None until settings are changed |
+| B: explicit repository policy, **selected** | Complete positive admission, genuine selected checks and revision checks during validation; maintainer/Hive verifies current evidence immediately before merge | Remove live protection inspection; ordinary maintainer review/merge authority remains. Base/head movement after validation requires human requalification | Architecture-only PRs can avoid full PR builds after this implementation is accepted |
+| C: local tooling only | Exact committed-source documentation checks; existing full PR CI unchanged | Smallest delivery if automatic routing proves disproportionate; no automated savings | Better local feedback, no hosted build reduction |
+
+GitHub-enforced merge authorization, repository qualification policy and correct classification are separate facts.
+Immediately before accepting a prose-qualified PR, the maintainer/Hive must compare its final head, live base tip and
+merge identity with the qualification evidence. After either branch moves, update/rebase the PR and obtain fresh
+qualification; an old green check does not authorize merging. Existing separately required GitHub checks still apply.
+Prose cannot satisfy required build/JUnit/Sonar contexts. No code changes branch protection or bypasses GitHub rules.
+
+The classifier and checker use committed base tooling, limiting accidental coupling to PR tool changes. The invoking
+workflow is nevertheless PR-controlled. An Actions App-bound check attests to its producing App, not a particular trusted
+workflow definition. This implementation does **not** defend against deliberately malicious workflow changes; those
+require maintainer review under the existing trust model. It guards accidental stale/incomplete qualification. No
+trusted-workflow infrastructure, attestation registry or general security framework is introduced.
+
+## Admission boundary and revision checks
+
+Only additions/modifications of regular mode `100644`, UTF-8, non-LFS prose in these flat locations qualify:
 
 ```text
 CONTEXT.md
-docs/adr/[four digits]-[lowercase alphanumeric hyphenated name].md
-docs/implementation/adr-[four digits]-[lowercase alphanumeric hyphenated name].md
+docs/adr/*.md
+docs/implementation/*.md
+docs/implementation/evidence/*.md
 ```
 
-ADR directories are flat. README, CHANGES, user documentation/navigation/images, evidence/fixtures, examples,
-agent instructions, workflows, Gradle, source and resources select full qualification. Copies, renames, deletions,
-mode/type changes, binary content, an empty diff and unknown input also select full. A final prose commit cannot hide
-an earlier code change: classification compares the unique merge base with the complete head, using a NUL-delimited
-raw Git diff with rename/copy detection and full history. No file-list API, broad path filter or partial list is used.
+The flat architecture/evidence directories are not product or generated-site inputs: root renderer live-contract inputs
+are `docs/user`, README, build/workflow/release machinery, and its source tree is `docs/user` for current versions.
+See [root wiring](../../build.gradle), [renderer](../../buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VersionedDocumentationRenderer.groovy)
+and [renderer acceptance](../../buildSrc/src/main/groovy/com/blackbuild/klum/ast/docs/VerifyVersionedDocumentationRendererTask.groovy).
+References to ADRs in executable tests are documentary `@See` links, not reads of their content.
+Future code that consumes admitted prose as executable/generated input must revisit this boundary.
 
-Admission additionally requires a same-repository PR into `master`, an admitted activity, exact full SHAs, and a current
-synthetic merge commit whose two parents match the pinned live base/head. Admitted content in the merge must equal the
-head. Git failure/warning, shallow or missing history, malformed output and routing-budget exhaustion select full.
-Budgets are 500 records, 1 MiB raw diff, 256 KiB per old/new blob, 1 MiB total changed blob bytes, 4 MiB Git output,
-and 30 seconds per Git process. These restrict routing, not supported product inputs.
+README, CHANGES, user documentation/navigation/images, agent instructions, workflows, Gradle, source and resources
+retain full qualification. Nested evidence/probe/fixture trees remain excluded: they contain executable and fixture
+inputs and the inspected workload establishes no need to admit them. Do not rename or relocate a document just to obtain
+admission. A future real need can justify a separately reviewed boundary change; this is not general Markdown admission.
 
-The classifier and prose task execute from the committed PR base, checked out separately and moved outside the product
-checkout before building. If that tooling is absent or older than the live base, select full. The initial implementation
-PR therefore qualifies as full. No PR-owned classifier or Gradle task can authorize prose admission.
+Copies, renames, deletions, mode/type changes, binary content, empty diffs and unknown input select full. The classifier
+uses the complete merge-base-to-head raw NUL-delimited Git diff with rename/copy detection, not the last commit or a
+bounded API file list. It requires full history, one merge base, complete objects, and checks modes and blob contents.
+Git failure/warning, incomplete/malformed output and budget exhaustion select full.
+Budgets: 500 records, 1 MiB raw diff, 256 KiB per old/new blob, 1 MiB changed blobs in total, 4 MiB Git output and
+30 seconds per Git process. Completed change enumeration survives eligibility rejection for fallback auditing.
 
-**The shortcut remains inactive unless effective protection requires `PR qualification` from GitHub Actions App
-`15368`, with strict/up-to-date enforcement, and no other required check needs full qualification.** Classic protection
-and effective branch rules are read without modifying either. Missing, unbound, loose, conflicting or unavailable
-policy selects full. A read on 2026-11-28 found no required status-check rule on master, so current settings select full.
-The maintainer owns any later policy activation and rollback; this change grants no settings authority.
-There is no demonstrated hosted saving until eligible real PRs actually select prose after activation.
+Hosted prose admission additionally requires an active same-repository PR into `master`, an admitted activity and exact
+full SHAs. The tested synthetic merge must have exactly the pinned base/head parents and retain admitted head content.
+Live PR metadata must agree with the live base ref. The base-tooling checkout must match that pinned base. Missing or
+stale base tooling selects full, including the initial implementation PR. Full and prose confirmation both bind the
+tested run SHA to the pinned merge and re-read head/base/merge before success. This protects the validation interval;
+post-validation movement is handled by the maintainer/Hive pre-merge rule above, not automatic enforcement.
 
-PR metadata and the live branch ref must agree on the base tip. Head/base/merge identity and protection are checked again
-before success. A changed identity fails the result. Strict enforcement prevents an older successful result admitting a
-PR after a later base update; updating the PR then reclassifies. This does not provide an atomic lock over later GitHub
-changes. GitHub remains the enforcement authority.
+`opened`, `synchronize`, `reopened` and `edited` all recompute the full change set. Base retargets, merge groups, forks,
+non-master targets and unsupported inputs run full. There are no PR branch/path filters or skipped full jobs presented
+as product success. A classifier infrastructure failure runs actual full work or qualification fails.
 
-## Executed checks and status semantics
+## Documentation checks and standard local command
 
-[PR qualification](../../.github/workflows/pr-qualification.yml) has one executing job named `PR qualification`.
-It handles `opened`, `synchronize`, `reopened`, and `edited` (including base retargets). Base-retarget events always select
-full; other edits recompute the whole diff. Merge-group events always select full. Forks, `main` and release-target PRs
-always select full, as do other base targets. PR triggering has no branch or path filters and no conditionally skipped `build` job masquerading as product success.
+After committing an architecture-documentation snapshot, workers use:
 
-The prose lane runs policy fixtures, focused buildSrc checker tests and `verifyProseDocumentation`. The task checks:
+```shell
+node .github/scripts/pr-qualification.cjs local origin/master HEAD
+```
+
+Optional HEAD defaults to `HEAD`; BASE is explicit and refs resolve to exact commits. This command needs no GitHub token.
+It shares the complete-diff classifier, writes a disposable manifest and invokes the existing `verifyProseDocumentation`
+task. It validates committed objects, not uncommitted edits, and makes no integration/hosted claim. Outside the allowlist,
+use the applicable documentation/product checks. JDK/Gradle prerequisites are the repository's existing ones.
+
+The hosted task reads its classifier manifest and checks both exact head and merge trees:
 
 - Whole merge-base-to-head `git diff --check`.
-- Both exact head and merge trees, reading Git objects rather than working-copy text.
-- CommonMark 0.28.0/GFM tables parsing, one H1 and a nonempty escaped HTML render for each changed page.
-- Parsed inline/reference/image local targets, heading fragments using the existing renderer's Unicode/duplicate-ID
-  rules, bounded `#Lx-Ly` source ranges, repository escapes and symlink targets.
-- Incoming local links from tracked Markdown to changed pages, including removed headings.
+- CommonMark 0.28.0/GFM tables, one H1 and a nonempty escaped HTML render per changed page.
+- Parsed inline/reference/image local targets, heading fragments, bounded `#Lx-Ly` source ranges, escapes and symlinks.
+- Incoming local links from tracked Markdown to changed pages, including removed or renumbered headings.
 
-External HTTP(S)/mailto links are syntax-only; availability and semantic accuracy are unverified. Code blocks and spans
-stay inert; authored HTML is escaped. This is structural source/render/link validation, without screenshots, a generated
-site, executable examples or a whole-repository link-health claim. User docs remain excluded because their actual
-renderer/site verification selects Javadocs and compilation; do not omit those dependencies to expand admission.
+Heading extraction, Unicode handling and duplicate-ID assignment reuse the existing renderer helper. Source links follow
+[GitHub's source-anchor spacing rules](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links):
+`Selected YAML interface — #1114` has source ID `selected-yaml-interface--1114`. The generated site keeps its existing
+normalized ID `selected-yaml-interface-1114`. The first replay exposed this mismatch; a regression protects both modes.
+There is one CommonMark renderer, not a second site renderer.
 
-The checker limits each Markdown document to 1 MiB, tracked paths to 20,000, Git output to 4 MiB per process and reads
-to 64 MiB per revision, with 30-second Git timeouts. Exceeding a validation budget fails qualification. A failed docs
-check never becomes green by being ignored or relabelled as full.
+External HTTP(S)/mailto links are syntax-only. Code blocks/spans stay inert and authored HTML is escaped. These are bounded
+source/render/link checks, not semantic truth, browser/visual acceptance, remote availability, executable-example proof
+or whole-repository link health. User docs still require their actual renderer/site/Javadoc checks.
+Checker limits: 1 MiB per Markdown document, 20,000 tracked paths, 4 MiB Git output per process, 64 MiB reads per revision,
+and 30-second Git timeouts. Unsupported or incomplete validation fails. Failed docs are never ignored or relabelled full.
+Unit tests run on full/code PRs; prose PRs execute their real documentation checks without retesting unchanged tooling.
 
-All other inputs run the existing complete Gradle/Sonar invocation, all three annotation-artifact lanes, genuine JUnit
-reporting, compatibility evidence and landing-route tests. Full qualification also waits at most 40 reads, 15 seconds
-apart, for the real successful exact-head Sonar check from App `12526`; it rejects missing, failed, ambiguous,
-incompletely paginated or untrusted evidence. It reuses the release verifier's read-only GitHub pagination helper.
-Selected checks must literally succeed: skipped, cancelled, failed and missing outcomes cannot pass the final step.
-A classifier infrastructure failure selects actual full work, or qualification fails if it cannot execute.
+## Authentic Sonar and full-workflow synchronization
 
-[CI](../../.github/workflows/ci.yml) retains its exact `build` job and step sequence for master/main/release pushes and
-manual dispatch. Only PR triggering moves to the distinct workflow. The unchanged release-selection contract still
-requires the approved CI workflow's exact-SHA push run and authentic Sonar check. A PR, docs or merge-group run cannot
-supply release proof. This implementation does not enable merge queue, change release policy, alter rulesets or change
-issue state/milestone. Its issue relationship is non-closing; broader #1127 work remains open.
+Historical check-run reads on 2026-11-28 distinguish:
 
-## Validation and comparison
+| Check | App | Meaning |
+| --- | --- | --- |
+| `SonarCloud Code Analysis` | `12526`, `sonarqubecloud` | Authoritative quality gate; e.g. #1133 output title is `Quality Gate passed` |
+| `SonarCloud` | `57789`, `github-advanced-security` | Separate security integration; e.g. #1133 says no new alerts, not the product quality gate |
 
-Focused local commands (JDK 17):
+The old filter already excluded App 57789; the two different checks alone were not its ambiguity bug. The actual weakness
+was rejecting repeated authoritative records and allowing an earlier same-head success to satisfy a later attempt.
+[Actual #1133 check response](https://api.github.com/repos/klum-dsl/klum-ast/commits/8edd460f8a5badb2fb5604c03fd89fa7c9e73648/check-runs?filter=all)
+contains quality-gate check `140813075641` and security check `140813078583`.
+[#1116](https://api.github.com/repos/klum-dsl/klum-ast/commits/2dadac474e17e5c90fcce21320461eb9f4fdd7a7/check-runs?filter=all)
+similarly contains quality-gate `140083952339` and security `140083959655`.
+
+The bounded rerun search found existing [run 44555781925, attempt 2](https://github.com/klum-dsl/klum-ast/actions/runs/44555781925/attempts/2).
+Its head is `35faf977d2f43dce4450613d30ebc49f11fd48a9`; attempt 1 failed before Sonar, while attempt 2 produced quality check
+`135753911381` starting at 17:35:14Z after attempt start 16:31:35Z on November 19. The response has repeated build/JUnit
+records but only one authoritative Sonar record. We do not claim an observed duplicate-Sonar rerun; controlled regressions
+cover repeated quality-gate records, including older success plus newer pending/failure and later success after failure.
+
+PR verification reuses the existing release helper's bounded, complete GitHub pagination and API client. The release
+verifier's unique-record selection cannot handle the new repeat policy and is left unchanged, preserving release behavior.
+The small PR-specific selector admits only exact-head App 12526 plus exact quality-gate name, selecting newest `started_at`
+**before** considering success. Queued/undated evidence blocks old success; a tied newest timestamp passes only when all
+possible newest records succeeded. The selected start must be at/after the current Actions attempt's `run_started_at`.
+The run ID/attempt/path/event/head are checked. Missing, stale, malformed, incomplete, pending or failed evidence cannot
+qualify. A bounded wait of 40 reads at 15-second intervals permits the genuine asynchronous gate to finish. No second
+scanner upload or general check orchestrator is added. Another analysis of the same head during this attempt's interval
+is an accepted residual risk; this is not a Sonar analysis-to-run identity join.
+The [Checks API](https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference) documents all/latest filtering
+and endpoint limits; completed-at order alone must not hide a newer pending result.
+
+Both full paths retain `check --scan sonar --info`, Groovy 3/4/5 compatibility/coverage through root check, all three
+annotation-artifact tasks and worker limits, real JUnit reporting, compatibility uploads and landing-route checks.
+The existing `ReleaseCiWorkflowTest` now compares the actual named producers' commands/actions/parameters/environment in
+both workflows and their full-lane conditions, plus reporting failure semantics. It does not demand identical workflows
+or introduce a reusable workflow abstraction. Existing push step numbering and protected release-proof selection remain
+unchanged. PR/prose/dispatch/merge-group runs cannot become release push proof.
+
+## Bounded workload and cost assessment
+
+Sample: the latest 45 master-targeted PRs returned on 2026-11-28, #1039–#1135, created November 6–28, including open/closed
+and merged PRs. Fourteen have entirely Markdown change sets; API changed-file totals matched their complete path lists.
+Git merge-base raw-diff/content checks independently admitted all seven architecture cases under the revised boundary.
+These are workload eligibility counts, not claims that historical protection/event identities would admit a run today.
+
+| PR | Initial paths eligible | Revised paths/content eligible | Boundary | Existing full job |
+| --- | --- | --- | --- | --- |
+| [#1133](https://github.com/klum-dsl/klum-ast/pull/1133) | no | yes | Architecture prose | [58m10s · success](https://github.com/klum-dsl/klum-ast/actions/runs/46086458900) |
+| [#1130](https://github.com/klum-dsl/klum-ast/pull/1130) | no | yes | Architecture prose | [51m57s · cancelled](https://github.com/klum-dsl/klum-ast/actions/runs/46052870605) |
+| [#1126](https://github.com/klum-dsl/klum-ast/pull/1126) | no | yes | Architecture prose | [13m01s · cancelled](https://github.com/klum-dsl/klum-ast/actions/runs/45979290602) |
+| [#1116](https://github.com/klum-dsl/klum-ast/pull/1116) | yes | yes | Architecture prose | [50m28s · success](https://github.com/klum-dsl/klum-ast/actions/runs/45863305494) |
+| [#1112](https://github.com/klum-dsl/klum-ast/pull/1112) | yes | yes | Architecture prose | [78m24s · success](https://github.com/klum-dsl/klum-ast/actions/runs/45859240226) |
+| [#1109](https://github.com/klum-dsl/klum-ast/pull/1109) | no | no | README/CHANGES/rendered user docs | [76m48s · success](https://github.com/klum-dsl/klum-ast/actions/runs/45165025534) |
+| [#1089](https://github.com/klum-dsl/klum-ast/pull/1089) | no | no | README/CHANGES/rendered user docs | [77m08s · success](https://github.com/klum-dsl/klum-ast/actions/runs/43943047233) |
+| [#1084](https://github.com/klum-dsl/klum-ast/pull/1084) | no | no | README/CHANGES/rendered user docs | [52m47s · success](https://github.com/klum-dsl/klum-ast/actions/runs/42992116795) |
+| [#1080](https://github.com/klum-dsl/klum-ast/pull/1080) | no | no | README/CHANGES/rendered user docs | [44m57s · success](https://github.com/klum-dsl/klum-ast/actions/runs/42869215356) |
+| [#1062](https://github.com/klum-dsl/klum-ast/pull/1062) | no | no | README/CHANGES/rendered user docs | [73m32s · success](https://github.com/klum-dsl/klum-ast/actions/runs/42505861683) |
+| [#1061](https://github.com/klum-dsl/klum-ast/pull/1061) | no | no | README/CHANGES/rendered user docs | [1m24s · failure](https://github.com/klum-dsl/klum-ast/actions/runs/42505327967) |
+| [#1056](https://github.com/klum-dsl/klum-ast/pull/1056) | no | yes | Architecture prose | [68m59s · success](https://github.com/klum-dsl/klum-ast/actions/runs/42467712577) |
+| [#1054](https://github.com/klum-dsl/klum-ast/pull/1054) | no | no | README/CHANGES/rendered user docs | [70m05s · success](https://github.com/klum-dsl/klum-ast/actions/runs/42461342643) |
+| [#1047](https://github.com/klum-dsl/klum-ast/pull/1047) | no | yes | Architecture prose | [55m06s · success](https://github.com/klum-dsl/klum-ast/actions/runs/42370856626) |
+
+Initial coverage was 2/14 Markdown PRs (14.3%, 2/45 overall). Revised coverage is 7/14 (50%, 7/45 overall = 15.6%),
+including all seven architecture-only cases inspected. #1126 was excluded by the ordinary `issue-1114-yaml-integration.md`
+plan and flat evidence page; #1130 and #1133 by their ordinary `issue-*` plan names. No executable/generated/release
+consumer of these prose paths was found. The seven retained exclusions all affect current user-site or release inputs.
+
+After correcting source anchors, the maintained prose task passed all seven cases at both exact historical head and
+merge trees (14 revision checks in one warm local Gradle invocation: 1m07s). #1112/#1056's final merge parents differ from
+the API's recorded base, so their final merged trees are checker inputs, not reconstructed pre-merge admission proof.
+No historical file was renamed, relocated or edited to obtain those results.
+
+The five successful eligible jobs span 50m28s–78m24s (median 58m10s), totalling 311m07s; the two cancelled jobs used
+another 64m58s but are not successful qualification controls. These historical minutes are opportunity evidence, **not
+measured savings**: the sample is small/nonrandom, cold hosted prose setup is unmeasured, cache/runner effects vary, and
+full postmerge push builds continue. The 1m07s local batch is not a hosted speedup ratio.
+
+Each hosted job retains classification version, full paths/status/modes, reasons, exact revisions, run/attempt, outcomes
+and timings in its summary and `pr-qualification-measurement` JSON artifact. Use native job/step timestamps for setup,
+validation and reporting cost; the JSON elapsed field begins at classification and excludes earlier checkout and final
+upload. Use billed runner usage where available; queue time is separate. No external telemetry, usage poller or secrets.
+Compare the first five naturally admitted prose heads with five naturally full controls after acceptance; label historical
+controls separately and record fallback counts over the first ten runs. Do not trigger hosted sampling builds.
+
+B now offers useful coverage with the classifier/checker already present and removes live protection interpretation.
+Keep routing only if natural hosted evidence confirms worthwhile savings and correct admission. Unexpected complexity,
+false admission or excessive cost warrants reverting PR routing (C) while retaining the useful local checker. Disable
+routing by a reviewed code change returning full, not synthetic green statuses or a protection-settings trick.
+
+## Validation and acceptance
+
+Focused commands:
 
 ```shell
 node --test .github/scripts/pr-qualification.test.cjs
 ./gradlew -p buildSrc test --tests '*ProseDocumentationTest' --no-daemon --offline
-./gradlew verifyProseDocumentation -PproseObjectDirectory=<full-history-repository> \
-  -PproseClassificationFile=<classification-json> --no-daemon --offline
+./gradlew :klum-ast-gradle-plugin:test --tests '*ReleaseCiWorkflowTest' --tests '*ReleaseCiPreflightTest' --no-daemon --offline
 bash .github/scripts/test-write-documentation-landing.sh
 git diff --check
 ```
 
-The manifest is the classifier's JSON result: lane, pinned identity, mergeBase, complete records and reasons. A local
-manifest is a checker input, never authoritative GitHub event or protection evidence. Regression fixtures cover the
-allowlist, earlier code, advancing base, both revision identities, unsupported events, retargets, modes/types/content,
-raw diff failures, policy trust, missing/skipped/failed outcomes and authentic Sonar selection. BuildSrc tests cover real
-CommonMark, outgoing/incoming fragments, source ranges, escapes, unsupported URLs and exact-object reads.
-
-Each hosted job writes the complete classification/identities and outcome map to its summary and the
-`pr-qualification-measurement` JSON artifact, including run/attempt, classifier version, classification duration and
-elapsed time since classification began. GitHub's native step timestamps show checkout, JDK/Gradle setup, checker,
-product and reporting costs. The elapsed JSON field excludes earlier checkout/tool selection and final artifact upload;
-use native job timestamps for job wall time, and Actions usage when available for billed runner minutes. Queue time is
-separate. No secrets, external telemetry, usage API polling or synthetic hosted controls are added.
-
-For the initial comparison, collect the first five naturally occurring eligible prose heads after activation and the
-first five naturally occurring full controls; compare with the existing #1116 full run as a separately labelled historical
-control. Report lane/fallback counts over the first ten PR qualification runs as well. Never trigger a run for sampling. Record runner/cache differences, retries, fallback reasons and the continuing post-merge full push cost.
-Audit every admitted path/status against the recorded complete diff. Report counts and actual timings before estimating
-savings; do not compare a warm local checker with hosted full-build time as measured net improvement. A policy-disabled
-run measures full routing overhead and claims no avoided build. Keep measurements in Actions rather than committing
-per-run logs. False admission, skipped selected work or release-proof regression requires disabling the prose exception
-(removing its strict admission policy makes this classifier run full), followed by maintainer review.
-
-The assigned delivery uses focused local evidence and hosted full PR qualification, per its explicit cost constraint;
-it does not repeat root `check` or Groovy 3/4/5 locally. Local fixture success is not a hosted-result claim.
-
-This policy is KlumAST-specific: the exact allowlist, existing renderer dependencies and protected release contract
-remain here. No engineering-baseline change is part of this slice.
+This refinement uses focused routing, checker, existing release-CI and workflow-contract tests, plus historical read/replay
+controls. No expensive local root check/Groovy compatibility sweep, Sonar upload or hosted sampling build is required.
+Final-head hosted full qualification, authentic Sonar and independent review remain the publication/acceptance evidence;
+local controls do not fabricate those results. The policy choice is settled; maintainer PR acceptance remains required.
+No runtime/DSL/user-navigation change, release change, issue closure/milestone change or repository-settings change.
+This allowlist and renderer/release boundary are KlumAST-specific; no engineering-baseline change is included.

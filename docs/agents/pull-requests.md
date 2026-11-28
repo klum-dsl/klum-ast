@@ -70,6 +70,19 @@ boundary and ask for direction.
 - Verify that new executable test classes use the `Test` suffix and that dedicated documentary classes use
   `<Theme>DocumentaryTest`. Existing `*Spec` classes need not be renamed unless a scoped rename improves the change.
 
+## Architecture prose qualification authority
+
+The maintainer-approved [D1 prose policy](../implementation/issue-1127-docs-qualification.md) allows a successful prose
+qualification to replace product checks only for its complete positive-admission change set. Maintainers/Hive retain
+merge authority. Immediately before accepting a prose-qualified PR, verify the final head, live base tip and merge
+identity against its qualification evidence. After a base/head change, update/rebase the PR and obtain fresh
+qualification. An old green check is not sufficient. Inspect all separately required GitHub checks; prose cannot
+satisfy a required build, JUnit or Sonar check.
+
+GitHub settings enforce only their configured merge rules. This policy does not add enforcement or change settings.
+A PR-controlled workflow requires maintainer review; an Actions App-bound check does not attest to a particular trusted
+workflow definition. The tooling guards accidental stale/incomplete qualification, not a deliberately malicious workflow.
+
 ## Review feedback follow-up
 
 - Preserve the commits that formed the reviewed revision. Address feedback with additive follow-up commits according to
