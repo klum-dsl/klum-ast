@@ -128,8 +128,8 @@ class ReleaseCiWorkflowTest extends Specification {
         List names = ['Build with Gradle', 'Qualify annotation propagation artifacts', 'Publish Test Report',
                       'Archive compatibility-lane evidence', 'Verify published documentation landing routes']
 
-        expect:
-        names.every { name ->
+        when:
+        boolean producersMatch = names.every { name ->
             Map producer = push.find { it.name == name }
             List matches = pullRequest.findAll { it.name == name }
             matches.size() == 1 && matches[0].run == producer.run && matches[0].uses == producer.uses &&
@@ -137,6 +137,9 @@ class ReleaseCiWorkflowTest extends Specification {
                     matches[0].if.contains("steps.route.outputs.lane != 'docs'") &&
                     !matches[0].get('continue-on-error')
         }
+
+        then:
+        producersMatch
         pullRequest.find { it.name == 'Build with Gradle' }.run.contains('check --scan sonar')
         pullRequest.find { it.name == 'Qualify annotation propagation artifacts' }.run.contains('--no-parallel --max-workers=2')
         pullRequest.find { it.name == 'Publish Test Report' }.if.contains('success() || failure()')

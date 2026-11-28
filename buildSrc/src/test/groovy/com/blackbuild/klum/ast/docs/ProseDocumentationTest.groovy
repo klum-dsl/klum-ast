@@ -158,6 +158,27 @@ class ProseDocumentationTest extends Specification {
         failure.message.contains('Missing or unsupported fragment')
     }
 
+    def 'task does not snapshot unrelated working tree or generated product outputs'() {
+        given:
+        String head = commit(['CONTEXT.md': '# Context\n'])
+        File manifest = new File(repository, 'classification.json')
+        manifest.text = JsonOutput.toJson([lane: 'docs', mergeBase: head,
+            identity: [head: head, merge: head], records: [[paths: ['CONTEXT.md']]]])
+        File productOutput = new File(repository, 'build/product-output.txt')
+        productOutput.parentFile.mkdirs()
+        productOutput.text = 'not a prose input'
+        def project = ProjectBuilder.builder().withProjectDir(repository).build()
+        def task = project.tasks.create('verifyProse', VerifyProseDocumentationTask)
+        task.objectDirectory.set(repository)
+        task.classificationFile.set(manifest)
+
+        when:
+        Set<File> inputs = task.inputs.files.files
+
+        then:
+        inputs == [manifest] as Set
+    }
+
     def 'validates exact Git trees rather than working-copy repairs'() {
         given:
         String revision = commit(['CONTEXT.md': '# Context\n[broken](missing.md)'])

@@ -99,6 +99,8 @@ source/render/link checks, not semantic truth, browser/visual acceptance, remote
 or whole-repository link health. User docs still require their actual renderer/site/Javadoc checks.
 Checker limits: 1 MiB per Markdown document, 20,000 tracked paths, 4 MiB Git output per process, 64 MiB reads per revision,
 and 30-second Git timeouts. Unsupported or incomplete validation fails. Failed docs are never ignored or relabelled full.
+The uncached task treats the Git object store as internal, avoiding whole-working-tree snapshots and accidental
+dependencies on generated product outputs. A combined focused-test/prose invocation exposed and controls this boundary.
 Unit tests run on full/code PRs; prose PRs execute their real documentation checks without retesting unchanged tooling.
 
 ## Authentic Sonar and full-workflow synchronization

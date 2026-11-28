@@ -27,14 +27,15 @@ import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = 'Checks exact Git objects on each qualification run')
 abstract class VerifyProseDocumentationTask extends DefaultTask {
-    @InputDirectory abstract DirectoryProperty getObjectDirectory()
+    // Read immutable Git objects, not working-tree inputs or generated product outputs. This task always executes.
+    @Internal abstract DirectoryProperty getObjectDirectory()
     @InputFile abstract RegularFileProperty getClassificationFile()
 
     @TaskAction
