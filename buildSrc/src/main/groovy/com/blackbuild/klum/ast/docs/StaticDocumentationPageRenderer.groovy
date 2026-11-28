@@ -260,13 +260,14 @@ img { max-width: 100%; height: auto; }
         expanded.toString()
     }
 
-    private static Map<Node, String> assignHeadingIds(Node document) {
+    static Map<Node, String> assignHeadingIds(Node document, boolean sourceAnchors = false) {
         Map<Node, String> ids = new IdentityHashMap<>()
         Map<String, Integer> occurrences = [:].withDefault { 0 }
         document.accept(new AbstractVisitor() {
             @Override
             void visit(Heading heading) {
-                String base = slug(plainText(heading)) ?: 'section'
+                String text = plainText(heading)
+                String base = (sourceAnchors ? sourceSlug(text) : slug(text)) ?: 'section'
                 int count = occurrences[base]++
                 ids[heading] = (count ? "$base-$count" : base).toString()
                 visitChildren(heading)
@@ -408,6 +409,13 @@ img { max-width: 100%; height: auto; }
     static String slug(String value) {
         String normalized = Normalizer.normalize(value ?: '', Normalizer.Form.NFC).toLowerCase(Locale.ROOT)
         normalized.replaceAll(/[^\p{L}\p{N}\p{M}_\- ]/, '').replaceAll(/\s+/, '-').replaceAll(/-+/, '-').replaceAll(/^-|-$/, '')
+    }
+
+    // GitHub source anchors retain each space as a hyphen; the generated site deliberately normalizes runs.
+    // https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links
+    private static String sourceSlug(String value) {
+        String normalized = Normalizer.normalize(value ?: '', Normalizer.Form.NFC).toLowerCase(Locale.ROOT)
+        normalized.trim().replaceAll(/[^\p{L}\p{N}\p{M}_\- ]/, '').replace(' ', '-')
     }
 
     static boolean containsAuthoredHtml(String markdown) {

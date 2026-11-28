@@ -1,0 +1,149 @@
+name: PR qualification
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened, edited ]
+  merge_group:
+    types: [ checks_requested ]
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: read
+
+jobs:
+  qualification:
+    name: PR qualification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check out trusted PR base tooling
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .qualification-base
+          fetch-depth: 0
+      - name: Select qualification tooling
+        id: tooling
+        shell: bash
+        run: |
+          script=.github/scripts/pr-qualification.cjs
+          if [[ -f ".qualification-base/$script" ]]; then
+            echo "QUALIFICATION_TOOLS_SHA=$(git -C .qualification-base rev-parse HEAD)" >> "$GITHUB_ENV"
+            mv .qualification-base "$RUNNER_TEMP/qualification-base"
+            echo "script=$RUNNER_TEMP/qualification-base/$script" >> "$GITHUB_OUTPUT"
+            echo "QUALIFICATION_TOOLS_DIRECTORY=$RUNNER_TEMP/qualification-base" >> "$GITHUB_ENV"
+          else
+            # Bootstrap/full fallback only; PR-supplied tooling cannot admit prose.
+            echo "script=$script" >> "$GITHUB_OUTPUT"
+          fi
+      - name: PR change classification
+        id: route
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node "${{ steps.tooling.outputs.script }}" classify
+      - name: Test qualification policy
+        id: policy_tests
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        run: node --test .github/scripts/pr-qualification.test.cjs
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: |
+            17
+          distribution: 'adopt'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Test prose checker
+        id: prose_tests
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        run: ./gradlew -p buildSrc test --tests '*ProseDocumentationTest' --no-daemon
+      - name: Documentation validation
+        id: docs
+        if: steps.route.outcome == 'success' && steps.route.outputs.lane == 'docs'
+        run: >-
+          "$QUALIFICATION_TOOLS_DIRECTORY/gradlew" -p "$QUALIFICATION_TOOLS_DIRECTORY" verifyProseDocumentation --no-daemon
+          "-PproseObjectDirectory=$GITHUB_WORKSPACE"
+          "-PproseClassificationFile=$GITHUB_WORKSPACE/pr-qualification.json"
+      - name: Cache SonarCloud packages
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        uses: actions/cache@v6
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Build with Gradle
+        id: build
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run:
+          ./gradlew check --scan sonar --info
+      - name: Qualify annotation propagation artifacts
+        id: annotation
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        run: >-
+          ./gradlew :klum-ast:annotationPropagationArtifactsGroovy3
+          :klum-ast:annotationPropagationArtifactsGroovy4
+          :klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2
+      - name: Publish Test Report
+        id: junit
+        uses: mikepenz/action-junit-report@v6
+        if: (success() || failure()) && (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        with:
+          report_paths: '**/build/test-results/*/TEST-*.xml'
+          check_name: 'JUnit Test Report'
+      - name: Archive compatibility-lane evidence
+        id: compatibility
+        uses: actions/upload-artifact@v7
+        if: (success() || failure()) && (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        with:
+          name: compatibility-lane-evidence
+          path: |
+            **/build/test-results/groovy4Tests/TEST-*.xml
+            **/build/test-results/groovy5Tests/TEST-*.xml
+            klum-ast/build/test-results/annotationPropagationArtifactsGroovy*/TEST-*.xml
+            code-coverage-report/build/reports/jacoco/groovy4CodeCoverageReport/**
+            code-coverage-report/build/reports/jacoco/groovy5CodeCoverageReport/**
+          if-no-files-found: error
+      - name: Verify published documentation landing routes
+        id: landing
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        run: bash .github/scripts/test-write-documentation-landing.sh
+      - name: Archive test classes
+        uses: actions/upload-artifact@v7
+        if: failure() && (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        with:
+          name: test classes
+          path: |
+            **/build/test-classes/**/*.class
+      - name: Verify trusted PR Sonar result
+        id: sonar
+        if: (steps.route.outcome != 'success' || steps.route.outputs.lane != 'docs')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node "${{ steps.tooling.outputs.script }}" sonar
+      - name: Confirm selected validation
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLASSIFICATION_OUTCOME: ${{ steps.route.outcome }}
+          VALIDATION_OUTCOMES: >-
+            {"prose_tests":"${{ steps.prose_tests.outcome }}","policy_tests":"${{ steps.policy_tests.outcome }}","docs":"${{ steps.docs.outcome }}","build":"${{ steps.build.outcome }}",
+            "annotation":"${{ steps.annotation.outcome }}","junit":"${{ steps.junit.outcome }}",
+            "compatibility":"${{ steps.compatibility.outcome }}","landing":"${{ steps.landing.outcome }}",
+            "sonar":"${{ steps.sonar.outcome }}"}
+        run: node "${{ steps.tooling.outputs.script }}" confirm
+      - name: Archive qualification measurement
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-qualification-measurement
+          path: pr-qualification.json
+          if-no-files-found: error
