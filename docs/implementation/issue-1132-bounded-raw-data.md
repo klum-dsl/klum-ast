@@ -176,7 +176,12 @@ handling rather than a second production validator or schema snapshot alone.
 ## Dependency-ordered slices and reasoned commits
 
 These are separate implementation assignments after explicit maintainer/Hive authorization. Each slice has green focused
-acceptance and a reviewable boundary; none alone establishes full feature delivery or release qualification.
+acceptance and a reviewable boundary; none alone establishes full feature delivery or release qualification. Focused checks
+below are the iteration loop. Before independently publishing any slice, apply the full risk matrix in
+[testing.md](../agents/testing.md#local-validation-before-push): affected module suites, Groovy 4/5 lanes, applicable
+binary/JPMS/TestKit checks and root check for this shared cross-module contract. Synchronize all user-facing pages,
+migration navigation and CHANGES for behavior present in that slice under [pull-requests.md](../agents/pull-requests.md).
+Later feature/adopter qualification does not waive these per-slice publication requirements.
 
 ### R1 — minimal compiler/runtime/schema vertical
 
@@ -200,7 +205,8 @@ are absent. Invalid deep leaf and a cycle reject before this call, with a correc
 Generate and validate actual recursive schema (integer accepted despite number overlap), root type and two members with
 different outer prose/deprecation/examples/Required facts. Verify no recursive constraint assertions or initialization.
 Retain typed-map/unmarked Object/null and basic single-route/scalar-alternative controls. Run focused Groovy 3 tests for
-compiler/runtime consumers plus plugin tests; defer broad compatibility and packaging verdicts to R2/R3 explicitly.
+compiler/runtime consumers plus plugin tests while iterating. R2/R3 expand the acceptance corpus and establish the complete
+feature/packaging/adopter verdict; R1 publication still requires the risk-matrix checks and documentation above.
 
 ### R2 — annotation, active Builder, Template/copy and rejection boundaries
 
@@ -218,8 +224,8 @@ scenario sources in `klum-ast/src/test/scenarios/` or the existing test fixture 
 
 Acceptance matrix runs Groovy 3/4/5 for the affected modules and scenarios:
 
-- All exact declaration negatives above, missing Builder.Method, zero/multi/default/varargs payload shapes, ignored or
-  inaccessible targets, incompatible hierarchy facts and competing names. No generic inference or Object fallback.
+- All exact declaration negatives above, missing Builder.Method, zero/multi/varargs payload shapes, default-argument
+  spreading beyond the exact one-payload signature, ignored or inaccessible targets, incompatible hierarchy facts and competing names. No generic inference or Object fallback.
 - Deep nesting; repeated acyclic placement; Map/List/self/enclosing-domain cycles; non-String/null/GString keys;
   GString/mutable CharSequence leaves, Set/array, custom objects, Classes, closures, arbitrary Number subclasses and
   nonfinite numbers. Keep literal '$ref'/'<<'/tag-like Strings as inert data. Prove exact finite numeric conversion and order.
