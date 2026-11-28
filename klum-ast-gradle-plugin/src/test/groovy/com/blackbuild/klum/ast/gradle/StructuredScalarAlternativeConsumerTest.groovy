@@ -137,7 +137,7 @@ class StructuredScalarAlternativeConsumerTest extends Specification {
             String failure = execute([tool('java'), '-cp', paths(inputs), 'fixture.consumer.ArtifactResourceControl', oldParent.toString(), mode], false)
             assert failure.contains('Public contract resource origin disagrees with loaded type fixture.parent.Destination_DSL$Builder'): failure
         }
-        retain(generation, root, compiler + clients + [consumer, oldParent], output, controls.keySet() + ['resource-origin'])
+        retain(generation, root, compiler + clients + [consumer, oldParent, Path.of(System.getProperty('schemaPluginJar'))], output, controls.keySet() + ['resource-origin'])
 
         then:
         !Files.exists(root.resolve('parent-sources'))
@@ -256,7 +256,9 @@ klumSchema.jsonSchema {
                 new MethodVisitor(Opcodes.ASM9, visitor) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         if (kind == 'operation' && annotation.endsWith('GeneratedInput$Operation;') ||
-                                kind == 'marker' && annotation.endsWith('Struct$Operation;')) return null
+                                kind == 'marker' && annotation.endsWith('Struct$Operation;')) {
+                            return null
+                        }
                         def downstream = super.visitAnnotation(annotation, visible)
                         if (kind != 'parameter' || !annotation.endsWith('GeneratedInput$Operation;')) return downstream
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
@@ -278,11 +280,12 @@ klumSchema.jsonSchema {
         Path retained = Path.of(System.getProperty('schemaValidationDirectory'), 'scalar-artifacts-g' + generation)
         retained.toFile().deleteDir()
         Files.createDirectories(retained)
-        root.toFile().listFiles().findAll { it.name.endsWith('.jar') }.each { Files.copy(it.toPath(), retained.resolve(it.name)) }
+        List<Path> inputs = (artifacts + root.toFile().listFiles().findAll { it.name.endsWith('.jar') }.collect { it.toPath() }).unique()
+        inputs.each { input -> Files.copy(input, retained.resolve(input.fileName)) }
         schemas.toFile().listFiles().findAll { it.name.endsWith('.json') }.each { Files.copy(it.toPath(), retained.resolve(it.name)) }
         Files.writeString(retained.resolve('evidence.json'), JsonOutput.prettyPrint(JsonOutput.toJson([
                 generation: generation, java: System.getProperty('java.version'),
-                artifacts: (artifacts + root.toFile().listFiles().findAll { it.name.endsWith('.jar') }.collect { it.toPath() }).unique().collect { [path: it.toString(), sha256: sha256(it)] },
+                artifacts: inputs.collect { [path: it.toString(), sha256: sha256(it)] },
                 controls: controls, commands: commands])))
     }
 

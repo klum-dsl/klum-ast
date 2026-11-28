@@ -36,14 +36,20 @@ public class Main {
         }
         Child numbered = Child.Create.FromStruct(Map.of("address", 8080));
         if (!Integer.valueOf(8080).equals(numbered.getValue()) || numbered.getIntegerCalls() != 1
-                || numbered.getStringCalls() != 0) throw new AssertionError("Java integer arm");
+                || numbered.getStringCalls() != 0) {
+            throw new AssertionError("Java integer arm");
+        }
         Destination text = Destination.Create.FromStruct(Map.of("address", "8080"));
         if (!(text.getValue() instanceof String) || text.getStringCalls() != 1
-                || text.getIntegerCalls() != 0) throw new AssertionError("Java String arm");
-        if (!(Selected.Create.FromStruct(Map.of("address", "8080")).getValue() instanceof String))
+                || text.getIntegerCalls() != 0) {
+            throw new AssertionError("Java String arm");
+        }
+        if (!(Selected.Create.FromStruct(Map.of("address", "8080")).getValue() instanceof String)) {
             throw new AssertionError("historical selected String");
-        if (!Integer.valueOf(8080).equals(IntegerOnly.Create.FromStruct(Map.of("address", 8080L)).getValue()))
+        }
+        if (!Integer.valueOf(8080).equals(IntegerOnly.Create.FromStruct(Map.of("address", 8080L)).getValue())) {
             throw new AssertionError("historical integer");
+        }
         for (String name : new String[]{"com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation",
                 "com.blackbuild.klum.ast.gradle.KlumAstSchemaPlugin"}) {
             try { Class.forName(name); throw new AssertionError("build tool at runtime: " + name); }

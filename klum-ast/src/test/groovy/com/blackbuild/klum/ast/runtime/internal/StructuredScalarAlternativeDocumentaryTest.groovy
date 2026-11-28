@@ -57,10 +57,12 @@ class StructuredScalarAlternativeDocumentaryTest extends AbstractDSLSpec {
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         def destination = Class.forName('documentary.Destination', false, artifacts)
 
+        String numericInput = new String('8080')
+
         when:
         def numbered = destination.Create.FromStruct([address: 8080])
         def named = destination.Create.FromStruct([address: 'http'])
-        def text = destination.Create.With { applyStruct([address: '8080']) }
+        def text = destination.Create.With { applyStruct([address: numericInput]) }
 
         then:
         numbered.value == 8080
@@ -68,5 +70,6 @@ class StructuredScalarAlternativeDocumentaryTest extends AbstractDSLSpec {
         named.value == 'http'
         text.value == '8080'
         text.value.class == String
+        text.value.is(numericInput)
     }
 }
