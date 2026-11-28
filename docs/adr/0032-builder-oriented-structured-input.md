@@ -1,6 +1,7 @@
 # Builder-oriented structured input for 4.2
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
+Category-B bounded raw-data extension: 2026-11-28 (accepted direction; implementation pending).
 Category-B finite scalar-alternative extension: 2026-11-27 (accepted direction; implementation pending).
 
 Status: **Accepted; repository delivery reconciled on 2026-11-06 at `7cd6043c7089fcc592e130eba6d0eaf5a6fbfcb5`.**
@@ -12,6 +13,8 @@ repository delivery status; it does not establish a release or current adopter q
 String producers remain deferred post-4.2 under #1033. Other grammar requires its own accepted slice.
 The separately accepted [#1129 Integer/String extension](#finite-integerstring-operation-alternatives--1129)
 below is planning only; the earlier delivery status does not include it or assign it a release.
+The separately accepted [#1132 RawData extension](#bounded-raw-data-payloads--1132) is also planning only;
+its implementation and artifact/consumer qualification require separate authorization.
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -432,6 +435,86 @@ consumer-owned, as does adoption qualification; no ScHelm dependency enters core
 qualification and #1114 parsing remain separate. The planning change itself added
 no production behavior; the later explicitly assigned [U1 slice](../implementation/issue-1129-u1-evidence.md) supplies
 minimal behavior with empty parameter facts. U2/U3 retain the remaining qualification and delivery gates.
+
+### Bounded raw-data payloads — #1132
+
+Date: 2026-11-28. Status: **Accepted v1 direction; implementation and qualification pending.**
+Authority: the confirmed [#1132 issue body](https://github.com/klum-dsl/klum-ast/issues/1132).
+The [implementation plan](../implementation/issue-1132-bounded-raw-data.md) records current failure paths,
+compiler/runtime/generator seams and three dependency-ordered qualification slices.
+
+This is a Category-B extension of this ADR, governed by [ADR 0034](0034-bounded-structured-authoring.md).
+It admits one explicit payload family inside existing construction and source-free contract resolution; no competing
+ADR, shared object framework or second construction engine is needed. Earlier generic Object and null exclusions remain
+current except for the separately opted-in RawData payload described here. This decision is not delivered behavior.
+
+Add composable `@Struct.RawData`, usable directly or through a domain annotation, on exactly a `Map<String, Object>`
+field or a one-payload `@Builder.Method` with that exact declared type. The method still requires `@Builder.Method`;
+it does not require `@Struct.Operation`. RawData admits a payload, while Operation selects an otherwise eligible route;
+neither replaces Builder projection. Existing exclusion, naming, collision and role rules remain authoritative.
+Raw Maps, wildcard/type-variable/specialized declarations, unmarked Object shapes and other targets gain no admission.
+
+Illustrative future Schema and Model syntax (not executable until separately implemented):
+
+```groovy
+import com.blackbuild.klum.ast.Builder
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Struct
+
+@DSL class Settings {
+    @Struct.RawData Map<String, Object> configuration
+}
+
+@DSL class CommandSettings {
+    @Struct.Ignore Map<String, Object> stored
+    @Struct.RawData @Builder.Method
+    void configuration(Map<String, Object> supplied) { stored = supplied }
+}
+
+def model = Settings.Create.FromStruct([configuration: [
+    'literal.dotted.key': '8080', enabled: false, retries: 0,
+    rows: [[weight: 1.25G], null], emptyMap: [:], emptyList: []
+]])
+```
+
+Each supplied payload is a Map-rooted ordered acyclic tree: exact String keys, Maps, Lists, Strings, Booleans,
+nested null and finite exact numeric leaves canonicalized to BigInteger/BigDecimal. Preserve keys literally, including
+dots, without coercion, normalization or path interpretation. Preserve supplied Map traversal and List order. Copy every
+container freshly; repeated acyclic containers become repeated structural values, with no caller aliases or identity
+semantics. Reject arbitrary JVM objects, Classes, executable/tagged values, cycles, nonfinite numbers and unsupported
+numeric implementations; never coerce numeric-looking Strings or recover precision already lost by a caller/parser.
+Root Lists, scalars and null reject. No Struct depth/size quota or parser duplicate/resource policy is introduced.
+
+Omission performs no operation and preserves the existing Builder value. A supplied Map, including `{}`, is one
+whole-value operation: validate/copy that reached argument, then invoke once and replace rather than implicitly merge.
+A RawData field must therefore bypass ordinary Map element population; the ordinary generated Map convenience method
+must not silently change its Groovy behavior. The authored method receives the fresh whole Map through its exact public
+Builder signature; its body owns its domain effects. Earlier operations remain on failure, later ones do not run, and an
+invalid tree does not invoke its own operation. This is argument checking, not whole-document preflight or rollback.
+
+Templates/defaults/copy, ownership, active same-thread unsealed Builder guards and lifecycle retain existing semantics.
+In particular, Struct replacement is not a new Template/copy overwrite strategy, presence history, deep-immutability or
+completed-Model reconstruction promise. Existing materialization and serialization continue; RawData adds no output
+annotation or Jackson mapping rule. Broader copying work remains [#1117](https://github.com/klum-dsl/klum-ast/issues/1117).
+
+Interpretation and JSON Schema consume the same validated compiler-owned admission fact and exact target type.
+Generated Draft 2020-12 schema uses one reusable recursive tree definition with `anyOf` branches for object/array/string/
+boolean/integer/number/null; the member itself remains object-rooted. Integer also satisfies number, so `oneOf` would
+be incorrect. Keep authored Javadoc, deprecation, documentary metadata and existing field `@Struct.Required` at the outer
+member/use site, never on the shared recursive definition. Add no recursive constraint interpretation, Size projection,
+custom nested schema fragment or automatic runtime JSON Schema gate.
+
+Require matched compiler/runtime/schema-generator artifacts and recompiled participating Schemas. Missing, contradictory,
+stripped or unsupported required facts must fail closed with recompile/upgrade guidance; neither arbitrary Object admission
+nor a weaker schema is a fallback. Retain the existing protocol unless concrete implementation evidence requires a change;
+no speculative protocol bump, legacy decoder or mixed-toolchain compatibility machinery is accepted.
+
+ScHelm [#88](https://github.com/klum-dsl/schelm/issues/88) /
+[PR #91](https://github.com/klum-dsl/schelm/pull/91) supply adopter evidence only, with neutral KlumAST fixtures and no
+ScHelm dependency. [#952](https://github.com/klum-dsl/klum-ast/issues/952) retains broader grammar coordination,
+[#1113](https://github.com/klum-dsl/klum-ast/issues/1113) completed-Model projection/reconstruction and
+[#1114](https://github.com/klum-dsl/klum-ast/issues/1114) YAML parsing/emission. None is a prerequisite merely by adjacency.
+No dependency, release placement, production implementation or issue closure follows from this planning change.
 
 ### Scalar converters, scopes and commands
 
