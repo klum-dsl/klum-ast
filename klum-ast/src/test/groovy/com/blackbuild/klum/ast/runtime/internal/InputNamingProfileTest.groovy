@@ -108,6 +108,58 @@ class InputNamingProfileTest extends AbstractDSLSpec {
                 'already_snake', 'Ångström-url', 'labels', 'service-details', 'worker-instances', 'configure-endpoint'] as Set
     }
 
+    @Issue('1129')
+    def 'descendant profiles join or separate inherited scalar arms before admission: #literal'() {
+        given:
+        def type = schema("""
+            @DSL class Base {
+                @Struct.Ignore Object value
+                @Struct.Operation @Builder.Method void addressValue(Integer input) { value = input }
+                @Struct.Operation @Struct.Name('$literal') @Builder.Method void named(String input) { value = input }
+            }
+            @Struct.Naming(Profile.KEBAB_CASE) @DSL class Service extends Base {}
+        """)
+
+        when:
+        def entries = contract(type).entries()
+        def numeric = type.Create.FromStruct(['address-value': 8080])
+        def textual = type.Create.FromStruct([(literal): '8080'])
+
+        then:
+        (entries.'address-value'.scalarAlternatives() != null) == joined
+        numeric.value.class == Integer
+        textual.value.class == String
+        entries.keySet() == (joined ? ['address-value'] : ['address-value', 'addressValue']) as Set
+
+        where:
+        literal         | joined
+        'address-value' | true
+        'addressValue'  | false
+    }
+
+    @Issue('1129')
+    def 'an integer override can resolve a provisional marked numeric collision before a child adds String'() {
+        given:
+        def type = schema('''
+            @DSL class Base {
+                @Struct.Ignore Object value
+                @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+                @Struct.Operation @Struct.Name('address') @Builder.Method void other(Integer input) { value = input }
+            }
+            @DSL class Service extends Base {
+                @Struct.Ignore @Builder.Method void other(Integer input) { throw new AssertionError('ignored override') }
+                @Struct.Operation @Builder.Method void address(String input) { value = input }
+            }
+        ''')
+
+        when:
+        def result = type.Create.FromStruct([address: 7])
+
+        then:
+        result.value == 7
+        contract(type).entries().address.scalarAlternatives() != null
+    }
+
     def 'annotation requires an explicit finite runtime-retained type profile'() {
         when:
         def value = Struct.Naming.getDeclaredMethod('value')

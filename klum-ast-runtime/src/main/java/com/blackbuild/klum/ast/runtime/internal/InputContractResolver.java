@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.ParameterConstraints;
 import com.blackbuild.klum.ast.Struct.Naming.Profile;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import groovy.lang.Closure;
@@ -179,7 +180,8 @@ final class InputContractResolver {
     /** Preserve legacy parent collisions, but resolve String-operation groups only after descendant overrides. */
     private void retainUnmarkedCollisions(List<Entry> entries, List<Rejection> rejected) {
         candidateGroups(entries, rejected).forEach((name, group) -> {
-            if (group.size() > 1 && group.stream().noneMatch(InputContractResolver::stringSelectionCandidate)) {
+            if (group.size() > 1 && group.stream().noneMatch(InputContractResolver::stringSelectionCandidate)
+                    && group.stream().noneMatch(this::authoritativeOperation)) {
                 rejectCollision(name, group, rejected, false);
             }
         });
@@ -213,9 +215,7 @@ final class InputContractResolver {
         if (group.size() != 2 || marked.size() != 2 || integer == null || string == null)
             throw invalid("Multiple @Struct.Operation candidates for '" + name
                     + "': requires exactly one authored int/Integer and one String operation");
-        requireEmptyParameterFacts(integer);
-        requireEmptyParameterFacts(string);
-        return integer.withScalarAlternatives(string);
+        return integer.withScalarAlternatives(string, requireParameterFacts(integer), requireParameterFacts(string));
     }
 
     private static boolean integerOperation(Entry entry) {
@@ -224,14 +224,10 @@ final class InputContractResolver {
                 && entry.methods().size() == 1;
     }
 
-    private void requireEmptyParameterFacts(Entry entry) {
+    private ParameterConstraints requireParameterFacts(Entry entry) {
         try {
             Literals facts = reader.metadata(entry.contract()).methods().get(signature(entry.dispatch()));
-            if (!Integer.valueOf(0).equals(facts.parameterConstraintCount())
-                    || facts.parameterConstraints() == null || !facts.parameterConstraints().isEmpty()
-                    || facts.parameterConstraintProjection() == null)
-                throw invalid("Incomplete or unsupported authored parameter facts on " + entry.source()
-                        + "; U1 requires explicit empty constraints and policy");
+            return BuilderContractReader.completeParameterConstraints(facts, entry.source());
         } catch (IOException | ClassNotFoundException failure) {
             throw failure(entry.contract().getName(), failure);
         }

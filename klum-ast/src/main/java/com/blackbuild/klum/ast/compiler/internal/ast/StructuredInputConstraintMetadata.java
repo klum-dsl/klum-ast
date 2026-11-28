@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.Struct.Required;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedInput;
 import org.apache.groovy.ast.tools.ExpressionUtils;
 import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
@@ -49,7 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Freezes field projection facts at their original source; never copies Bean constraints onto executable sites. */
+/** Freezes authored projection facts at their original source; never copies Bean constraints onto executable sites. */
 final class StructuredInputConstraintMetadata {
     private static final String ICD = ConstraintDescription.class.getName();
     private static final String JAKARTA_CONSTRAINT = "jakarta.validation.Constraint";
@@ -83,43 +84,41 @@ final class StructuredInputConstraintMetadata {
                 .anyMatch(meta -> carriesMarker(meta, marker, visited));
     }
 
-    /** U1 transports only provably empty authored parameter facts; U2 owns nonempty original facts. */
+    /** Generic one-payload authored facts; capture does not qualify a site for schema projection. */
     static void enrichOperationParameter(MethodNode method, AnnotationNode fact) {
         if (method.getParameters().length != 1) return;
         Parameter parameter = method.getParameters()[0];
-        List<AnnotationNode> annotations = parameter.getAnnotations();
-        List<AnnotationNode> policies = parameter.getAnnotations(ClassHelper.make(ConstraintProjection.class));
-        Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
-        fact.setMember("parameterConstraintProjection", selected == null
-                ? new PropertyExpression(new ClassExpression(ClassHelper.make(Policy.class)), "PROJECT") : selected);
-        // An unqualified annotation may carry constraints or source-origin information. Never call it empty.
-        boolean empty = StructuredInputSourceOrigins.emptyParameter(method) && annotations.stream().allMatch(annotation ->
-                annotation.getClassNode().getName().equals(ConstraintProjection.class.getName()));
-        fact.setMember("parameterConstraintCount", new ConstantExpression(empty ? 0 : -1));
-        if (empty) fact.setMember("parameterConstraints", new ListExpression());
+        enrichConstraints(method, parameter.getAnnotations(), fact, "parameterConstraintProjection",
+                "parameterConstraints", "parameterConstraintCount");
+        if (!StructuredInputSourceOrigins.parameterCaptured(method)) {
+            fact.setMember("parameterConstraintCount", new ConstantExpression(-1));
+        }
     }
 
     static void enrichField(FieldNode field, AnnotationNode fact) {
         if (rawInputRequired(field)) fact.setMember("rawInputRequired", ConstantExpression.TRUE);
-        List<AnnotationNode> policies = field.getAnnotations(ClassHelper.make(ConstraintProjection.class));
-        Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
-        // Let the ordinary annotation compiler fold enum constants, including static imports.
-        fact.setMember("constraintProjection", selected == null
-                ? new PropertyExpression(new ClassExpression(ClassHelper.make(Policy.class)), "PROJECT")
-                : selected);
-        ListExpression constraints = new ListExpression();
-        List<AnnotationNode> declarations = field.getAnnotations().stream().filter(StructuredInputConstraintMetadata::constraint).toList();
-        declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
-                .map(annotation -> rule(field, annotation, declarations))
-                .forEach(rule -> constraints.addExpression(new AnnotationConstantExpression(rule)));
-        declarations.stream().sorted((left, right) -> declaration(left).compareTo(declaration(right)))
-                .forEach(annotation -> composingRules(field, annotation, declarations, constraints));
-        // Explicit empty arrays distinguish complete absence of rules from stripped/old field metadata.
-        fact.setMember("constraints", constraints);
-        fact.setMember("constraintCount", new ConstantExpression(constraints.getExpressions().size()));
+        enrichConstraints(field, field.getAnnotations(), fact, "constraintProjection", "constraints", "constraintCount");
     }
 
-    private static AnnotationNode rule(FieldNode field, AnnotationNode annotation, List<AnnotationNode> declarations) {
+    private static void enrichConstraints(AnnotatedNode source, List<AnnotationNode> annotations, AnnotationNode fact,
+                                          String policyMember, String rowsMember, String countMember) {
+        List<AnnotationNode> policies = annotations.stream().filter(annotation ->
+                annotation.getClassNode().getName().equals(ConstraintProjection.class.getName())).toList();
+        Expression selected = policies.isEmpty() ? null : policies.get(0).getMember(VALUE);
+        fact.setMember(policyMember, selected == null
+                ? new PropertyExpression(new ClassExpression(ClassHelper.make(Policy.class)), "PROJECT") : selected);
+        ListExpression constraints = new ListExpression();
+        List<AnnotationNode> declarations = annotations.stream().filter(StructuredInputConstraintMetadata::constraint)
+                .sorted((left, right) -> declaration(left).compareTo(declaration(right))).toList();
+        declarations.stream().map(annotation -> rule(source, annotation, declarations))
+                .forEach(rule -> constraints.addExpression(new AnnotationConstantExpression(rule)));
+        declarations.forEach(annotation -> composingRules(source, annotation, declarations, constraints));
+        // Explicit zero and empty rows distinguish known absence from historical/missing facts.
+        fact.setMember(rowsMember, constraints);
+        fact.setMember(countMember, new ConstantExpression(constraints.getExpressions().size()));
+    }
+
+    private static AnnotationNode rule(AnnotatedNode field, AnnotationNode annotation, List<AnnotationNode> declarations) {
         String name = annotation.getClassNode().getName();
         // Use Groovy's inert ConstantValue/AST folding, never reflective field reads or evaluation.
         if (name.equals(PATTERN)) {
@@ -146,6 +145,9 @@ final class StructuredInputConstraintMetadata {
             rule.setMember(PLAIN, new ConstantExpression(StructuredInputSourceOrigins.direct(field, annotation) && plain(annotation, declarations)
                     && declarations.stream().noneMatch(other -> other.getClassNode().getName().equals("jakarta.validation.constraints.Pattern$List"))));
         }
+        if (field instanceof MethodNode && !StructuredInputSourceOrigins.direct(field, annotation)) {
+            rule.setMember(PLAIN, ConstantExpression.FALSE);
+        }
         return rule;
     }
 
@@ -160,7 +162,7 @@ final class StructuredInputConstraintMetadata {
                 .findFirst().orElse(new ConstantExpression(""));
     }
 
-    private static void composingRules(FieldNode field, AnnotationNode outer, List<AnnotationNode> declarations,
+    private static void composingRules(AnnotatedNode field, AnnotationNode outer, List<AnnotationNode> declarations,
                                        ListExpression facts) {
         ClassNode type = outer.getClassNode();
         if (!jakartaConstraint(type)) return;

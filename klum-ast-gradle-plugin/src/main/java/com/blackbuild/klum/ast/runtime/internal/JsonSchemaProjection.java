@@ -27,6 +27,7 @@ import com.blackbuild.klum.ast.Required;
 import com.blackbuild.klum.ast.Struct.ConstraintProjection.Policy;
 import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.ScalarAlternatives;
+import com.blackbuild.klum.ast.runtime.internal.CompiledBuilderSchema.ParameterConstraints;
 import groovyjarjarasm.asm.AnnotationVisitor;
 import groovyjarjarasm.asm.ClassReader;
 import groovyjarjarasm.asm.ClassVisitor;
@@ -206,7 +207,8 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         if (entry.scalarAlternatives() != null) {
             ScalarAlternatives family = entry.scalarAlternatives();
             return new LinkedHashMap<>(Map.of("anyOf", List.of(
-                    property(family.integerArm(), groupRedefined), property(family.stringArm(), groupRedefined))));
+                    familyBranch(family.integerArm(), family.integerConstraints(), groupRedefined),
+                    familyBranch(family.stringArm(), family.stringConstraints(), groupRedefined))));
         }
         Map<String, Object> value = entry.role() == CompiledBuilderSchema.Role.LITERAL_ALTERNATIVE_MAP
                 ? literalAlternatives(entry) : payload(entry.payload(), keyPosition(entry), entry.source());
@@ -221,6 +223,14 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
         examples(value, entry.examples());
         if (!authoredOperation) constrain(entry, value, groupRedefined);
         return value;
+    }
+
+    private Map<String, Object> familyBranch(CompiledBuilderSchema.Entry arm,
+                                            ParameterConstraints constraints,
+                                            boolean groupRedefined) throws ClassNotFoundException {
+        Map<String, Object> branch = property(arm, groupRedefined);
+        contributeConstraints(arm, branch, groupRedefined, constraints.policy(), constraints.rules(), ConstraintSite.FAMILY_PARAMETER);
+        return branch;
     }
 
     private static String renderAuthoredDescription(String documentation) {
@@ -259,38 +269,51 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
                 + "', external input '" + entry.externalName() + "', public Builder '" + entry.contract().getName()
                 + "'; recompile and package the Schema with matching KlumAST versions");
         CompiledBuilderSchema.ConverterConstraints converter = profile.converters().get(field);
-        contributeConstraints(entry, value, groupRedefined, constraints, converter != null);
+        contributeConstraints(entry, value, groupRedefined, constraints.policy(), constraints.rules(),
+                converter == null ? ConstraintSite.PROPERTY : ConstraintSite.DOMAIN_VALUE);
         if (converter != null) contributeConverter(entry, value, converter);
     }
 
+    private enum ConstraintSite { PROPERTY, DOMAIN_VALUE, FAMILY_PARAMETER }
+
     private void contributeConstraints(CompiledBuilderSchema.Entry entry, Map<String, Object> value, boolean groupRedefined,
-                                       CompiledBuilderSchema.FieldConstraints constraints, boolean domainValue) {
+                                       Policy policy, List<CompiledBuilderSchema.ConstraintRule> rules, ConstraintSite site) {
         List<Map<String, Object>> bounds = new ArrayList<>();
         List<Map<String, Object>> patterns = new ArrayList<>();
         List<String> unenforced = new ArrayList<>();
-        boolean requiredLowering = constraints.rules().stream().anyMatch(rule -> defaultRule(rule, Required.class))
-                && constraints.rules().stream().anyMatch(rule -> defaultRule(rule, Validate.class));
-        for (CompiledBuilderSchema.ConstraintRule rule : constraints.rules()) {
-            if (constraints.policy() != Policy.OMIT && !rule.description().isEmpty()) {
+        boolean requiredLowering = rules.stream().anyMatch(rule -> defaultRule(rule, Required.class))
+                && rules.stream().anyMatch(rule -> defaultRule(rule, Validate.class));
+        for (CompiledBuilderSchema.ConstraintRule rule : rules) {
+            if (policy != Policy.OMIT && !rule.description().isEmpty()) {
                 appendDescription(value, rule.description());
             }
             if (rule.origin().equals("DOCUMENTARY")) continue;
-            BuiltinConstraintCatalog.Result contribution = domainValue
-                    ? new BuiltinConstraintCatalog.Result(List.of(), List.of(), "constraint belongs to the converted domain value")
-                    : BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
+            BuiltinConstraintCatalog.Result contribution = constraintContribution(entry, rule, groupRedefined, site);
             bounds.addAll(contribution.bounds());
             patterns.addAll(contribution.patterns());
-            if (!suppressConstraintDescription(constraints.policy(), contribution.projected())
+            if (!suppressConstraintDescription(policy, contribution.projected())
                     && !(requiredLowering && defaultRule(rule, Validate.class))) {
-                unenforced.add(runtimeConstraintDescription(constraints.policy(), rule, contribution));
+                unenforced.add(runtimeConstraintDescription(policy, rule, contribution, site == ConstraintSite.FAMILY_PARAMETER));
             }
         }
         if (!unenforced.isEmpty()) appendDescription(value, String.join(",\n", unenforced));
-        if (constraints.policy() == Policy.PROJECT) {
+        if (policy == Policy.PROJECT) {
             conjoinBounds(value, bounds);
             appendConjunction(value, patterns);
         }
-        if (!constraints.rules().isEmpty() && constraints.policy() != Policy.OMIT) value.put("x-klum-constraint-source", entry.source());
+        if (!rules.isEmpty() && policy != Policy.OMIT) {
+            value.put("x-klum-constraint-source", entry.source() + (site == ConstraintSite.FAMILY_PARAMETER ? " parameter[0]" : ""));
+        }
+    }
+
+    private static BuiltinConstraintCatalog.Result constraintContribution(CompiledBuilderSchema.Entry entry,
+                                                                         CompiledBuilderSchema.ConstraintRule rule,
+                                                                         boolean groupRedefined, ConstraintSite site) {
+        return switch (site) {
+            case DOMAIN_VALUE -> new BuiltinConstraintCatalog.Result(List.of(), List.of(), "constraint belongs to the converted domain value");
+            case FAMILY_PARAMETER -> BuiltinConstraintCatalog.projectFamilyParameter(entry, rule, groupRedefined);
+            case PROPERTY -> BuiltinConstraintCatalog.project(entry, rule, groupRedefined);
+        };
     }
 
     private void contributeConverter(CompiledBuilderSchema.Entry entry, Map<String, Object> value,
@@ -311,9 +334,10 @@ final class JsonSchemaProjection implements BiFunction<List<String>, List<String
     }
 
     private static String runtimeConstraintDescription(Policy policy, CompiledBuilderSchema.ConstraintRule rule,
-                                                       BuiltinConstraintCatalog.Result contribution) {
+                                                       BuiltinConstraintCatalog.Result contribution, boolean familyParameter) {
         if (closureBackedValidation(rule)) return "custom validation";
-        String reason = policy == Policy.TEXT_ONLY ? "field projection policy TEXT_ONLY" : contribution.reason();
+        String reason = policy == Policy.TEXT_ONLY
+                ? (familyParameter ? "parameter" : "field") + " projection policy TEXT_ONLY" : contribution.reason();
         String declaration = rule.owner().isEmpty() ? rule.declaration() : rule.declaration() + " via " + rule.owner();
         return withReason(shortenAnnotations(declaration), reason);
     }
