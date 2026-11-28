@@ -1,7 +1,7 @@
 # Builder-oriented structured input for 4.2
 
 Date: 2026-10-31. Category-B public API clarification: 2026-11-01.
-Category-B finite scalar-alternative extension: 2026-11-27 (accepted direction; implementation pending).
+Category-B finite scalar-alternative extension: 2026-11-27 (accepted direction; implementation and artifact qualification recorded below).
 
 Status: **Accepted; repository delivery reconciled on 2026-11-06 at `7cd6043c7089fcc592e130eba6d0eaf5a6fbfcb5`.**
 V0, S1–S7, Factory/Builder A0–A3, L1-A/B, F2-B, owned unkeyed/keyed sequences, native derived-key Maps,
@@ -11,7 +11,9 @@ boundaries. Earlier local-only and pending-merge wording below records slice-tim
 repository delivery status; it does not establish a release or current adopter qualification. Scalar owned-child
 String producers remain deferred post-4.2 under #1033. Other grammar requires its own accepted slice.
 The separately accepted [#1129 Integer/String extension](#finite-integerstring-operation-alternatives--1129)
-below is planning only; the earlier delivery status does not include it or assign it a release.
+is implemented through U1/U2, with final U3 artifact qualification and documentation recorded in
+[U3 evidence](../implementation/issue-1129-u3-evidence.md). The earlier delivery status does not assign it a release;
+U3 draft delivery and Hive acceptance reconciliation remain separate.
 Implementation status: S1 replaces whole-document payload preflight with ordered per-operation execution, retaining
 contract integrity and construction-key prerequisites. No new grammar is admitted. See the
 [S1 evidence](../implementation/input-round-s1-evidence.md). S2 adds the method marker and shared exact String selection;
@@ -314,7 +316,7 @@ from enum class declarations without initialization. The selected operation stil
 Ordinary Groovy dispatch continues to follow its existing typed and converter routes. Alias support and enum converter
 precedence are deferred. [#1065](https://github.com/klum-dsl/klum-ast/issues/1065)
 
-Except for the separately accepted, unimplemented #1129 family below, selection is fixed from the compiled contract,
+Except for the separately accepted #1129 family below, selection is fixed from the compiled contract,
 never from runtime value guessing, method enumeration order, method-name
 preferences or “try each converter.” String and CharSequence candidates competing for one external input do not acquire
 an implicit specificity preference. One authoritative mark wins among otherwise eligible operations; more than one mark
@@ -359,7 +361,9 @@ An authored marked wrapper is a viable escape from an otherwise ambiguous genera
 
 ### Finite Integer/String operation alternatives — #1129
 
-Date: 2026-11-27. Status: **Accepted v1 direction; U1 minimal behavior implemented, U2/U3 qualification pending; no release target.**
+Date: 2026-11-27; reconciled 2026-11-28. Status: **U1/U2 merged; U3 artifact qualification and delivery documentation
+implemented on its dedicated branch; see [U3 evidence](../implementation/issue-1129-u3-evidence.md) for checks and draft
+delivery. No release target or downstream adoption qualification.**
 Authority: the [maintainer's bounded-v1 decision](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225119384)
 and [separate Builder/Struct annotation clarification](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225170536).
 The [implementation plan](../implementation/issue-1129-struct-scalar-alternatives.md) records source evidence,
@@ -432,7 +436,9 @@ consumer-owned, as does adoption qualification; no ScHelm dependency enters core
 qualification and #1114 parsing remain separate. The planning change itself added
 no production behavior; the later explicitly assigned [U1 slice](../implementation/issue-1129-u1-evidence.md) supplies
 minimal behavior with empty parameter facts. The [U2 slice](../implementation/issue-1129-u2-evidence.md) adds authored
-arm facts, qualified projection and effective-resolution controls. U3 retains independent artifact and final delivery gates.
+arm facts, qualified projection and effective-resolution controls. [U3 evidence](../implementation/issue-1129-u3-evidence.md)
+records independent/historical artifact consumers, bounded JPMS scope, full-build results, final documentation and
+draft delivery boundaries.
 
 ### Scalar converters, scopes and commands
 

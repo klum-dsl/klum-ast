@@ -33,8 +33,6 @@ import groovyjarjarasm.asm.ClassWriter
 import groovyjarjarasm.asm.MethodVisitor
 import groovyjarjarasm.asm.Opcodes
 import spock.lang.Issue
-import spock.lang.See
-import spock.lang.Tag
 import java.util.concurrent.atomic.AtomicInteger
 
 @Issue('1129')
@@ -108,33 +106,6 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         numericMark         | stringMark          | input
         '@Struct.Operation' | '@Struct.Operation' | 3
         ''                  | '@Struct.Operation' | '8080'
-    }
-
-    @Tag('documentary')
-    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#integerstring-alternatives')
-    def 'one address accepts an integer or a String without changing its meaning'() {
-        given:
-        def destination = schema()
-
-        when:
-        String numericInput = new String('8080')
-        def numbered = destination.Create.FromStruct([address: 8080])
-        def named = destination.Create.FromStruct([address: 'http'])
-        def numericText = destination.Create.With { applyStruct([address: numericInput]) }
-
-        then:
-        numbered.value == 8080
-        numbered.value.class == Integer
-        numbered.integerCalls == 1
-        numbered.stringCalls == 0
-        named.value == 'http'
-        named.integerCalls == 0
-        named.stringCalls == 1
-        numericText.value == '8080'
-        numericText.value.class == String
-        numericText.value.is(numericInput)
-        numericText.integerCalls == 0
-        numericText.stringCalls == 1
     }
 
     def 'exact int32 conversion uses the recorded #numeric signature for #input'() {

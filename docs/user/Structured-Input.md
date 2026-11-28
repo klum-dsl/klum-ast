@@ -1185,7 +1185,7 @@ Two Schema-authored `@Builder.Method` operations can share one effective Struct 
 Builder projection and Struct admission remain separate annotations. Unmarked collisions and a single marked String
 route keep their existing behavior. Generated converter overloads do not participate.
 
-(See: `StructuredScalarAlternativeTest#'one address accepts an integer or a String without changing its meaning'`;
+(See: [`StructuredScalarAlternativeDocumentaryTest#'one address accepts an integer or a String without changing its meaning'`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/runtime/internal/StructuredScalarAlternativeDocumentaryTest.groovy);
 [#1129](https://github.com/klum-dsl/klum-ast/issues/1129).)
 
 ```groovy
@@ -1211,21 +1211,30 @@ assert text.value.class == String
 
 Actual Strings stay Strings, including numeric-looking text. Supported standard numeric wrappers use exact int32
 conversion: integral `BigDecimal('8080.0')` and `1.0d` are accepted; fractions, overflow and nonfinite numbers reject.
-This frontend conversion can differ from a Schema's ordinary Number helper. Struct selects and invokes one recorded
-signature, without retrying the other arm after conversion or operation-body failure. Null, Boolean, Map, List, GString,
+This frontend conversion can differ from a Schema's ordinary Number helper: an application helper may reject `1.0d`
+while Struct accepts it as exactly integral. Float/Double conversion cannot recover precision already lost by a parser.
+Struct selects and invokes one recorded signature, without retrying the other arm after conversion or operation-body failure. Null, Boolean, Map, List, GString,
 mutable CharSequence and arbitrary objects reject.
 
 Both arms require complete compiler-frozen parameter facts, including an explicit count when there are no constraints.
 Ignored Number and opaque helpers do not participate; any extra eligible candidate rejects the family. Effective names,
 naming profiles and overrides resolve before admission. An override owns its current marker, name, exclusions and facts.
-Use matching compiler/runtime/plugin artifacts and recompile participating Schemas. Historical two-mark contracts lack these completeness facts and reject with
-recompilation guidance. Existing single-route contracts retain their interpretation.
+Use matching compiler/runtime/plugin artifacts and recompile participating Schemas. Historical two-mark contracts lack
+these completeness facts and reject with recompilation guidance. Pre-change protocol-1 single-route JARs retain their
+interpretation without new parameter completeness requirements.
+New families require matched artifacts; an old runtime/plugin may still choose only the legacy String route and is not
+a supported family consumer. Rebuild separately packaged parents as well as children.
 
 [JSON Schema](Json-Schema.md#integerstring-alternatives) emits one `anyOf` property, with an int32-bounded integer branch
 then a String branch. Each branch retains its own method prose, supported parameter constraints, examples and deprecation.
 Only these qualified parameter sites gain constraint projection; ordinary authored operations keep their existing schema
 behavior. Struct does not enforce parameter constraints or automatically validate against JSON Schema. Generation and Struct do not
-validate operation bodies or imply completed-Model reconstruction. Consumer adoption remains separately qualified.
+validate operation bodies or imply completed-Model reconstruction. The [artifact qualification](../implementation/issue-1129-u3-evidence.md) covers independent Java/static/dynamic Groovy
+3/4/5 clients and a bounded hierarchy with `@CompileStatic` Schema declarations on Groovy 4/5 JPMS. The named-module
+result covers the recorded fixture; direct inherited-setter writes and ordinary numeric converter helpers are not qualified by it.
+ScHelm adoption remains consumer-owned: its holder, presence/copy/wire behavior and real target Schemas need downstream qualification. This feature establishes no
+[#1113](https://github.com/klum-dsl/klum-ast/issues/1113) reconstruction or
+[#1114](https://github.com/klum-dsl/klum-ast/issues/1114) YAML scalar-fidelity guarantee.
 
 ## Select a String operation
 
