@@ -1,3 +1,4 @@
+import com.blackbuild.klum.ast.docs.VerifyProseDocumentationTask
 import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
 import com.blackbuild.klum.ast.docs.RenderHistoricalDocumentationTask
 import com.blackbuild.klum.ast.docs.GenerateGitHubWikiMigrationStubsTask
@@ -56,6 +57,13 @@ sonar {
 def splitDocumentationProperty = { String name ->
     providers.gradleProperty(name).map { value -> value.split(',').collect { it.trim() }.findAll { it } }.orElse([])
 }
+tasks.register('verifyProseDocumentation', VerifyProseDocumentationTask) {
+    group = 'verification'
+    description = 'Checks admitted prose at exact PR head and merge revisions, without product/Javadoc tasks.'
+    objectDirectory.set(layout.dir(providers.gradleProperty('proseObjectDirectory').map { file(it) }))
+    classificationFile.set(layout.file(providers.gradleProperty('proseClassificationFile').map { file(it) }))
+}
+
 tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask) {
     group = 'documentation'
     description = 'Renders one immutable, exact-version documentation tree from explicit Git object inputs.'

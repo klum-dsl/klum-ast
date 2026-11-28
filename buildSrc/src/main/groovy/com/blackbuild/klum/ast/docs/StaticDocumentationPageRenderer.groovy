@@ -260,7 +260,7 @@ img { max-width: 100%; height: auto; }
         expanded.toString()
     }
 
-    private static Map<Node, String> assignHeadingIds(Node document) {
+    static Map<Node, String> assignHeadingIds(Node document) {
         Map<Node, String> ids = new IdentityHashMap<>()
         Map<String, Integer> occurrences = [:].withDefault { 0 }
         document.accept(new AbstractVisitor() {
