@@ -2,6 +2,10 @@
 
 Converters make a Model more compact by accepting a convenient input and turning it into the field's declared value.
 
+For Groovy 4/5 named-module Schemas, the 4.2.x maintenance repair for ordinary scalar/List/Map converter linkage
+requires recompiling affected Schemas with matching patched compiler/runtime versions. See the
+[migration note](Migration.md#named-module-helper-repair).
+
 ## Field-Based Converters
 
 Field-based converters are closures that create additional setter/adder methods.
