@@ -66,7 +66,7 @@ function parseRaw(bytes) {
   requireEvidence(records.length <= 500, 'Diff exceeds 500-file routing budget');
   return records;
 }
-function classifyGit(repo, base, head, merge) {
+function classifyGit(repo, base, head, merge, report = {}) {
   requireEvidence([base, head, merge].every(sha => SHA.test(sha)), 'Full SHA required');
   requireEvidence(decode(git(repo, 'rev-parse', '--is-shallow-repository')).trim() === 'false', 'Shallow history');
   for (const sha of [base, head, merge]) {
@@ -78,6 +78,8 @@ function classifyGit(repo, base, head, merge) {
   requireEvidence(bases.length === 1 && SHA.test(bases[0]), 'No unique merge base');
   const records = parseRaw(git(repo, 'diff', '--raw', '-z', '--no-abbrev', '--no-ext-diff', '--no-textconv',
     '--ignore-submodules=none', '--find-renames=50%', '--find-copies=50%', '--find-copies-harder', bases[0], head, '--'));
+  // Preserve the complete known set even when an eligibility guard below selects full.
+  Object.assign(report, {mergeBase: bases[0], records});
   let total = 0;
   for (const record of records) {
     requireEvidence(['A', 'M'].includes(record.status) && record.paths.every(path => ALLOW.test(path)), 'Non-allowlisted path/status');
@@ -142,7 +144,7 @@ async function classify({eventName, event, repo, runSha}, api) {
       !event.changes?.base && result.identity.merge === runSha, 'Fork, retarget, unsupported base or stale merge input');
     // Only committed base tooling can classify. Its checkout must be this pinned base.
     requireEvidence(process.env.QUALIFICATION_TOOLS_SHA === result.identity.base, 'Trusted base tooling unavailable or stale');
-    Object.assign(result, classifyGit(repo, result.identity.base, result.identity.head, result.identity.merge));
+    Object.assign(result, classifyGit(repo, result.identity.base, result.identity.head, result.identity.merge, result));
     await strictPolicy(api);
     result.lane = 'docs';
     result.reasons = ['Complete merge-base allowlist; current strict gate verified'];
@@ -172,7 +174,7 @@ async function confirm(result, event, outcomes, api) {
   const required = docs ? ['policy_tests', 'prose_tests', 'docs'] : ['policy_tests', 'prose_tests', 'build', 'annotation', 'junit', 'compatibility', 'landing', 'sonar'];
   requireEvidence(required.every(name => outcomes[name] === 'success'), 'Selected validation missing, skipped or unsuccessful');
   if (result.eventName === 'pull_request') {
-    requireEvidence(result.identity, 'Missing pinned PR identity');
+    requireEvidence(result.identity && result.runSha === result.identity.merge, 'Tested merge differs from pinned PR identity');
     const current = await readIdentity(event, api);
     requireEvidence(JSON.stringify(current) === JSON.stringify(result.identity), 'PR base/head/merge changed during validation');
     if (docs) await strictPolicy(api);

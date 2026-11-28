@@ -48,7 +48,7 @@ changes. GitHub remains the enforcement authority.
 [PR qualification](../../.github/workflows/pr-qualification.yml) has one executing job named `PR qualification`.
 It handles `opened`, `synchronize`, `reopened`, and `edited` (including base retargets). Base-retarget events always select
 full; other edits recompute the whole diff. Merge-group events always select full. Forks, `main` and release-target PRs
-always select full. There are no path filters and no conditionally skipped `build` job masquerading as product success.
+always select full, as do other base targets. PR triggering has no branch or path filters and no conditionally skipped `build` job masquerading as product success.
 
 The prose lane runs policy fixtures, focused buildSrc checker tests and `verifyProseDocumentation`. The task checks:
 

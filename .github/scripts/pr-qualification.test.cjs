@@ -108,7 +108,7 @@ test('event/current PR identities, forks and retargets are distinguished', async
   assert.equal(retarget.lane,'full'); assert.match(retarget.reasons[0],/retarget/);
 });
 test('literal success required, stale identities fail, prose has no full check requirement', async () => {
-  const result={lane:'docs',identity:q.pin(event,live),eventName:'pull_request'};
+  const result={lane:'docs',identity:q.pin(event,live),eventName:'pull_request',runSha:c};
   await q.confirm(result,event,{prose_tests:'success',policy_tests:'success',docs:'success'},api);
   for(const status of ['skipped','failure','cancelled','timed_out',undefined]) await assert.rejects(q.confirm(result,event,{prose_tests:'success',policy_tests:'success',docs:status},api));
   await assert.rejects(q.confirm(result,event,{prose_tests:'success',policy_tests:'success',docs:'success'},async p=>p.endsWith('/pulls/7')?{body:{...live,base:{...live.base,sha:b}}}:api(p)));
@@ -147,7 +147,7 @@ test('push workflow remains the exact release build; PR producers match it witho
   const push=fs.readFileSync(path.join(root,'.github/workflows/ci.yml'),'utf8');
   assert.equal(push,baseline.replace('  pull_request:\n    branches: [ main, master, release/* ]\n',''));
   const pr=fs.readFileSync(path.join(root,'.github/workflows/pr-qualification.yml'),'utf8');
-  assert.ok(!pr.includes('paths-ignore:')); assert.ok(!pr.includes('pull_request_target:'));
+  assert.ok(!pr.includes('paths-ignore:')); assert.ok(!pr.includes('branches:')); assert.ok(!pr.includes('pull_request_target:'));
   assert.match(pr,/types: \[ opened, synchronize, reopened, edited \]/);
   for(const command of ['./gradlew check --scan sonar --info',':klum-ast:annotationPropagationArtifactsGroovy3',
     ':klum-ast:annotationPropagationArtifactsGroovy4',':klum-ast:annotationPropagationArtifactsGroovy5 --no-parallel --max-workers=2',
@@ -175,8 +175,23 @@ test('ambiguous merge bases and altered integration content refuse prose', t => 
   assert.throws(()=>q.classifyGit(f.repo,base,crissHead,crissMerge),/unique merge base/);
 });
 test('live ref advancement and policy API failure cannot produce success', async () => {
-  const result={lane:'docs',identity:q.pin(event,live),eventName:'pull_request'};
+  const result={lane:'docs',identity:q.pin(event,live),eventName:'pull_request',runSha:c};
   const outcomes={policy_tests:'success',prose_tests:'success',docs:'success'};
   await assert.rejects(q.confirm(result,event,outcomes,async p=>p.includes('/git/ref/heads/')?{body:{ref:'refs/heads/master',object:{type:'commit',sha:b}}}:api(p)),/Live base tip/);
   await assert.rejects(q.confirm(result,event,outcomes,async p=>p.includes('/rules/')?Promise.reject(new Error('API unavailable')):api(p)),/API unavailable/);
+});
+
+test('already stale merge selecting full can never qualify a different pinned merge', async () => {
+  const result=await q.classify({eventName:'pull_request',event,repo:'.',runSha:'d'.repeat(40)},api);
+  assert.equal(result.lane,'full');
+  const outcomes=Object.fromEntries(['policy_tests','prose_tests','build','annotation','junit','compatibility','landing','sonar'].map(name=>[name,'success']));
+  await assert.rejects(q.confirm(result,event,outcomes,api),/Tested merge differs/);
+});
+
+test('known noneligible full changes preserve their complete enumeration for audit', t => {
+  const f=fixture(t); f.write('source.java','code\n'); f.write('CONTEXT.md','# New\n'); const head=f.commit();
+  const report={};
+  assert.throws(()=>q.classifyGit(f.repo,f.base,head,f.merge(),report),/path\/status/);
+  assert.equal(report.mergeBase,f.base);
+  assert.deepEqual(report.records.flatMap(record=>record.paths),['CONTEXT.md','source.java']);
 });

@@ -2,7 +2,6 @@ name: PR qualification
 
 on:
   pull_request:
-    branches: [ main, master, release/* ]
     types: [ opened, synchronize, reopened, edited ]
   merge_group:
     types: [ checks_requested ]

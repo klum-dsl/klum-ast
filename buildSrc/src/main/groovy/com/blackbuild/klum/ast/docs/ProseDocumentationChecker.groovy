@@ -108,17 +108,15 @@ class ProseDocumentationChecker {
         if (uri.isAbsolute()) {
             if (!Set.of("https", "http", "mailto").contains(uri.getScheme()) ||
                     (Set.of("https", "http").contains(uri.getScheme()) && uri.getHost() == null) ||
-                    (uri.getScheme().equals("mailto") && uri.getSchemeSpecificPart().isBlank()))
+                    (uri.getScheme().equals("mailto") && uri.getSchemeSpecificPart().isBlank())) {
                 throw new IllegalArgumentException("Unsupported link scheme: " + destination)
+            }
             externalLinks++
             return; // Syntax only; deliberately no remote availability claim.
         }
         if (uri.getAuthority() != null || uri.getQuery() != null || uri.getPath() == null || uri.getPath().contains("\\"))
             throw new IllegalArgumentException("Unsupported relative URL: " + destination)
-        String path = uri.getPath()
-        Path parent = Path.of(source).getParent()
-        if (parent == null) parent = Path.of("")
-        String target = path.isEmpty() ? source : parent.resolve(path).normalize().toString()
+        String target = localTarget(source, uri)
         if (Path.of(target).isAbsolute() || target.equals("..") || target.startsWith("../"))
             throw new IllegalArgumentException("Link escapes repository: " + destination)
         String type = new String(git("cat-file", "-t", revision + ":" + target), StandardCharsets.UTF_8).trim()
@@ -165,6 +163,19 @@ class ProseDocumentationChecker {
         if (!errors.isEmpty()) throw new IllegalArgumentException(String.join("\n", errors))
     }
 
+    private static String localTarget(String source, URI uri) {
+        Path parent = Path.of(source).getParent() ?: Path.of('')
+        uri.path.isEmpty() ? source : parent.resolve(uri.path).normalize().toString()
+    }
+
+    private void verifyIncoming(String source, String destination, Set<String> changed) {
+        URI uri = new URI(destination)
+        if (uri.isAbsolute() || uri.authority != null) return
+        if (!changed.contains(localTarget(source, uri))) return
+        inboundLinks++
+        verifyDestination(source, destination)
+    }
+
     void inbound(Set<String> changed) throws Exception {
         String names = new String(git("ls-tree", "-r", "-z", "--name-only", revision), StandardCharsets.UTF_8)
         List<String> errors = new ArrayList<>()
@@ -177,15 +188,7 @@ class ProseDocumentationChecker {
                 public void visit(Image image) { verify(image.getDestination()); visitChildren(image); }
                 void verify(String destination) {
                     try {
-                        URI uri = new URI(destination)
-                        if (uri.isAbsolute() || uri.getAuthority() != null) return
-                        Path parent = Path.of(source).getParent()
-                        if (parent == null) parent = Path.of("")
-                        String target = uri.getPath().isEmpty() ? source
-                                : parent.resolve(uri.getPath()).normalize().toString()
-                        if (!changed.contains(target)) return
-                        inboundLinks++
-                        verifyDestination(source, destination)
+                        verifyIncoming(source, destination, changed)
                     } catch (URISyntaxException ignored) {
                         // Unrelated unsupported authored URI: no global-link-health claim.
                     } catch (Exception error) { errors.add(error.getMessage()); }
