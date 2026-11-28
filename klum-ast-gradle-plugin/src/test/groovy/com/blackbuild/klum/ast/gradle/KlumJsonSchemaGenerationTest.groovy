@@ -61,12 +61,15 @@ class KlumJsonSchemaGenerationTest extends Specification {
     boolean packagedPlugin
 
     @Issue('1129')
-    def 'emits one bounded integer and String alternative from the shared resolved family'() {
+    def 'emits one bounded integer and String alternative from the shared resolved family with Groovy #generation'() {
         given:
-        scalarAlternativeFixture()
+        fixture(generation, false, false, false, false, false, false, false, false, false, false, null, true)
         new File(consumer, 'build.gradle').append("""
 klumSchema.jsonSchema.rootTypes.set(['example.Destination', 'example.PrimitiveDestination',
-    'example.UnmarkedDestination', 'example.StringDestination'])
+    'example.UnmarkedDestination', 'example.StringDestination', 'example.DestinationChild',
+    'example.ProfileDestination', 'example.SeparatedDestination', 'example.TextDestination',
+    'example.OmitDestination', 'example.DomainDestination', 'example.GroupedDestination',
+    'example.CollectedDestination', 'example.GroupSequenceDestination', 'example.StringChild', 'example.MixedDestination'])
 """)
 
         when:
@@ -79,20 +82,135 @@ klumSchema.jsonSchema.rootTypes.set(['example.Destination', 'example.PrimitiveDe
         def selected = document('example.StringDestination').'$defs'.'example.StringDestination_DSL$Builder'
         File validation = new File(System.getProperty('schemaValidationDirectory'))
         validation.mkdirs()
-        new File(validation, 'scalar-alternative-boxed.schema.json').bytes = output('example.Destination').bytes
-        new File(validation, 'scalar-alternative-primitive.schema.json').bytes = output('example.PrimitiveDestination').bytes
+        [boxed: 'Destination', primitive: 'PrimitiveDestination', child: 'DestinationChild',
+         profile: 'ProfileDestination', separated: 'SeparatedDestination', text: 'TextDestination',
+         omit: 'OmitDestination', domain: 'DomainDestination', grouped: 'GroupedDestination',
+         collected: 'CollectedDestination', sequence: 'GroupSequenceDestination', stringchild: 'StringChild', mixed: 'MixedDestination'].each { kind, name ->
+            new File(validation, "scalar-alternative-${kind}-g${generation}.schema.json").bytes = output('example.' + name).bytes
+        }
 
         then:
         boxedFields.keySet() == ['address'] as Set
-        boxedFields.address == [anyOf: [
-            [type: 'integer', minimum: -2147483648L, maximum: 2147483647L, description: 'Numeric address.'],
-            [type: 'string', description: 'Named address.']]]
+        boxedFields.address.keySet() == ['anyOf'] as Set
+        def integer = boxedFields.address.anyOf[0]
+        def string = boxedFields.address.anyOf[1]
+        integer.type == 'integer'
+        integer.minimum == -2147483648L
+        integer.maximum == 2147483647L
+        integer.allOf == [[maximum: 9000], [minimum: 1]]
+        integer.description == 'Numeric address.\n\n@param input numbered destination'
+        integer.examples == ['8080']
+        integer.'x-klum-constraint-source' == 'example.Destination#address(java.lang.Integer):void parameter[0]'
+        string.type == 'string'
+        string.description == 'Named address.'
+        string.examples == ['http', '8080']
+        string.deprecated
+        string.allOf == [[pattern: '^[a-z0-9]{1,12}$'], [not: [type: 'string', pattern: '[^ -~]']]]
+        !integer.containsKey('deprecated')
+        !integer.containsKey('pattern')
+        !string.containsKey('minimum')
+        boxed.'x-klum-unsupported'.values().every { it.contains('@Struct.Ignore') }
+        def child = document('example.DestinationChild').'$defs'.'example.DestinationChild_DSL$Builder'.properties.address
+        child.anyOf[0].description == 'Child numeric address.'
+        child.anyOf[0].allOf == [[maximum: 99]]
+        child.anyOf[0].'x-klum-constraint-source'.startsWith('example.DestinationChild#')
+        child.anyOf[1] == string
+        def stringChild = document('example.StringChild').'$defs'.'example.StringChild_DSL$Builder'.properties.address
+        stringChild.anyOf[0] == integer
+        stringChild.anyOf[1].description == 'Child named address.'
+        stringChild.anyOf[1].examples == ['HTTP']
+        !stringChild.anyOf[1].containsKey('deprecated')
+        stringChild.anyOf[1].'x-klum-constraint-source'.startsWith('example.StringChild#')
+        stringChild.anyOf[1].allOf[0] == [pattern: '^[A-Z]{1,12}$']
+        def mixed = document('example.MixedDestination').'$defs'.'example.MixedDestination_DSL$Builder'.properties.address
+        mixed.anyOf[0] == [type: 'integer', minimum: -2147483648L, maximum: 2147483647L]
+        mixed.anyOf[1].allOf[0] == [pattern: '^[a-z]{1,8}$']
+        def profiled = document('example.ProfileDestination').'$defs'.'example.ProfileDestination_DSL$Builder'.properties
+        profiled.keySet() == ['address-value'] as Set
+        profiled.'address-value'.anyOf*.type == ['integer', 'string']
+        def separated = document('example.SeparatedDestination').'$defs'.'example.SeparatedDestination_DSL$Builder'.properties
+        separated.keySet() == ['address-value', 'addressValue'] as Set
+        separated.'address-value'.type == 'integer'
+        separated.addressValue.type == 'string'
+        // Generic parameter transport alone must not enable unrelated single-route assertions.
+        !separated.'address-value'.containsKey('allOf')
+        selected.properties.address == [type: 'string']
+        def text = document('example.TextDestination').'$defs'.'example.TextDestination_DSL$Builder'.properties.address
+        text.anyOf[0].minimum == -2147483648L
+        !text.anyOf[0].containsKey('allOf')
+        text.anyOf[0].description.contains('@Min')
+        text.anyOf[1].description.contains('@Pattern')
+        !text.anyOf[1].containsKey('allOf')
+        def omit = document('example.OmitDestination').'$defs'.'example.OmitDestination_DSL$Builder'.properties.address
+        omit == [anyOf: [[type: 'integer', minimum: -2147483648L, maximum: 2147483647L], [type: 'string']]]
+        def domain = document('example.DomainDestination').'$defs'.'example.DomainDestination_DSL$Builder'.properties.address
+        domain.anyOf[0].allOf == [[maximum: 99], [minimum: 1]]
+        domain.anyOf[0].description.contains('Small numeric address.')
+        def grouped = document('example.GroupedDestination').'$defs'.'example.GroupedDestination_DSL$Builder'.properties.address
+        !grouped.anyOf[0].containsKey('allOf')
+        grouped.anyOf[0].description.contains('@Min')
+        !grouped.anyOf[1].containsKey('allOf')
+        grouped.anyOf[1].description.contains('@Pattern')
+        def collected = document('example.CollectedDestination').'$defs'.'example.CollectedDestination_DSL$Builder'.properties.address
+        !collected.anyOf[0].containsKey('allOf')
+        !collected.anyOf[1].containsKey('allOf')
+        collected.anyOf[0].description.contains('@Min')
+        collected.anyOf[1].description.contains('Pattern')
+        def sequence = document('example.GroupSequenceDestination').'$defs'.'example.GroupSequenceDestination_DSL$Builder'.properties.address
+        !sequence.anyOf[0].containsKey('allOf')
+        !sequence.anyOf[1].containsKey('allOf')
+        sequence.anyOf[0].description.contains('group redefinition/sequence')
+        sequence.anyOf[1].description.contains('group redefinition/sequence')
         primitiveFields.address == [anyOf: [
             [type: 'integer', minimum: -2147483648L, maximum: 2147483647L], [type: 'string']]]
         !unmarked.properties.containsKey('address')
         document('example.UnmarkedDestination').'x-klum-unsupported'.size() == 2
         selected.properties.address == [type: 'string']
         !trap.exists()
+
+        when:
+        new File(consumer, 'build.gradle').append("\ntasks.named('initializeControl') { mainClass.set('example.ScalarInitializationControl') }\n")
+        def initialization = runner(consumer, 'initializeControl').buildAndFail()
+
+        then:
+        initialization.output.contains('scalar initialization control')
+        trap.exists()
+
+        where:
+        generation << ['3', '4', '5']
+    }
+
+    @Issue('1129')
+    def 'incomplete family parameter facts reject even under OMIT and preserve schema outputs: #kind'() {
+        given:
+        fixture('3', false, false, false, false, false, false, false, false, false, false, null, true)
+        new File(consumer, 'build.gradle').append("\nklumSchema.jsonSchema.rootTypes.set(['example.OmitDestination'])\n")
+        run('generateKlumJsonSchema')
+        File schema = output('example.OmitDestination')
+        byte[] previous = schema.bytes
+        File manifest = new File(schema.parentFile, '.klum-json-schema-outputs')
+        byte[] previousManifest = manifest.bytes
+        stripConstraintFacts('OmitDestination', kind)
+
+        when:
+        def failure = runner(consumer, 'generateKlumJsonSchema', '--refresh-dependencies').buildAndFail()
+
+        then:
+        failure.output.contains('recompile')
+        failure.output.contains(diagnostic)
+        schema.bytes == previous
+        manifest.bytes == previousManifest
+        !trap.exists()
+
+        where:
+        kind                      | diagnostic
+        'parameter-count'         | 'Incomplete constraint facts'
+        'parameter-count-mismatch'| 'Constraint count mismatch'
+        'parameter-rows'          | 'Incomplete constraint facts'
+        'parameter-policy'        | 'Incomplete constraint facts'
+        'parameter-invalid-policy'| 'Unknown authored parameter constraint policy'
+        'parameter-rule-value'    | 'Missing direct integral bound'
+        'parameter-duplicate-row' | 'Duplicate authored parameter facts'
     }
 
     @Issue(['1055', '1063'])
@@ -2945,20 +3063,47 @@ import java.lang.annotation.*
         writeConsumer(generation, defaults, patterns)
     }
 
-    private void scalarAlternativeFixture() {
-        fixture('3', false, false, false, false, false, false, false, false, false, false, null, true)
-    }
-
     private void scalarAlternativeSources() {
+        new File(producer, 'build.gradle').append("\nsubprojects { dependencies { implementation files(${notation(System.getProperty('schemaValidationApi'))}) } }\n")
         writeSource('schema/src/main/groovy/example/Destination.groovy', '''
 package example
 import com.blackbuild.klum.ast.*
+import jakarta.validation.Constraint
+import jakarta.validation.GroupSequence
+import groovy.transform.AnnotationCollector
+import jakarta.validation.constraints.*
+import java.lang.annotation.*
 @DSL class Destination {
+    static { new File('__SCALAR_TRAP__').text = 'initialized'; throw new AssertionError('scalar initialization control') }
     @Struct.Ignore Object value
-    /** Numeric address. */
-    @Struct.Operation @Builder.Method void address(Integer input) { value = input }
+    /** Numeric address.
+     * @param input numbered destination
+     */
+    @Struct.Examples('8080')
+    @Struct.Operation @Builder.Method void address(@Min(1L) @Max(9000L) Integer input) { value = input }
     /** Named address. */
-    @Struct.Operation @Builder.Method void address(String input) { value = input }
+    @Deprecated @Struct.Examples(['http', '8080'])
+    @Struct.Operation @Builder.Method void address(@Pattern(regexp='[a-z0-9]{1,12}') String input) { value = input }
+    /** Ignored Number helper must never supply branch prose. */
+    @Struct.Ignore @Builder.Method void address(Number input) { throw new AssertionError('Number helper executed') }
+    @Struct.Ignore @Builder.Method void address(Opaque input) { throw new AssertionError('opaque helper executed') }
+}
+class ScalarInitializationControl {
+    static void main(String[] args) { Class.forName('example.Destination') }
+}
+class Opaque {}
+@DSL class DestinationChild extends Destination {
+    /** Child numeric address. */
+    @Struct.Operation @Builder.Method void address(@Max(99L) Integer input) { value = input }
+}
+@DSL class StringChild extends Destination {
+    /** Child named address. */
+    @Struct.Examples('HTTP')
+    @Struct.Operation @Builder.Method void address(@Pattern(regexp='[A-Z]{1,12}') String input) { value = input }
+}
+@DSL class MixedDestination {
+    @Struct.Operation @Builder.Method void address(@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Min(1L) Integer input) {}
+    @Struct.Operation @Builder.Method void address(@Pattern(regexp='[a-z]{1,8}') String input) {}
 }
 @DSL class PrimitiveDestination {
     @Struct.Operation @Builder.Method void address(String input) {}
@@ -2969,10 +3114,52 @@ import com.blackbuild.klum.ast.*
     @Builder.Method void address(String input) {}
 }
 @DSL class StringDestination {
-    @Builder.Method void address(Integer input) {}
+    @Builder.Method void address(@Min(7L) Integer input) {}
+    @Struct.Operation @Builder.Method void address(@Pattern(regexp='[a-z]+') String input) {}
+}
+@DSL class ProfileBase {
+    @Struct.Operation @Builder.Method void addressValue(@Min(7L) Integer input) {}
+    @Struct.Name('address-value') @Struct.Operation @Builder.Method void named(String input) {}
+}
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class ProfileDestination extends ProfileBase {}
+@DSL class SeparationBase {
+    @Struct.Operation @Builder.Method void addressValue(@Min(7L) Integer input) {}
+    @Struct.Name('addressValue') @Struct.Operation @Builder.Method void named(String input) {}
+}
+@Struct.Naming(Struct.Naming.Profile.KEBAB_CASE) @DSL class SeparatedDestination extends SeparationBase {}
+@DSL class TextDestination {
+    @Struct.Operation @Builder.Method void address(@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) @Min(1L) Integer input) {}
+    @Struct.Operation @Builder.Method void address(@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.TEXT_ONLY) @Pattern(regexp='[a-z]+') String input) {}
+}
+@DSL class OmitDestination {
+    @Struct.Operation @Builder.Method void address(@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Min(1L) Integer input) {}
+    @Struct.Operation @Builder.Method void address(@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Pattern(regexp='[a-z]+') String input) {}
+}
+@Min(1L) @Max(99L) @Constraint(validatedBy=[])
+@Struct.ConstraintDescription('Small numeric address.')
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.PARAMETER)
+@interface SmallAddress { String message() default ''; Class[] groups() default []; Class[] payload() default [] }
+@DSL class DomainDestination {
+    @Struct.Operation @Builder.Method void address(@SmallAddress Integer input) {}
     @Struct.Operation @Builder.Method void address(String input) {}
 }
-''')
+interface Later {}
+@DSL class GroupedDestination {
+    @Struct.Operation @Builder.Method void address(@Min(value=1L, groups=[Later]) Integer input) {}
+    @Struct.Operation @Builder.Method void address(@Pattern(regexp='[a-z]+', flags=[Pattern.Flag.CASE_INSENSITIVE]) String input) {}
+}
+@Min(1L) @AnnotationCollector @interface CollectedMin {}
+@Pattern(regexp='[a-z]{1,8}') @AnnotationCollector @interface CollectedPattern {}
+@DSL class CollectedDestination {
+    @Struct.Operation @Builder.Method void address(@CollectedMin Integer input) {}
+    @Struct.Operation @Builder.Method void address(@CollectedPattern String input) {}
+}
+@GroupSequence([GroupSequenceDestination]) @DSL class GroupSequenceDestination {
+    @Struct.Operation @Builder.Method void address(@Min(1L) Integer input) {}
+    @Struct.Operation @Builder.Method void address(@Pattern(regexp='[a-z]{1,8}') String input) {}
+}
+
+'''.replace('__SCALAR_TRAP__', trap.absolutePath))
     }
 
     private void writeConsumer(String generation, boolean defaults, boolean patterns) {
@@ -3852,6 +4039,9 @@ class InitializationControl {
                                 new MethodVisitor(Opcodes.ASM9, delegate) {
                                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                                         AnnotationVisitor visitor = super.visitAnnotation(annotation, visible)
+                                        if (kind.startsWith('parameter-') && annotation.endsWith('GeneratedInput$Operation;')) {
+                                            return corruptAuthoredParameter(visitor, kind)
+                                        }
                                         if (!annotation.endsWith('GeneratedInput$Field;')) return visitor
                                         new AnnotationVisitor(Opcodes.ASM9, visitor) {
                                             @Override void visit(String member, Object value) {
@@ -3955,6 +4145,50 @@ class InitializationControl {
             }
         }
         jar.bytes = replacement.bytes
+    }
+
+    private static AnnotationVisitor corruptAuthoredParameter(AnnotationVisitor visitor, String kind) {
+        new AnnotationVisitor(Opcodes.ASM9, visitor) {
+            @Override void visit(String member, Object value) {
+                if (member == 'parameterConstraintCount') {
+                    if (kind == 'parameter-count') { return }
+                    if (kind in ['parameter-count-mismatch', 'parameter-duplicate-row']) { value = ((int) value) + 1 }
+                }
+                super.visit(member, value)
+            }
+            @Override void visitEnum(String member, String descriptor, String value) {
+                if (member == 'parameterConstraintProjection') {
+                    if (kind == 'parameter-policy') { return }
+                    if (kind == 'parameter-invalid-policy') { value = 'FUTURE' }
+                }
+                super.visitEnum(member, descriptor, value)
+            }
+            @Override AnnotationVisitor visitArray(String member) {
+                if (member != 'parameterConstraints') { return super.visitArray(member) }
+                if (kind == 'parameter-rows') { return null }
+                def rows = super.visitArray(member)
+                new AnnotationVisitor(Opcodes.ASM9, rows) {
+                    @Override AnnotationVisitor visitAnnotation(String name, String descriptor) {
+                        Map<String, Object> facts = [:]
+                        new AnnotationVisitor(Opcodes.ASM9, super.visitAnnotation(name, descriptor)) {
+                            @Override void visit(String attribute, Object value) {
+                                if (kind == 'parameter-rule-value' && attribute == 'value') { return }
+                                facts[attribute] = value
+                                super.visit(attribute, value)
+                            }
+                            @Override void visitEnd() {
+                                super.visitEnd()
+                                if (kind == 'parameter-duplicate-row') {
+                                    def duplicate = rows.visitAnnotation(name, descriptor)
+                                    facts.each { attribute, value -> duplicate.visit(attribute, value) }
+                                    duplicate.visitEnd()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void publish(String artifact, String path, String dependencies) {

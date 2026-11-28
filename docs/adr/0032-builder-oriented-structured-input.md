@@ -431,7 +431,8 @@ adapters or duplicated consumer dispatch. Existing downstream value holders, pre
 consumer-owned, as does adoption qualification; no ScHelm dependency enters core tests. #1113 output/reconstruction
 qualification and #1114 parsing remain separate. The planning change itself added
 no production behavior; the later explicitly assigned [U1 slice](../implementation/issue-1129-u1-evidence.md) supplies
-minimal behavior with empty parameter facts. U2/U3 retain the remaining qualification and delivery gates.
+minimal behavior with empty parameter facts. The [U2 slice](../implementation/issue-1129-u2-evidence.md) adds authored
+arm facts, qualified projection and effective-resolution controls. U3 retains independent artifact and final delivery gates.
 
 ### Scalar converters, scopes and commands
 

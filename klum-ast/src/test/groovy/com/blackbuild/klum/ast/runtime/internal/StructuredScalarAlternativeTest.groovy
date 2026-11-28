@@ -35,18 +35,21 @@ import groovyjarjarasm.asm.Opcodes
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
+import java.util.concurrent.atomic.AtomicInteger
 
 @Issue('1129')
 class StructuredScalarAlternativeTest extends AbstractDSLSpec {
     private URLClassLoader artifacts
 
     private Class schema(String numeric = 'Integer', String numericMark = '@Struct.Operation',
-                         String stringMark = '@Struct.Operation', String parameterAnnotation = '') {
+                         String stringMark = '@Struct.Operation', String parameterAnnotation = '', String extra = '') {
+        declareMinimumConstraint()
         createSecondaryClass("""
             package scalaralternatives
             import com.blackbuild.klum.ast.*
             import java.lang.annotation.*
             import groovy.transform.AnnotationCollector
+            import jakarta.validation.constraints.Min
             @Retention(RetentionPolicy.RUNTIME) @Target([ElementType.PARAMETER])
             @interface InputBound { long value() }
             @AnnotationCollector @interface Unqualified {}
@@ -61,13 +64,51 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
                     if (input == 13) throw new IllegalStateException('integer body failed')
                 }
                 $stringMark @Builder.Method void address(String input) { stringCalls++; value = input }
+                @Struct.Ignore @Builder.Method void address(Number input) { throw new AssertionError('Number helper') }
+                @Struct.Ignore @Builder.Method void address(Opaque input) { throw new AssertionError('opaque helper') }
+                $extra
+            }
+            class Opaque {
             }
         """)
         artifacts = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], getClass().classLoader)
         Class.forName('scalaralternatives.Destination', false, artifacts)
     }
 
+    private void declareMinimumConstraint() {
+        createSecondaryClass('''
+            package jakarta.validation.constraints
+            import java.lang.annotation.*
+            @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.PARAMETER)
+            @interface Min { long value(); Class[] groups() default []; Class[] payload() default [] }
+        ''')
+    }
+
     def cleanup() { artifacts?.close() }
+
+    def 'transports authored parameter constraints independently of family membership'() {
+        given:
+        def destination = schema('Integer', numericMark, stringMark, '@Min(7L)')
+
+        when:
+        def builder = Class.forName('scalaralternatives.Destination_DSL$Builder', false, artifacts)
+        def metadata = new BuilderContractReader().metadata(builder)
+        def facts = metadata.methods().values().find { it.parameterConstraints()?.any { it.value() == '7' } }
+        def result = destination.Create.FromStruct([address: input])
+
+        then:
+        facts != null
+        facts.parameterConstraintCount() == 1
+        facts.parameterConstraints().first().annotation() == 'jakarta.validation.constraints.Min'
+        facts.parameterConstraints().first().eligible()
+        // Capture does not add executable parameter validation, including for a family.
+        result.value == input
+
+        where:
+        numericMark         | stringMark          | input
+        '@Struct.Operation' | '@Struct.Operation' | 3
+        ''                  | '@Struct.Operation' | '8080'
+    }
 
     @Tag('documentary')
     @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Structured-Input.md#integerstring-alternatives')
@@ -120,6 +161,13 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         'int'     | new BigDecimal('8080.0')   | 8080
         'Integer' | Integer.MIN_VALUE         | Integer.MIN_VALUE
         'int'     | Integer.MAX_VALUE         | Integer.MAX_VALUE
+        'Integer' | (byte) 7                  | 7
+        'int'     | (short) 7                 | 7
+        'Integer' | 7                         | 7
+        'int'     | 7G                        | 7
+        'Integer' | 7.0f                      | 7
+        'int'     | 7.0d                      | 7
+        'Integer' | new BigDecimal('7.000')    | 7
     }
 
     def 'invalid family input rejects without invoking an arm: #input'() {
@@ -140,7 +188,10 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
 
         where:
         input << [null, true, [:], [], new BigDecimal('1.5'), 2147483648L, Double.NaN,
-                  new StringBuilder('8080'), "${8080}"]
+                  new StringBuilder('8080'), "${8080}", new Object(),
+                  -2147483649L, new BigInteger('2147483648'), new BigDecimal('2147483648.0'),
+                  Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Float.NaN, Float.POSITIVE_INFINITY,
+                  0.5f, 0.5d, new AtomicInteger(7)]
     }
 
     def 'integer body failure keeps its cause and never retries String'() {
@@ -255,17 +306,17 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         facts.parameterConstraintProjection().name() == 'OMIT'
     }
 
-    def 'nonempty or unqualified parameter facts reject even with no supplied member: #annotation'() {
+    def 'original harmless annotations and collector policies no longer make parameter capture unknown: #annotation'() {
         given:
         def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation', annotation)
 
         when:
-        destination.Create.FromStruct([:])
+        def result = destination.Create.FromStruct([address: 7])
+        def family = new InputContractResolver().read(destination).entries().address.scalarAlternatives()
 
         then:
-        def failure = thrown(KlumModelException)
-        failure.message.contains('authored parameter facts')
-        failure.message.contains('recompile')
+        result.value == 7
+        family.integerConstraints().rules().isEmpty()
 
         where:
         annotation << ['@InputBound(1L)', '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @InputBound(1L)',
@@ -289,35 +340,199 @@ class StructuredScalarAlternativeTest extends AbstractDSLSpec {
         mutation << ['absent count', 'wrong count', 'absent rows', 'absent policy']
     }
 
+    def 'an extra eligible candidate rejects the complete family without fallback: #mark'() {
+        given:
+        def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation', '',
+                "$mark @Builder.Method void address(Long input) { throw new AssertionError('extra executed') }")
+
+        when:
+        destination.Create.FromStruct([:])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains('Multiple @Struct.Operation')
+        failure.message.contains('exactly one authored int/Integer and one String')
+
+        where:
+        mark << ['', '@Struct.Operation']
+    }
+
+    def 'a lone integer mark has no priority over the unmarked String'() {
+        given:
+        def destination = schema('Integer', '@Struct.Operation', '')
+
+        when:
+        def contract = new InputContractResolver().read(destination)
+
+        then:
+        !contract.entries().containsKey('address')
+
+        when:
+        destination.Create.FromStruct([address: '8080'])
+
+        then:
+        thrown(KlumModelException)
+    }
+
+    def 'ordered family failure retains earlier effects and cleans up the next root'() {
+        given:
+        def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation', '', '''
+            @Struct.Ignore int earlier
+            @Struct.Ignore int later
+            @Builder.Method void first(String input) { earlier++ }
+            @Builder.Method void last(String input) { later++ }
+        ''')
+        def observed
+
+        when:
+        destination.Create.With {
+            observed = delegate
+            applyStruct([first: 'before', address: 1.5, last: 'after'])
+        }
+
+        then:
+        thrown(KlumModelException)
+        observed.earlier == 1
+        observed.later == 0
+        observed.integerCalls == 0
+        observed.stringCalls == 0
+
+        when:
+        def next = destination.Create.FromStruct([address: 'http'])
+
+        then:
+        next.value == 'http'
+        next.stringCalls == 1
+    }
+
+    def 'Template construction and replay retain the selected arm value'() {
+        given:
+        def destination = schema()
+
+        when:
+        def template = destination.Create.Template.FromStruct([address: input])
+        def result = destination.Create.With { copyFrom(template) }
+
+        then:
+        result.value == input
+        result.value.class == input.class
+        result.integerCalls == integerCalls
+        result.stringCalls == 1 - integerCalls
+
+        where:
+        input  | integerCalls
+        8080   | 1
+        '8080' | 0
+    }
+
+    def 'malformed nonempty parameter rows reject before absent input even under OMIT: #mutation'() {
+        given:
+        def destination = schema('Integer', '@Struct.Operation', '@Struct.Operation',
+                '@Struct.ConstraintProjection(Struct.ConstraintProjection.Policy.OMIT) @Min(7L)')
+        mutateParameterFacts(mutation)
+
+        when:
+        destination.Create.FromStruct([:])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains(diagnostic)
+        failure.message.contains('recompile')
+
+        where:
+        mutation          | diagnostic
+        'unknown policy'  | 'Unknown authored parameter constraint policy'
+        'missing value'   | 'Missing direct integral bound'
+        'missing origin'  | 'Missing composition/description facts'
+        'invalid origin'  | 'Inconsistent composition origin'
+        'duplicate count' | 'Duplicate or invalid authored parameter constraint count'
+        'unknown count'   | 'Incomplete constraint facts'
+    }
+
+    def 'inconsistent family selection metadata rejects before absent input: #mutation'() {
+        given:
+        def destination = schema()
+        mutateParameterFacts(mutation)
+
+        when:
+        destination.Create.FromStruct([:])
+
+        then:
+        def failure = thrown(KlumModelException)
+        failure.message.contains(diagnostic)
+        failure.message.contains('recompile')
+
+        where:
+        mutation                | diagnostic
+        'absent operation'      | 'operation'
+        'absent marker'         | 'Author marker disagrees'
+        'wrong role'            | 'operation role'
+        'unsupported protocol'  | 'protocol'
+        'wrong operation count' | 'operation'
+    }
+
     private void mutateParameterFacts(String mutation) {
         File file = new File(compilerConfiguration.targetDirectory, 'scalaralternatives/Destination_DSL$Builder.class')
         def writer = new ClassWriter(0)
         new ClassReader(file.bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
+            @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                def downstream = super.visitAnnotation(annotation, visible)
+                if (!annotation.endsWith('GeneratedInput$Schema;')) { return downstream }
+                new AnnotationVisitor(Opcodes.ASM9, downstream) {
+                    @Override void visit(String member, Object value) {
+                        if (member == 'version' && mutation == 'unsupported protocol') { value = 2 }
+                        if (member == 'operationCount' && mutation == 'wrong operation count') { value = ((int) value) - 1 }
+                        super.visit(member, value)
+                    }
+                }
+            }
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 def next = super.visitMethod(access, name, descriptor, signature, exceptions)
                 new MethodVisitor(Opcodes.ASM9, next) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+                        if (annotation.endsWith('GeneratedInput$Operation;') && mutation == 'absent operation') { return null }
+                        if (annotation.endsWith('Struct$Operation;') && mutation == 'absent marker') { return null }
                         def downstream = super.visitAnnotation(annotation, visible)
                         if (!annotation.endsWith('GeneratedInput$Operation;')) {
                             return downstream
                         }
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
                             @Override void visit(String member, Object value) {
+                                if (member == 'role' && mutation == 'wrong role') { value = 'COMMAND' }
                                 if (member == 'parameterConstraintCount' && mutation == 'absent count') {
                                     return
                                 }
-                                super.visit(member, member == 'parameterConstraintCount' && mutation == 'wrong count' ? 1 : value)
+                                if (member == 'parameterConstraintCount') {
+                                    if (mutation == 'wrong count') { value = 1 }
+                                    if (mutation == 'unknown count') { value = -1 }
+                                    if (mutation == 'duplicate count') { super.visit(member, value) }
+                                }
+                                super.visit(member, value)
                             }
                             @Override AnnotationVisitor visitArray(String member) {
                                 if (member == 'parameterConstraints' && mutation == 'absent rows') {
                                     return null
                                 }
-                                super.visitArray(member)
+                                def rows = super.visitArray(member)
+                                if (member != 'parameterConstraints') { return rows }
+                                new AnnotationVisitor(Opcodes.ASM9, rows) {
+                                    @Override AnnotationVisitor visitAnnotation(String rowName, String rowDescriptor) {
+                                        new AnnotationVisitor(Opcodes.ASM9, super.visitAnnotation(rowName, rowDescriptor)) {
+                                            @Override void visit(String attribute, Object value) {
+                                                if (mutation == 'missing value' && attribute == 'value') { return }
+                                                if (mutation == 'missing origin' && attribute == 'origin') { return }
+                                                if (mutation == 'invalid origin' && attribute == 'origin') { value = 'FUTURE' }
+                                                super.visit(attribute, value)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             @Override void visitEnum(String member, String enumDescriptor, String value) {
                                 if (member == 'parameterConstraintProjection' && mutation == 'absent policy') {
                                     return
                                 }
+                                if (member == 'parameterConstraintProjection' && mutation == 'unknown policy') { value = 'FUTURE' }
                                 super.visitEnum(member, enumDescriptor, value)
                             }
                         }

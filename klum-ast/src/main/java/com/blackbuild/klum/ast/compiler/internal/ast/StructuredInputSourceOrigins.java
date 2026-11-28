@@ -24,8 +24,8 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import groovy.transform.AnnotationCollector;
-import com.blackbuild.klum.ast.Struct.ConstraintProjection;
 import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
@@ -40,7 +40,6 @@ import java.util.Set;
 /** Transient compiler-only fact contributed through KlumCast before annotation collector rewriting. */
 final class StructuredInputSourceOrigins {
     private static final String ORIGINALS = StructuredInputSourceOrigins.class.getName();
-    private static final String EMPTY_PARAMETER = ORIGINALS + ".emptyParameter";
     private static final String NOT_BLANK = "jakarta.validation.constraints.NotBlank";
 
     private StructuredInputSourceOrigins() { }
@@ -50,22 +49,19 @@ final class StructuredInputSourceOrigins {
     @Target({ElementType.FIELD, ElementType.METHOD})
     @interface OriginalDeclarations { }
 
-    /** One authored payload's empty-fact eligibility, frozen before annotation collectors and Builder projection. */
+    /** One authored payload's original declarations, frozen before annotation collectors and Builder projection. */
     @Retention(RetentionPolicy.SOURCE)
     @Target(ElementType.METHOD)
     @interface OriginalParameter { }
 
     static AnnotationNode captureParameter(MethodNode method) {
         AnnotationNode marker = new AnnotationNode(ClassHelper.make(OriginalParameter.class));
-        boolean empty = method.getParameters()[0].getAnnotations().stream().allMatch(annotation ->
-                annotation.getClassNode().getName().equals(ConstraintProjection.class.getName()));
-        marker.putNodeMetaData(EMPTY_PARAMETER, empty);
+        marker.putNodeMetaData(ORIGINALS, List.copyOf(method.getParameters()[0].getAnnotations()));
         return marker;
     }
 
-    static boolean emptyParameter(MethodNode method) {
-        List<AnnotationNode> markers = method.getAnnotations(ClassHelper.make(OriginalParameter.class));
-        return markers.size() == 1 && Boolean.TRUE.equals(markers.get(0).getNodeMetaData(EMPTY_PARAMETER));
+    static boolean parameterCaptured(MethodNode method) {
+        return method.getAnnotations(ClassHelper.make(OriginalParameter.class)).size() == 1;
     }
 
     static boolean needed(List<AnnotationNode> annotations) {
@@ -87,18 +83,18 @@ final class StructuredInputSourceOrigins {
         return marker;
     }
 
-    static boolean direct(FieldNode field, AnnotationNode annotation) {
-        return originals(field).stream().anyMatch(original -> original == annotation);
+    static boolean direct(AnnotatedNode source, AnnotationNode annotation) {
+        return originals(source).stream().anyMatch(original -> original == annotation);
     }
 
-    static AnnotationNode original(FieldNode field, AnnotationNode annotation) {
-        if (direct(field, annotation)) return annotation;
-        return originals(field).stream().filter(original -> original.getLineNumber() == annotation.getLineNumber()
+    static AnnotationNode original(AnnotatedNode source, AnnotationNode annotation) {
+        if (direct(source, annotation)) return annotation;
+        return originals(source).stream().filter(original -> original.getLineNumber() == annotation.getLineNumber()
                 && original.getColumnNumber() == annotation.getColumnNumber()).findFirst().orElse(annotation);
     }
 
-    private static List<AnnotationNode> originals(FieldNode field) {
-        List<AnnotationNode> markers = field.getAnnotations(ClassHelper.make(OriginalDeclarations.class));
+    private static List<AnnotationNode> originals(AnnotatedNode source) {
+        List<AnnotationNode> markers = source.getAnnotations(ClassHelper.make(source instanceof FieldNode ? OriginalDeclarations.class : OriginalParameter.class));
         if (markers.size() != 1) return List.of();
         List<AnnotationNode> originals = markers.get(0).getNodeMetaData(ORIGINALS);
         return originals == null ? List.of() : originals;
