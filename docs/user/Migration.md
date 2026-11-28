@@ -24,6 +24,18 @@ For examples of adding YAML to an existing Schema, follow the
 [keyed child sequences](#owned-sequence-structured-input), check how each item supplies its key. When upgrading
 from 3.x, also use the [Builder-first migration checklist](Builder-First-Migration.md).
 
+### Named-module helper repair
+
+The 4.2.x maintenance repair for [#1137](https://github.com/klum-dsl/klum-ast/issues/1137) corrects generated Builder
+property assignment and direct generated Builder scalar, List and Map converter calls in Groovy 4/5 named modules. This includes
+inherited field writes from `@Builder.Method`. Recompile the affected Schema artifacts with matching patched compiler
+and runtime versions. Replacing only the runtime leaves the older generated dynamic calls in place; newly generated
+calls require the corresponding patched runtime hooks.
+
+Use the existing [named-module descriptor](#named-modules-and-groovy); this repair requires no additional Schema
+opens, runtime-internal exports or JVM access flags. Groovy 3 remains classpath-only, and ordinary classpath DSL syntax
+and runtime mutation rules are unchanged.
+
 ### Opt-in JSON Schema tooling
 
 The Schema plugin's `generateKlumJsonSchema` task uses compiled public contracts with current generated input enrichment.
