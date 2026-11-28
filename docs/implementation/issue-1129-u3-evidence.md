@@ -83,9 +83,10 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew 
   check --console=plain --max-workers=2
 ```
 
-Full-build result: **passed in 18m 46s**, 141 tasks (62 executed, 79 up-to-date), on the final executable/test source
+Full-build result: **passed in 18m 46s**, 141 tasks (62 executed, 79 up-to-date), on the initial full-build executable/test source
 at `ebbbffde246ad8a184b049b4061b6269f92223f5` with the final Struct.Operation Javadoc and documentation in the
-working tree. The subsequent delivery commit contains only Javadoc/docs/status/evidence. No test or runtime/compiler behavior changes after qualification.
+working tree. The initial delivery commit contained only Javadoc/docs/status/evidence. The later test-only Sonar
+follow-up preserves behavior and is qualified separately below; production runtime/compiler behavior is unchanged.
 Log: `/private/tmp/klum-1129-u3-check-standard.log`.
 
 | Module / lane | Cases | Failures / errors | Existing skips |
@@ -168,7 +169,8 @@ the portable recipe asserts the historical revision and uses the retained source
 
 ## Artifact ledger
 
-All **48 unique artifact identities/hashes** below were verified against retained bytes after the full qualification. Test-generated output lives in
+All **48 unique artifact identities/hashes** below were verified against retained bytes after the post-Sonar artifact/plugin
+qualification. The original full-build bundles remain preserved at `/private/tmp/klum-1129-u3-qualified-b83/`. Test-generated output lives in
 `klum-ast-gradle-plugin/build/schema-validation/scalar-artifacts-g{3,4,5}/`: parent, child, consumer, historical and corrupt
 JARs; six actual schemas per generation; and `evidence.json` with exact commands, exit expectations, outputs, resolved
 input paths and SHA-256 values. Producer source/classes are absent there and at application execution. Each input
@@ -176,36 +178,36 @@ identity is recorded once in the consolidated ledger; repeated references in the
 
 | Qualified artifact identity | SHA-256 |
 | --- | --- |
-| `G3 / fixture.child.jar` | `b49360d94ccf62652b5940e97e2d0c770ae197ad6d7455cfeb720549d9c6ab65` |
-| `G3 / fixture.consumer.jar` | `e9b47134d57581f2aa6f4aa9009a42cb404ea115f25dcda0d584bb10aee376ce` |
-| `G3 / fixture.parent.jar` | `153f1c9781e4d9ff3e4900c0261cd3da68fa1d7b7c159a058f243dbd47640b18` |
+| `G3 / fixture.child.jar` | `2ab113b3db992e9db2b6566ddb84b39b855cbddd37d542a41a925a1413a405d4` |
+| `G3 / fixture.consumer.jar` | `47ba469c4ff432a9d441eb51a415aa76a5f8c39bddaac22718ce3d3ef030f204` |
+| `G3 / fixture.parent.jar` | `a605ca3958324434e31104225526b7e4b17b5c349a95a5bc1f291a350479524d` |
 | `G3 / historical-parent.jar` | `fc70d37f8a9c76de185511a2166bc419d87f9cba682a833b68192c73d34a5408` |
 | `G3 / historical.jar` | `731876432315be7a00f3910f995bb0bc5a5cb67eeb3bc5df367b14d13cb7a0ed` |
-| `G3 / parent-count.jar` | `2513b8209bffe2972069a630c42878f6cad3910c5bb27257fc02cf7db82468e2` |
-| `G3 / parent-marker.jar` | `3439f093b3615754c784d107dd33b36fda144521a258b77eb4b58811054a5ccb` |
-| `G3 / parent-operation.jar` | `2a0e032ddffdf7daae12e356e4878c17232d34381cd8fc97d1f09f98ee2492cd` |
-| `G3 / parent-parameter.jar` | `c39c5fdaff5c83a037b6485cea0a7e9cda4714a2834c7d3485dd0d09395c0e42` |
-| `G3 / parent-schema.jar` | `ae7d7ff2325857fc6871cedc7453521dd553f77e6248d41fb307f40f075238e1` |
-| `G4 / fixture.child.jar` | `1f0b39c70bc1f6f77a35adb4e93c97c671a00ce660f7579a79211194dfc2f3da` |
-| `G4 / fixture.consumer.jar` | `e657e97764fbfc4f461efd17a037a0fade92aa1f5a8e06cbbf419d6a9aa704a3` |
-| `G4 / fixture.parent.jar` | `f23d1c1993897f15fce7b0d1ab76dcd1b311b027fb53aefd8a7c64c5231b375a` |
+| `G3 / parent-count.jar` | `c6380eadcb69bdaaeb5502703e6d6bda9b4d415ab88a8568154ae9c97be39665` |
+| `G3 / parent-marker.jar` | `1c3d19550ccfd459072eb1a91cb708f19a23ef9b0019b131537cd64993619e3e` |
+| `G3 / parent-operation.jar` | `71b5c5af3c926f43057034beef2f6669a8a571ae978e7735d88c24c8c9d1d69a` |
+| `G3 / parent-parameter.jar` | `982d7f13cbb0432198cf9f4a2eb8a480aef4494be52955fbf57b93b4fb323c8e` |
+| `G3 / parent-schema.jar` | `173bc04cba25ea6e86e8e41f8cf858eb5d783e4c6673017deb0f7ab1e59aef87` |
+| `G4 / fixture.child.jar` | `717287e1886454a519ba2b6f22137bb176cc214cb7e36e78e9eb7c6331d4813b` |
+| `G4 / fixture.consumer.jar` | `7ca7775278e59900319be354f3198b21c4f8f967a9249210217802e3f7331eea` |
+| `G4 / fixture.parent.jar` | `4ac8cd984742f88592c03d12df88fa3046df30e9789eabd9a4d3c397ba340fb4` |
 | `G4 / historical-parent.jar` | `1ac5e2a11e443c27074d8dc1b6a8dea56a252ed916f9df78a35fc07ce40e7aae` |
 | `G4 / historical.jar` | `17c07ca3f153e0c1baeb39b61230606eb2e13269da838e7076734aa998317d76` |
-| `G4 / parent-count.jar` | `3b53741ed88cc4c2be66e0245a458e06cefb15554519eeb419adb8be017e3072` |
-| `G4 / parent-marker.jar` | `090e6a4a5f9abcd9a00700fb936e73ba68da033f4a7726f721c3c89a9629fa45` |
-| `G4 / parent-operation.jar` | `9f25e13e9d58d5c3c9113083bee3fb2709f104a40ec008fbd6df270cd06e17ed` |
-| `G4 / parent-parameter.jar` | `b360d7a13aad3666bddebe19f926699f81c52f4ccc56d70b549e0c439fd7e20f` |
-| `G4 / parent-schema.jar` | `31c582f6a319f0866a6d643f455b03c7a43716968ff3ebfc0d092de0bd64c91f` |
-| `G5 / fixture.child.jar` | `843c3fa9ae3e7eb22657927388d95b9cab406683c863c4db395f8d16c35aaacc` |
-| `G5 / fixture.consumer.jar` | `13605265670fbc2a26678b229b5dfa1ed943cbc8612519e5142271238b9b84d5` |
-| `G5 / fixture.parent.jar` | `d11c6801617d9eb7abdb519978e4d12d2441275cd992915df9b39da7e141c637` |
+| `G4 / parent-count.jar` | `83b87a4adef633604423c42c36b86be4de1272f4955d6d9563c213ce3290081e` |
+| `G4 / parent-marker.jar` | `9c4a52d3109cf5001809802e508fbb17498b79c17b5b1b0dba2265e24659077d` |
+| `G4 / parent-operation.jar` | `1df931d15fee147cc6f280c7a4598a89d9c4209a9a0e3d8a6d96022a2a7d77a9` |
+| `G4 / parent-parameter.jar` | `81110fbe3871ad03c1c37b69314cabefd894a3f2bc59c018134b571aff9b9561` |
+| `G4 / parent-schema.jar` | `4481f834e7b6ad7a6918cbea0b2fc92f9e63bd8c35894849fb70964f8ddab5e1` |
+| `G5 / fixture.child.jar` | `6721b7f2b6fbdfc37e3c813c9666e851a1e8a122846006067bc0eed707bee230` |
+| `G5 / fixture.consumer.jar` | `ec5e45c601af5e4c3438773bf2b57f633e9ff482a0d77fd6bf8b3a82746d17ba` |
+| `G5 / fixture.parent.jar` | `25d04d96bb30708816a2e828fdb3ce33ed7a8aca18746c81ccbe886c3e5ee1be` |
 | `G5 / historical-parent.jar` | `e02d76a1a94a5b4859ef3f1d854b298c05c0e83bb5ea957b4873047696099d09` |
 | `G5 / historical.jar` | `02c24456ba2fa4f65ebc3050bd96dcbde02ece6a581b151f0277628e9089e613` |
-| `G5 / parent-count.jar` | `1fc3f319b9604e29bce8a0a8324c78bda66c4d7b492c366cc6d413fee50ed437` |
-| `G5 / parent-marker.jar` | `4e6ab15059a07873d9a40f377c24cbda57064f6f7c0ae5839faff2504f7dfcfb` |
-| `G5 / parent-operation.jar` | `5f4432fdae2004e5af627695c4a3b829c7ba635a5c1141806719d435ba8cf094` |
-| `G5 / parent-parameter.jar` | `9d9c787a26d4b6687ee17e18ea77d6c65dab9bd044f6d50f877efe3ccb37792e` |
-| `G5 / parent-schema.jar` | `585402da01e0f4d8e2affcdbb917b233c6c4278b0372877e49253bad65e147ae` |
+| `G5 / parent-count.jar` | `8af6205d0d7ddb8edcf2dd2a4159f6a381218ae472cc2cdd3dd32f6fba877f92` |
+| `G5 / parent-marker.jar` | `fa86667a5375a8e2472b9811501bc4778b2bb30f27c3f3af6ef70b779c319301` |
+| `G5 / parent-operation.jar` | `6f78814129f4525171c9d4a27c4b791a5e04cfea590d52c5e0e90811752e722a` |
+| `G5 / parent-parameter.jar` | `8db6867440413077c7e7e6b9174a4895d2e1e3fc4957dc557801c1beb098b45f` |
+| `G5 / parent-schema.jar` | `780e83a35966adf326a924b1dcdb46c76495a77addd424252fc483766ab2c363` |
 | `anno-docimal-annotations-1.0.1.jar` | `54e1c68dc2b6152e41d9c6c691104ff279e2304aadd2fa67b9b976f04a5fe89e` |
 | `anno-docimal-ast-1.0.1.jar` | `433f0e61873c0cc421a235da99a61bf0563a00264b312ecf26ec8aa68a06a544` |
 | `anno-docimal-global-ast-1.0.1.jar` | `ed74657a02d574156beadafb78c2f69dfb00687f3f04af1d5e8884ae29923ac0` |
@@ -215,12 +217,12 @@ identity is recorded once in the consolidated ledger; repeated references in the
 | `jakarta.validation-api-3.0.2.jar` | `291c25e6910cc6a7ebd96d4c6baebf6d7c37676c5482c2d96146e901b62c1fc9` |
 | `jspecify-1.0.0.jar` | `1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab` |
 | `klum-ast-4.3.0-dev.28+d911107.jar` | `2b3d8a36208805acba254f38d53d4fd197507af08abe418ba8dae080559bddbe` |
-| `klum-ast-4.3.0-dev.45.uncommitted+codex.issue.1129.u3.ebbbffd.jar` | `978e9768985ccaa53cffc10270b7d8467dbb0d806096cabcec7e3d2e1e5ecc60` |
+| `klum-ast-4.3.0-dev.46.uncommitted+codex.issue.1129.u3.b83b9c0.jar` | `0a94dab4242ebed5924d953ac19f87b5fb0439bbc6a25b4e08f9d7782855f3c2` |
 | `klum-ast-annotations-4.3.0-dev.28+d911107.jar` | `0bccf213e6e86b3c888fe00df495d9f900ecdc0db2f778265d7522749886c6d0` |
-| `klum-ast-annotations-4.3.0-dev.45.uncommitted+codex.issue.1129.u3.ebbbffd.jar` | `bb56336cb65f2fdf2f7724f8b341cfa960b621b271e893b5a0d432757a3c79ed` |
-| `klum-ast-gradle-plugin-4.3.0-dev.45.uncommitted+codex.issue.1129.u3.ebbbffd.jar` | `cae0386b5d95a12dd87d9d09500f7227e0bc0407cac9669b8edc9a401c636d03` |
+| `klum-ast-annotations-4.3.0-dev.46.uncommitted+codex.issue.1129.u3.b83b9c0.jar` | `b0a61be612a83c88c151fb9063e2526932dc6397cb4c2f2b8f54438db21a199f` |
+| `klum-ast-gradle-plugin-4.3.0-dev.46.uncommitted+codex.issue.1129.u3.b83b9c0.jar` | `b1cf9f64f12170afe7eb5510d86facb328752984e38e75c8eadf5ce91574747f` |
 | `klum-ast-runtime-4.3.0-dev.28+d911107.jar` | `d099bc08881eb05720b667dc7a771f8c175bc6c3ca8809e5db9bffc8bf087a63` |
-| `klum-ast-runtime-4.3.0-dev.45.uncommitted+codex.issue.1129.u3.ebbbffd.jar` | `352aa0e3b38a89fc1ee62ba63ea5d1e349e6041991e8a3253647daa8ef6fbbfa` |
+| `klum-ast-runtime-4.3.0-dev.46.uncommitted+codex.issue.1129.u3.b83b9c0.jar` | `e396a6c287b0a1ece1a5e8250b74ddf6b7c1519c1739d5bdd848ae6383f5fda2` |
 | `klum-cast-annotations-0.5.0.jar` | `3bb36f43fc90f27a04568673988fb8afb128d6ef00d7fe4c6de658eec5e981d2` |
 | `klum-cast-compile-0.5.0.jar` | `aa04039be352872bf48c9f60e6f45f140d88c1428886cb334c21529471cf71a2` |
 | `klum-cast-spi-0.5.0.jar` | `7aa1cfc700de2ca275f6c9124e28859f93d313023896c582fa8bf7d7a14d8e52` |
@@ -261,11 +263,56 @@ a bounded follow-up recheck.
 
 Both final reviewers independently cross-checked all 48 ledger identities, JUnit counts and the standard-build log.
 Specification also reran the 57-schema oracle. Both report **zero remaining local findings** on `ebbbffde2` plus the
-final documentation/evidence diff. Final diff/history review retains the two focused test/review commits and one delivery
-documentation commit; reviewed history is preserved. Required user documentation matches the final source.
+final documentation/evidence diff. Final diff/history review retains the initial two focused test/review commits and delivery documentation commit, plus
+one additive Sonar follow-up; reviewed history is preserved. Required user documentation matches the final source.
 Hosted CI/Sonar on the eventual draft head remain a separate remote result, reported in the PR/worker handoff. Review
 does not convert draft delivery into merged work or downstream adoption.
 
 Delivery-channel preflight: GitHub CLI repository-write channel **authorized**; dedicated Git branch publication channel
 **authorized**, verified by dry run. No connected-app capability is inferred from the CLI result. Actual draft publication
 and hosted checks are recorded in the final worker/PR handoff.
+
+
+## First hosted analysis and Sonar follow-up
+
+Hosted [CI run 46123758038](https://github.com/klum-dsl/klum-ast/actions/runs/46123758038) passed on
+`b83b9c0a92b5ec6314e5a04376ad8b6b1ffc2a6f`, including root checks, annotation-propagation artifact qualification,
+JUnit reporting, compatibility evidence and published documentation landing routes. The build job took **1h 24m 22s**.
+Sonar's gate passed, with **0% new duplication and zero hotspots**, but detailed analysis reported **10 maintainability
+findings**, all in `StructuredScalarAlternativeConsumerTest`:
+
+- **8 × groovydre:S8306:** add braces at the reported local guard sites. This changes neither global style policy nor
+  Sonar configuration; no suppression is introduced.
+- **2 × groovydre:S134:** extract one JAR-entry rewrite into `writeMutatedEntry`, keeping stream ownership at the caller
+  and preserving read, targeted mutation and write order while reducing nested control flow.
+
+The follow-up changes only this test harness and its evidence ledger. Producer/client fixtures, family admission,
+metadata protocol and JPMS behavior are unchanged. Both independent reviewers rechecked the patch with **zero findings**.
+The helper observations remain evidence-only for the separately owned investigation; no repair or U4 is added.
+First-analysis JSON is retained in `/private/tmp/klum-1129-u3-sonar-b83-{issues,gate,measures,hotspots}.json`.
+
+Focused qualification:
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew \
+  :klum-ast-gradle-plugin:test --tests '*StructuredScalarAlternativeConsumerTest' \
+  :klum-ast-gradle-plugin:licenseTest --console=plain --max-workers=2
+```
+
+Result: **all three generation scenarios and license checks pass**, including Java/static/dynamic classpaths,
+applicable named modules, historical inputs, missing/incomplete/corrupt contracts and resource-origin rejection.
+Log: `/private/tmp/klum-1129-u3-sonar-focused.log` (27s).
+
+Affected-module qualification:
+
+```shell
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home ./gradlew \
+  :klum-ast-gradle-plugin:test :klum-ast-gradle-plugin:licenseTest --console=plain --max-workers=2
+```
+
+Result: **717 cases pass, no failures/errors/skips**, in **14m 25s**.
+Log: `/private/tmp/klum-1129-u3-sonar-plugin.log`. The complete actual-schema oracle again passes **57 schemas,
+348 accepted / 636 rejected documents**; all **48 refreshed artifact identities/hashes match** the retained files.
+The ledger above now identifies these final follow-up artifacts exactly once. Broader compiler/runtime results remain
+valid because the follow-up modifies only its private test harness; the complete final head remains subject to
+separate hosted qualification. Final-head CI/Sonar reanalysis is reported in the PR/worker handoff, separately from this local result.

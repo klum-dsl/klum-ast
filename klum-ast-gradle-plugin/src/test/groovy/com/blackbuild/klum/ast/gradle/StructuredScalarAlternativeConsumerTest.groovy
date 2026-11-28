@@ -123,7 +123,9 @@ class StructuredScalarAlternativeConsumerTest extends Specification {
             String rejection = launch(inputs + [consumer], false, true)
             assert !rejection.contains('corrupt contract accepted'): kind
             assert rejection.contains(diagnostics[kind]): rejection
-            if (kind != 'missing-parent') assert rejection.contains('recompile and package'): rejection
+            if (kind != 'missing-parent') {
+                assert rejection.contains('recompile and package'): rejection
+            }
             assert rejection.contains(kind == 'missing-parent' ? 'fixture/parent/Destination' : 'fixture.parent.Destination'): rejection
             setProjectionInputs(project, inputs, ['fixture.child.Child'])
             String failure = projectSchemas(project, false)
@@ -227,32 +229,42 @@ klumSchema.jsonSchema {
         Path output = root.resolve('parent-' + kind + '.jar')
         new JarFile(parent.toFile()).withCloseable { input ->
             new JarOutputStream(Files.newOutputStream(output)).withCloseable { jar ->
-                input.entries().each { entry ->
-                    byte[] bytes = input.getInputStream(entry).withCloseable { it.readAllBytes() }
-                    if (entry.name == BUILDER) bytes = corrupt(bytes, kind)
-                    jar.putNextEntry(new JarEntry(entry.name))
-                    jar.write(bytes)
-                    jar.closeEntry()
-                }
+                input.entries().each { entry -> writeMutatedEntry(input, jar, entry, kind) }
             }
         }
         output
+    }
+
+    private static void writeMutatedEntry(JarFile input, JarOutputStream output, JarEntry entry, String kind) {
+        byte[] bytes = input.getInputStream(entry).withCloseable { it.readAllBytes() }
+        if (entry.name == BUILDER) {
+            bytes = corrupt(bytes, kind)
+        }
+        output.putNextEntry(new JarEntry(entry.name))
+        output.write(bytes)
+        output.closeEntry()
     }
 
     private static byte[] corrupt(byte[] bytes, String kind) {
         ClassWriter writer = new ClassWriter(0)
         new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM9, writer) {
             @Override AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                if (kind == 'schema' && descriptor.endsWith('GeneratedInput$Schema;')) return null
+                if (kind == 'schema' && descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return null
+                }
                 def visitor = super.visitAnnotation(descriptor, visible)
-                if (kind != 'count' || !descriptor.endsWith('GeneratedInput$Schema;')) return visitor
+                if (kind != 'count' || !descriptor.endsWith('GeneratedInput$Schema;')) {
+                    return visitor
+                }
                 new AnnotationVisitor(Opcodes.ASM9, visitor) {
                     @Override void visit(String member, Object value) { super.visit(member, member == 'operationCount' ? 999 : value) }
                 }
             }
             @Override MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 def visitor = super.visitMethod(access, name, descriptor, signature, exceptions)
-                if (name != 'address' || !descriptor.startsWith('(Ljava/lang/String;)')) return visitor
+                if (name != 'address' || !descriptor.startsWith('(Ljava/lang/String;)')) {
+                    return visitor
+                }
                 new MethodVisitor(Opcodes.ASM9, visitor) {
                     @Override AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
                         if (kind == 'operation' && annotation.endsWith('GeneratedInput$Operation;') ||
@@ -260,10 +272,14 @@ klumSchema.jsonSchema {
                             return null
                         }
                         def downstream = super.visitAnnotation(annotation, visible)
-                        if (kind != 'parameter' || !annotation.endsWith('GeneratedInput$Operation;')) return downstream
+                        if (kind != 'parameter' || !annotation.endsWith('GeneratedInput$Operation;')) {
+                            return downstream
+                        }
                         new AnnotationVisitor(Opcodes.ASM9, downstream) {
                             @Override void visit(String member, Object value) {
-                                if (!member.startsWith('parameterConstraint')) super.visit(member, value)
+                                if (!member.startsWith('parameterConstraint')) {
+                                    super.visit(member, value)
+                                }
                             }
                             @Override AnnotationVisitor visitArray(String member) {
                                 member == 'parameterConstraints' ? null : super.visitArray(member)
@@ -311,7 +327,9 @@ klumSchema.jsonSchema {
         StringBuilder output = new StringBuilder()
         Thread reader = Thread.start { process.inputStream.withReader { output.append(it.text) } }
         boolean completed = process.waitFor(60, TimeUnit.SECONDS)
-        if (!completed) process.destroyForcibly()
+        if (!completed) {
+            process.destroyForcibly()
+        }
         reader.join(5000)
         commands.add([command: command, success: success, output: output.toString()])
         assert completed: "Timed out: $command\n$output"
