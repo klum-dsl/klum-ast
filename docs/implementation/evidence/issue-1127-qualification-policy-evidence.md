@@ -26,7 +26,9 @@ ADR 0032's RawData extension and `docs/implementation/issue-1132-bounded-raw-dat
 qualification plan, this evidence and the Sonar report; there is **no file overlap or demonstrated conceptual interaction**
 with RawData's generated/runtime/input contract. No generated/runtime/test seam is changed. Master still has no ADR 0035.
 Retain the pinned base/independent branch under accepted O1; no freshness-only rebase or unrelated merge is needed.
-Known active related work is this Hive-owned #1127 design; no concurrent owner of these four paths was identified.
+An open-PR refresh returned #1139, the release/4.2.x JPMS-helper upmerge; it touches none of these policy/ADR paths.
+Its generated/runtime repair is independent from this inert design delivery, which changes no test or runtime seam.
+No concurrent owner of the four design paths was identified in that bounded refresh.
 Refresh live integration before publication; record the resulting tree and any changed overlap rather than assuming it.
 
 ## Research sources
@@ -167,8 +169,8 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home \
 git diff --check 7a74f22977a69303f41a289489a5bc9d56244c02 HEAD
 ```
 
-Groovy/product lanes are omitted under the inert-documentation exception. Final delivery validation and the two-axis
-review receipt will identify their exact comparison base/candidate; they do not turn policy acceptance into enforcement.
+Groovy/product lanes are omitted under the inert-documentation exception. Delivery validation and the two-axis review
+receipt below identify the exact comparison base/candidate; they do not turn policy acceptance into enforcement.
 
 ## Standards
 
@@ -180,6 +182,10 @@ primary-source research and wrote the companion report; no code/configuration or
 this process violation before archival. Final review of the consolidated committed delivery is separate from those
 historical checks.
 
+Final whole-diff Standards review of `9788c6878192e4427a7c43db9ec3cbe75762382d` against pinned base
+`7a74f22977a69303f41a289489a5bc9d56244c02`: **zero actionable content findings or applicable Fowler smells**. The
+historical process violation remains a separate reconciliation condition, not a cleared content finding.
+
 ## Specification
 
 `specification_review` found one original P2 ambiguity about newer-attempt precedence, then one amendment P2 ambiguity
@@ -188,6 +194,24 @@ zero outstanding findings. The rule requires complete successful selected proof,
 conclusions, leaves unfinished duplicate steps incomplete, and never replaces/combines outcomes across attempts.
 D3, D4 and D5 amendment rechecks each had zero new findings. Final consolidated delivery receives a fresh whole-diff
 review rather than silently extending those results to a new commit.
+
+Final whole-diff Specification review of the same commit/base: **zero actionable findings** across all eight original
+inputs and accepted D1–D6/O1. D6 is initially non-gating; D4 is a guideline with recorded reasoned exceptions; D5 preserves
+every master-push full CI in the first rollout. Release verification and the no-implementation boundary remain intact.
+
+## Design publication receipt
+
+The complete four-document candidate `9788c6878192e4427a7c43db9ec3cbe75762382d` passed the standard committed-head
+prose command against fetched master `dea80156d212ebe2231e5f4a48290832df650be1`: **four files, 30 local links, zero
+incoming links/fragments, 33 external links syntax-only, escaped CommonMark render**, 8s. Whole-diff whitespace checks
+passed. Precommit snapshot `1d5c40a766b15b539ce00184a658a3686f3225ad` had the same result, 10s.
+These are local committed-source checks, not hosted/integration qualification or Sonar analysis.
+
+GitHub CLI repository-write capability and Git transport dedicated-branch dry-run were checked independently:
+**authorized** on each channel. No GitHub App capability was inferred or used. The dry-run changed no remote branch.
+Local merge-tree computation against fetched master completed cleanly; no freshness-only rebase was performed.
+This receipt adds validation/review/overlap facts only; final-head source checks and publication state are reported with
+the draft PR/Hive handoff. No passed hosted check, enforcement, implementation or issue delivery is inferred.
 
 ## Audit gap and delivery boundary
 
