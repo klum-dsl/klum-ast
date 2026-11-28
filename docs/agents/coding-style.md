@@ -31,7 +31,8 @@ suggestion. Replace it with an import unless one of the exceptions above applies
   than silently escalating this style policy.
 
 This is principle-based preventative review, not a local reproduction of Sonar's metrics or a substitute for SonarCloud.
-The full CI/SonarCloud run remains the sole authoritative, coverage-bearing PR quality gate. Do not use a fast upload to
+The full CI/SonarCloud run remains the authoritative, coverage-bearing product PR quality gate. The
+[narrow D1 prose exception](../implementation/issue-1127-docs-qualification.md) provides no product or coverage proof. Do not use a fast upload to
 that shared SonarCloud project as a pre-PR gate.
 
 ## Generated IDE properties

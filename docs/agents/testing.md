@@ -32,8 +32,10 @@ those surfaces are affected. A shared contract spanning modules also requires ro
 
 After a final rebase, rerun the checks invalidated by integration and any targeted regressions needed for the combined
 change; retain earlier results only where their inputs and assumptions remain valid. Follow the reviewed-history rules in
-[commits.md](commits.md) before rebasing. GitHub PR CI is the authoritative complete-build qualification: inspect all
-required checks, including SonarCloud, on the final PR revision. Local evidence never substitutes for pending or failed CI.
+[commits.md](commits.md) before rebasing. GitHub PR CI supplies authoritative qualification on the final PR revision. The narrowly admitted, strictly protected
+[D1 prose exception](../implementation/issue-1127-docs-qualification.md) supplies only documentation qualification;
+all other PRs require the complete build and authentic SonarCloud result. Inspect the selected qualification and all
+required checks on that revision. Local evidence never substitutes for pending or failed CI.
 
 ## Test lanes
 

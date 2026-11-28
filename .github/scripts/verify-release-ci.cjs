@@ -70,7 +70,7 @@ function githubApi(token, fetchResponse = fetch, pause = ms => new Promise(resol
       requireEvidence(response.status === 200, `GitHub API returned HTTP ${response.status}`);
       let body;
       try { body = await response.json(); } catch { throw new Error('Malformed GitHub JSON'); }
-      requireEvidence(body && typeof body === 'object' && !Array.isArray(body), 'Malformed GitHub object');
+      requireEvidence(body && typeof body === 'object' && (!Array.isArray(body) || path === `/repos/${REPOSITORY}/rules/branches/master`), 'Malformed GitHub object');
       return {body, link: response.headers.get('link')};
     }
   };
@@ -199,7 +199,7 @@ async function verifyReleaseCi(identity, api) {
   return result;
 }
 
-module.exports = {verifyReleaseCi, githubApi};
+module.exports = {verifyReleaseCi, githubApi, list};
 
 if (require.main === module) {
   (async () => {
