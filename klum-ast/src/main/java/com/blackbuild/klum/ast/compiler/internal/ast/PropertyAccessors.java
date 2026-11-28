@@ -40,6 +40,7 @@ import java.util.List;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.*;
 import static com.blackbuild.klum.ast.compiler.internal.ast.MethodBuilder.createMethod;
+import static com.blackbuild.klum.ast.compiler.internal.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.replaceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
@@ -84,22 +85,22 @@ class PropertyAccessors {
                     .doReturn(attrX(varX("this"), constX(fieldName)))
                     .addTo(transformation.builderClass);
 
-        createMethod(DslAstHelper.getSetterName(fieldName))
+        createProxyMethod(DslAstHelper.getSetterName(fieldName), "setInstanceAttribute")
                 .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
+                .constantParam(fieldName)
                 .param(builderField.getType(), VALUE_PARAMETER)
                 .withDocumentation(documentation -> documentAccessor(documentation, modelField, DslAstHelper.getSetterName(fieldName)))
-                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
                 .addTo(transformation.builderClass);
 
         // Existing completed values enter through KlumBuilder, which seals LINK targets.
         if (!builderField.getType().equals(modelField.getType()))
-            createMethod(DslAstHelper.getSetterName(fieldName))
+            createProxyMethod(DslAstHelper.getSetterName(fieldName), "setInstanceAttribute")
                 .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
+                .constantParam(fieldName)
                 .param(modelField.getType(), VALUE_PARAMETER)
                 .withDocumentation(documentation -> documentAccessor(documentation, modelField, DslAstHelper.getSetterName(fieldName)))
-                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
                 .addTo(transformation.builderClass);
     }
 

@@ -16,6 +16,12 @@
   private runtime implementations. Preserve encounter order, nested-value isolation and exact TreeMap/TreeSet comparators.
   See [copy boundaries](docs/user/Copy-Strategies.md#nested-standard-value-containers)
   ([#1117](https://github.com/klum-dsl/klum-ast/issues/1117)).
+- Repair Groovy 4/5 named-module Builder property assignment, including inherited writes in `@Builder.Method`, and direct
+  generated Builder scalar/List/Map converter calls. Generated calls link through the existing exported generated-runtime
+  base while retaining runtime normalization, mutation guards and converter argument handling. Recompile affected Schema
+  artifacts with matching patched compiler/runtime versions; replacing the runtime alone does not repair older generated
+  bytecode. See [migration guidance](docs/user/Migration.md#named-module-helper-repair)
+  ([#1137](https://github.com/klum-dsl/klum-ast/issues/1137)).
 
 ## Documentation
 
@@ -27,7 +33,6 @@
   script composition, diagnostic context, the Groovy dependency tradeoff, and supporting validation/YAML/Pkl context.
   See [related approaches](docs/user/Related-Approaches.md)
   ([#1108](https://github.com/klum-dsl/klum-ast/issues/1108)).
-
 # 4.2.1 (2026-11-20)
 
 - [Generated JSON Schema](https://github.com/klum-dsl/klum-ast/blob/874ccf53a0c648a98e0d8def99e8ac802101fdc6/docs/user/Json-Schema.md)

@@ -411,6 +411,256 @@ class JpmsPackageBoundaryTest extends Specification {
             assertFixtureOutput(namedModuleResult)
     }
 
+    @Issue("1137")
+    def "generated property assignment works on the classpath and module path"() {
+        when:
+        Map<String, ProcessResult> results = executeGeneratedHelperFixture(propertyAssignmentSource(),
+                ['assignment', 'inherited', 'fluent', 'relationship', 'guards'], ['$setInstanceAttribute'] as Set)
+
+        then:
+        results.each { scenario, result ->
+            assert result.exitCode == 0 : "$scenario: $result.output"
+            assert result.output.readLines().contains('helper=true') : "$scenario: $result.output"
+        }
+    }
+
+    @Issue("1137")
+    def "ordinary numeric converters preserve arguments on the classpath and module path"() {
+        when:
+        Map<String, ProcessResult> results = executeGeneratedHelperFixture(numericConverterSource(),
+                ['scalar', 'list', 'map', 'overloads', 'arguments', 'guards'],
+                ['$setSingleFieldViaConverter', '$addElementToCollectionViaConverter', '$addElementToMapViaConverter'] as Set)
+
+        then:
+        results.each { scenario, result ->
+            assert result.exitCode == 0 : "$scenario: $result.output"
+            assert result.output.readLines().contains('helper=true') : "$scenario: $result.output"
+        }
+    }
+
+    private static Map<String, ProcessResult> executeGeneratedHelperFixture(String source, List<String> scenarios, Set<String> expectedHooks) {
+        boolean namedGroovy = !GroovySystem.version.startsWith('3.')
+        Path fixture = Files.createTempDirectory('klum-generated-helper')
+        Path sources = fixture.resolve('sources')
+        Path classes = fixture.resolve('classes')
+        Files.createDirectories(sources.resolve('fixture/schema'))
+        Files.createDirectories(classes)
+        Files.writeString(sources.resolve('fixture/schema/Station.groovy'), source)
+        ProcessResult compilation = compileGroovySchema(sources, classes, namedGroovy)
+        assert compilation.exitCode == 0 : compilation.output
+        assertGeneratedHelperDirectLinkage(classes, expectedHooks)
+        Path archive
+        if (namedGroovy) {
+            archive = compileAndPackageNamedSchema(sources, classes)
+        } else {
+            archive = fixture.resolve('fixture.schema.jar')
+            ProcessResult packaging = execute([
+                    jarExecutable(), '--create', '--file', archive.toString(), '-C', classes.toString(), '.'
+            ], fixture)
+            assert packaging.exitCode == 0 : packaging.output
+        }
+        assert sources.toFile().deleteDir()
+        assert classes.toFile().deleteDir()
+
+        // Compare identical Schema bytes with only the application JVM's module/classpath placement changed.
+        List<String> runtimeEntries = modulePathEntries().findAll { entry ->
+            entry != jarPath('klumCompilerJar').toString()
+        }
+        Map<String, ProcessResult> results = [:]
+        [false, true].findAll { !it || namedGroovy }.each { named ->
+            scenarios.each { scenario ->
+                List<String> command = named ? [
+                        javaExecutable(), '--module-path', [archive, *runtimeEntries].join(File.pathSeparator),
+                        '-m', 'fixture.schema/fixture.schema.HelperMain', scenario
+                ] : [
+                        javaExecutable(), '--class-path', [archive, *runtimeEntries].join(File.pathSeparator),
+                        'fixture.schema.HelperMain', scenario
+                ]
+                assertNoPortabilityWorkarounds(command)
+                results["${named ? 'module' : 'classpath'}/$scenario".toString()] = execute(command, fixture)
+            }
+        }
+        results
+    }
+
+    private static void assertGeneratedHelperDirectLinkage(Path classes, Set<String> expectedHooks) {
+        Set<String> directHooks = []
+        Set<String> dynamicHooks = []
+        Files.walk(classes).withCloseable { paths ->
+            paths.filter { it.fileName.toString().endsWith('$Builder.class') }.forEach { builder ->
+                Files.newInputStream(builder).withCloseable { input ->
+                    new ClassReader(input).accept(helperLinkageVisitor(expectedHooks, directHooks, dynamicHooks), 0)
+                }
+            }
+        }
+        assert dynamicHooks.empty : "Generated helpers must not dispatch dynamically: $dynamicHooks"
+        assert directHooks == expectedHooks
+    }
+
+    private static ClassVisitor helperLinkageVisitor(Set<String> expectedHooks, Set<String> directHooks, Set<String> dynamicHooks) {
+        new ClassVisitor(Opcodes.ASM7) {
+            @Override
+            MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                new MethodVisitor(Opcodes.ASM7) {
+                    @Override
+                    void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrap,
+                                                Object... bootstrapArguments) {
+                        bootstrapArguments.findAll { it in expectedHooks || ('$' + it) in expectedHooks }
+                                .each { dynamicHooks.add(it.toString()) }
+                    }
+
+                    @Override
+                    void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
+                                         boolean isInterface) {
+                        if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
+                                methodName in expectedHooks) {
+                            directHooks.add(methodName)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static String propertyAssignmentSource() {
+        '''
+            package fixture.schema
+            import com.blackbuild.klum.ast.Builder
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Field
+            import com.blackbuild.klum.ast.FieldType
+            import com.blackbuild.klum.ast.runtime.KlumModelException
+
+            @DSL class Parent { int count }
+            @DSL class Container {
+                Parent owned
+                @Field(FieldType.LINK) Parent linked
+            }
+            @DSL class Child extends Parent {
+                @Builder.Method void assign(Integer input) { count = input }
+            }
+            class HelperMain {
+                static void assertRejected(Closure action) {
+                    try {
+                        action()
+                        throw new AssertionError('Builder mutation was accepted')
+                    } catch (KlumModelException expected) {
+                        assert expected.message.contains('Construction session') || expected.message.contains('sealed')
+                    }
+                }
+
+                static void main(String[] args) {
+                    switch (args[0]) {
+                        case 'assignment':
+                            assert Parent.Create.With { count = 7 }.count == 7
+                            break
+                        case 'inherited':
+                            assert Child.Create.With { assign 7 }.count == 7
+                            break
+                        case 'fluent':
+                            assert Parent.Create.With { count 7 }.count == 7
+                            break
+                        case 'relationship':
+                            Parent completed = Parent.Create.With { count 5 }
+                            Container result = Container.Create.With {
+                                linked = completed
+                                def child = Parent.Create.AsBuilder().With { count 7 }
+                                owned = child
+                            }
+                            assert result.linked.is(completed)
+                            assert result.owned.count == 7
+                            break
+                        case 'guards':
+                            def retained
+                            Parent completed = Parent.Create.With { retained = delegate; count = 7 }
+                            assertRejected { retained.count = 8 }
+                            Container.Create.With {
+                                linked = completed
+                                def sealed = linked
+                                HelperMain.assertRejected { sealed.count = 8 }
+                            }
+                            assert completed.count == 7
+                            break
+                        default: throw new AssertionError(args[0])
+                    }
+                    println 'helper=true'
+                }
+            }
+        '''.stripIndent()
+    }
+
+    private static String numericConverterSource() {
+        '''
+            package fixture.schema
+            import com.blackbuild.klum.ast.Converters
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Field
+            import com.blackbuild.klum.ast.runtime.KlumModelException
+            import groovy.transform.CompileStatic
+
+            @DSL class Converted {
+                @Field(converters = [{ Integer input -> input.toString() }]) String address
+                @Converters(AddressConverters) String encoded
+                @Field(converters = [{ Integer input -> input.toString() }]) List<String> numbers
+                @Field(converters = [{ Integer input -> input.toString() }]) Map<String, String> entries
+            }
+            class AddressConverters {
+                static int calls
+                static String fromInteger(Integer input) { calls++; input == null ? 'null' : "integer:$input" }
+                static String fromLong(Long input) { "long:$input" }
+                static String fromPair(int first, int second) { "$first:$second" }
+                static String fromArray(Integer[] input) { input.join(',') }
+                static String fromEmpty() { 'empty' }
+            }
+            class HelperMain {
+                @CompileStatic
+                static Converted withNull() {
+                    Converted.Create.With { encoded((Integer) null) }
+                }
+
+                static void main(String[] args) {
+                    switch (args[0]) {
+                        case 'scalar':
+                            assert Converted.Create.With { address 8080 }.address == '8080'
+                            break
+                        case 'list':
+                            assert Converted.Create.With { number 7; number 8 }.numbers == ['7', '8']
+                            break
+                        case 'map':
+                            assert Converted.Create.With { entry 'primary', 9 }.entries == [primary: '9']
+                            break
+                        case 'overloads':
+                            assert Converted.Create.With { encoded 9L }.encoded == 'long:9'
+                            assert Converted.Create.With { encoded 9 }.encoded == 'integer:9'
+                            break
+                        case 'arguments':
+                            assert Converted.Create.With { encoded() }.encoded == 'empty'
+                            assert Converted.Create.With { encoded 2, 3 }.encoded == '2:3'
+                            Integer[] values = [2, 3]
+                            assert Converted.Create.With { encoded values }.encoded == '2,3'
+                            assert withNull().encoded == 'null'
+                            break
+                        case 'guards':
+                            def retained
+                            Converted completed = Converted.Create.With { retained = delegate; encoded 7 }
+                            int calls = AddressConverters.calls
+                            try {
+                                retained.encoded(8)
+                                throw new AssertionError('Builder mutation was accepted')
+                            } catch (KlumModelException expected) {
+                                assert expected.message.contains('Construction session')
+                            }
+                            assert AddressConverters.calls == calls
+                            assert completed.encoded == 'integer:7'
+                            break
+                        default: throw new AssertionError(args[0])
+                    }
+                    println 'helper=true'
+                }
+            }
+        '''.stripIndent()
+    }
+
     private static Map<String, Set<String>> packageOwners(Map<String, Set<String>> packagesByArtifact) {
         Map<String, Set<String>> owners = new LinkedHashMap<>()
         packagesByArtifact.each { artifact, packageNames ->
