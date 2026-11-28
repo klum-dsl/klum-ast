@@ -60,7 +60,8 @@ boundary and ask for direction.
 - Do not use broad suppressions to hide unrelated findings. A suppression is documentation of an intentional exception and must explain the invariant or compatibility constraint.
 - Follow the risk-tiered local validation matrix in [testing.md](testing.md#local-validation-before-push), and report
   the checks run, their scope and any omissions. Documentation-only pull requests must report applicable documentation
-  and diff checks and the omission of Groovy lanes. Hosted PR CI supplies complete-build qualification on the final head.
+  and diff checks and the omission of Groovy lanes. Hosted PR CI supplies complete-build qualification on the final head, except for the explicitly admitted
+  [D1 prose lane](../implementation/issue-1127-docs-qualification.md), which supplies documentation qualification only.
 - Verify that every new test carries its driving `@Issue` number, using a class-level annotation while one issue owns the
   complete specification. Add or amend `@Issue` on changed existing tests only for significant behavioral changes. A new
   user-visible DSL feature must also have a documentary test marked with `@Tag("documentary")` and linked to its
@@ -68,6 +69,19 @@ boundary and ask for direction.
   `docs/agents/testing.md`.
 - Verify that new executable test classes use the `Test` suffix and that dedicated documentary classes use
   `<Theme>DocumentaryTest`. Existing `*Spec` classes need not be renamed unless a scoped rename improves the change.
+
+## Architecture prose qualification authority
+
+The maintainer-approved [D1 prose policy](../implementation/issue-1127-docs-qualification.md) allows a successful prose
+qualification to replace product checks only for its complete positive-admission change set. Maintainers/Hive retain
+merge authority. Immediately before accepting a prose-qualified PR, verify the final head, live base tip and merge
+identity against its qualification evidence. After a base/head change, update/rebase the PR and obtain fresh
+qualification. An old green check is not sufficient. Inspect all separately required GitHub checks; prose cannot
+satisfy a required build, JUnit or Sonar check.
+
+GitHub settings enforce only their configured merge rules. This policy does not add enforcement or change settings.
+A PR-controlled workflow requires maintainer review; an Actions App-bound check does not attest to a particular trusted
+workflow definition. The tooling guards accidental stale/incomplete qualification, not a deliberately malicious workflow.
 
 ## Review feedback follow-up
 
