@@ -3,8 +3,9 @@
 ## Features
 
 - Admit an explicitly marked, Schema-authored `int`/`Integer` and `String` operation pair under one Struct name, with
-  exact numeric conversion and matching int32/String JSON Schema alternatives. This initial slice requires empty
-  parameter constraint facts; arm constraints and broader qualification remain follow-ups. See
+  exact numeric conversion and matching int32/String JSON Schema alternatives, including arm-local supported parameter
+  constraints, documentation and policies. Ignored helpers stay outside the family; effective names and overrides resolve
+  before admission. Independent artifact and final delivery qualification remain follow-ups. See
   [Integer/String alternatives](docs/user/Structured-Input.md#integerstring-alternatives)
   ([#1129](https://github.com/klum-dsl/klum-ast/issues/1129)).
 

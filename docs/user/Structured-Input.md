@@ -1197,7 +1197,10 @@ import com.blackbuild.klum.ast.Struct
     @Struct.Ignore Object value
     @Struct.Operation @Builder.Method void address(Integer input) { value = input }
     @Struct.Operation @Builder.Method void address(String input) { value = input }
+    @Struct.Ignore @Builder.Method void address(Number input) { /* ordinary Builder helper */ }
+    @Struct.Ignore @Builder.Method void address(AddressHelper input) { /* ordinary Builder helper */ }
 }
+class AddressHelper {}
 
 assert Destination.Create.FromStruct([address: 8080]).value == 8080
 assert Destination.Create.FromStruct([address: 'http']).value == 'http'
@@ -1212,14 +1215,16 @@ This frontend conversion can differ from a Schema's ordinary Number helper. Stru
 signature, without retrying the other arm after conversion or operation-body failure. Null, Boolean, Map, List, GString,
 mutable CharSequence and arbitrary objects reject.
 
-This initial slice requires compiler-confirmed **empty parameter constraint facts** on both arms. Nonempty or unqualified
-parameter facts reject the family, even with absent input or an OMIT policy; arm constraint projection and the full effective
-inheritance/override qualification remain follow-up work under #1129. Use matching compiler/runtime/plugin artifacts
-and recompile participating Schemas. Historical two-mark contracts lack these completeness facts and reject with
+Both arms require complete compiler-frozen parameter facts, including an explicit count when there are no constraints.
+Ignored Number and opaque helpers do not participate; any extra eligible candidate rejects the family. Effective names,
+naming profiles and overrides resolve before admission. An override owns its current marker, name, exclusions and facts.
+Use matching compiler/runtime/plugin artifacts and recompile participating Schemas. Historical two-mark contracts lack these completeness facts and reject with
 recompilation guidance. Existing single-route contracts retain their interpretation.
 
 [JSON Schema](Json-Schema.md#integerstring-alternatives) emits one `anyOf` property, with an int32-bounded integer branch
-then a String branch. Each branch retains its own method prose, examples and deprecation. Generation and Struct do not
+then a String branch. Each branch retains its own method prose, supported parameter constraints, examples and deprecation.
+Only these qualified parameter sites gain constraint projection; ordinary authored operations keep their existing schema
+behavior. Struct does not enforce parameter constraints or automatically validate against JSON Schema. Generation and Struct do not
 validate operation bodies or imply completed-Model reconstruction. Consumer adoption remains separately qualified.
 
 ## Select a String operation

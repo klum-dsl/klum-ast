@@ -26,10 +26,16 @@ The explicitly marked [Integer/String pair](Structured-Input.md#integerstring-al
 ```
 
 Branches always appear integer then String, independent of declaration order. Each owns its method prose, examples
-and deprecation; the wrapper combines no documentation or constraints. This initial slice requires explicit empty
-parameter facts on both arms. Nonempty/unknown parameter facts reject before output replacement, including under OMIT.
-Arm constraint projection and the full hierarchy/artifact qualification remain follow-up work under
-[#1129](https://github.com/klum-dsl/klum-ast/issues/1129). A schema-valid value may still fail the operation body or lifecycle.
+and deprecation; the wrapper combines no documentation or constraints. Supported parameter constraints belong to their
+own branch: for example, integer Min/Max bounds conjoin with the int32 fence, while a bounded String Pattern stays on the
+String branch. PROJECT, TEXT_ONLY and OMIT retain the policies described below; none removes structural type/range fences.
+Unsupported or grouped rules remain documentary. Generic authored-parameter metadata does not enable projection on other
+operation sites and never adds runtime parameter enforcement.
+
+Both arms require complete parameter facts. Missing, unknown or inconsistent facts reject before output replacement,
+including under OMIT or when no member was supplied. Independent artifact/historical-binary/JPMS and final delivery
+qualification remain later work under [#1129](https://github.com/klum-dsl/klum-ast/issues/1129).
+A schema-valid value may still fail the operation body or lifecycle.
 
 ## Choose the root shape
 

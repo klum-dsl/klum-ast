@@ -1,6 +1,6 @@
 # #1129: finite Integer/String Struct alternatives
 
-Date: 2026-11-27. Status: **Accepted plan (PR #1130); U1 minimal behavior implemented on its dedicated branch. U2/U3 pending.**
+Date: 2026-11-27. Status: **Accepted plan (PR #1130); U1 merged in PR #1131; U2 arm facts and resolution implemented on its dedicated branch. U3 pending.**
 
 Related: [#1129](https://github.com/klum-dsl/klum-ast/issues/1129).
 Decision: [ADR 0032 extension](../adr/0032-builder-oriented-structured-input.md#finite-integerstring-operation-alternatives--1129).
@@ -8,7 +8,7 @@ Authority: [bounded v1](https://github.com/klum-dsl/klum-ast/issues/1129#issueco
 [separate annotations](https://github.com/klum-dsl/klum-ast/issues/1129#issuecomment-7225170536).
 These comments supersede the issue body's earlier open-design questions. Metadata transport and commit boundaries below
 are reviewable implementation proposals. The subsequent maintainer review requires generic authored-parameter transport,
-family-specific completeness, qualified projection sites and consolidated U1–U3 qualification; none is implemented here.
+family-specific completeness and qualified projection sites (implemented through U2), followed by consolidated U1–U3 qualification.
 
 ## Scope and evidence
 
@@ -28,7 +28,8 @@ sharpens excluded-helper handling and consumer acceptance; it changes no accepte
 
 The planning assignment (PR #1130) edited only this plan and ADR 0032; it added no production/test/build, issue/milestone, release, user-guide
 or ScHelm change. Its documentation checks established no runtime/schema qualification.
-The later, explicitly assigned U1 implementation is recorded in [U1 evidence](issue-1129-u1-evidence.md).
+The later, explicitly assigned implementations are recorded in [U1 evidence](issue-1129-u1-evidence.md) and
+[U2 evidence](issue-1129-u2-evidence.md).
 
 ## Consumer acceptance and neutral fixture
 
